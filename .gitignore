@@ -1,0 +1,10 @@
+node_modules/
+/docs/*
+!/docs/verification.md
+!/docs/plans/
+/docs/plans/*
+!/docs/plans/README.md
+dist/
+.turbo/
+.pnpm-store/
+*.tsbuildinfo

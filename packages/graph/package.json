@@ -1,0 +1,47 @@
+{
+  "name": "@flow-designer/graph",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit",
+    "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\""
+  },
+  "dependencies": {
+    "@flow-designer/model": "workspace:*",
+    "@antv/x6": "^2.18.0",
+    "@antv/x6-react-shape": "^2.2.3",
+    "@antv/x6-plugin-selection": "^2.2.0",
+    "@antv/x6-plugin-scroller": "^2.0.0",
+    "@antv/x6-plugin-snapline": "^2.1.0",
+    "@antv/x6-plugin-clipboard": "^2.1.0",
+    "@antv/x6-plugin-keyboard": "^2.2.0",
+    "@antv/x6-plugin-stencil": "^2.1.0",
+    "@antv/x6-plugin-dnd": "^2.1.0"
+  },
+  "peerDependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:"
+  }
+}

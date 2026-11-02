@@ -1,0 +1,8 @@
+packages:
+  - 'packages/*'
+  - 'apps/*/*'
+  - 'tools/*'
+
+catalog:
+  '@types/react': ^18.3.0
+  '@types/react-dom': ^18.3.0

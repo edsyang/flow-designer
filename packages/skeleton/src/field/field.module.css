@@ -1,0 +1,209 @@
+/* Field base */
+.field {
+  white-space: nowrap;
+  position: relative;
+  color: var(--fd-text-secondary);
+}
+
+.fieldTitle {
+  font-size: 12px;
+  line-height: 28px;
+  user-select: none;
+  color: var(--fd-text-secondary);
+}
+
+.fieldTitleCompact {
+  display: block;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  text-align: right;
+}
+
+.fieldHead {
+  padding-left: var(--fd-space-md);
+  height: 28px;
+  background: var(--fd-surface-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.fieldHead>.iconTip {
+  margin-left: 2px;
+}
+
+.fieldBody {
+  min-height: 28px;
+}
+
+/* Group field */
+.groupField {
+  padding: 0;
+}
+
+/* Plain field */
+.plainField {
+  composes: field;
+}
+
+/* Inline field */
+.inlineField {
+  composes: field;
+  display: flex;
+  align-items: center;
+  padding: 5px 0;
+}
+
+.inlineField>.fieldHead {
+  display: inline-flex;
+  background: none;
+  padding: 0;
+  height: auto;
+}
+
+.inlineField>.fieldHead>.fieldTitle {
+  display: inline-flex;
+  width: 64px;
+  flex-shrink: 0;
+  margin-right: var(--fd-space-sm);
+  line-height: 28px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inlineField>.fieldBody {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+/* Block field */
+.blockField {
+  composes: field;
+  padding: 5px 0;
+}
+
+.blockField>.fieldHead {
+  background: none;
+  padding: 0;
+  height: auto;
+  margin-bottom: var(--fd-space-xs);
+}
+
+.blockField>.fieldHead>.fieldTitle {
+  font-weight: 500;
+}
+
+.blockField>.fieldBody {
+  margin: 0;
+}
+
+/* Accordion field */
+.accordionField {
+  composes: field;
+  margin-bottom: 1px;
+}
+
+.accordionField>.fieldHead {
+  position: relative;
+  cursor: pointer;
+}
+
+.accordionField>.fieldHead>.fieldTitle {
+  letter-spacing: 0.5px;
+}
+
+.fieldArrow {
+  transform: rotate(180deg);
+  position: absolute;
+  right: var(--fd-space-sm);
+  top: var(--fd-space-sm);
+  transition: transform var(--fd-transition);
+  opacity: 0.5;
+}
+
+/* Popup field */
+.popupField {
+  composes: field;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  padding-left: var(--fd-space-md);
+  background: var(--fd-surface-tertiary);
+  margin-bottom: 1px;
+}
+
+.popupField>.fieldTitle {
+  letter-spacing: 0.5px;
+}
+
+/* Caption field */
+.captionField {
+  composes: field;
+  border: 1px solid var(--fd-border);
+  border-radius: var(--fd-radius-sm);
+  margin-top: var(--fd-space-sm);
+}
+
+.captionField>.fieldHead {
+  position: absolute;
+  background: none;
+  top: -12px;
+  padding: 0 var(--fd-space-xs);
+  left: 50%;
+  transform: translateX(-50%);
+  height: 20px;
+  cursor: default;
+}
+
+.captionField>.fieldBody {
+  margin-top: var(--fd-space-md);
+}
+
+/* State modifiers */
+.collapsed>.fieldArrow {
+  transform: rotate(0);
+}
+
+.collapsed>.fieldBody {
+  display: none;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Icon tip */
+.iconTip {
+  margin-left: 2px;
+  cursor: default;
+}
+
+.blockField {
+  padding: 0 0 16px;
+}
+
+.blockField>.fieldHead {
+  margin-bottom: 6px;
+}
+
+.blockField>.fieldHead>.fieldTitle {
+  line-height: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.inlineField {
+  padding: 6px 0;
+}
