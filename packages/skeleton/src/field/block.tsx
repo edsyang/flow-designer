@@ -1,7 +1,7 @@
-import type { FieldProps } from '../types';
-import { IconTip } from './tip';
-import { buildClassName, useBehaviors } from './index';
-import styles from './field.module.css';
+import type { FieldProps } from "../types";
+import { IconTip } from "./tip";
+import { buildClassName, useBehaviors } from "./index";
+import styles from "./field.module.css";
 
 export function BlockField(props: FieldProps) {
   const { isGroup, className, behaviors, title, tip, children } = props;

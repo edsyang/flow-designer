@@ -1,4 +1,4 @@
-import type { SerializedNode, SerializedEdgeElement } from '@flow-designer/model';
+import type { SerializedNode, SerializedEdgeElement } from "@flow-designer/model";
 
 export interface ComfyUINodeInput {
   [key: string]: unknown | [string, number];

@@ -1,4 +1,13 @@
-import { DataType, testType, hasOwn, setData, cloneDeep, splitPath, getKey, uniqueId } from '../utils';
+import {
+  DataType,
+  testType,
+  hasOwn,
+  setData,
+  cloneDeep,
+  splitPath,
+  getKey,
+  uniqueId,
+} from "../utils";
 
 export interface PropConfig {
   name: string;
@@ -24,7 +33,7 @@ export type ChangeKeys = Set<string>;
 
 export default class Prop {
   private changing: ChangeKeys | null = null;
-  private uid: string = uniqueId('prop');
+  private uid: string = uniqueId("prop");
   private type: DataType;
   private maps: PropMaps<Prop> = {};
   private items: Prop[] = [];
@@ -40,7 +49,8 @@ export default class Prop {
   constructor(
     parent: Prop | null,
     key: string | null = null,
-    rawData: any = null, cloned: boolean = false,
+    rawData: any = null,
+    cloned: boolean = false,
   ) {
     this.parent = parent;
     this.key = key;
@@ -67,7 +77,7 @@ export default class Prop {
   }
 
   getKey(): string {
-    return this.key || '';
+    return this.key || "";
   }
 
   getRevision(): number {
@@ -113,7 +123,7 @@ export default class Prop {
       const oEntries = this.entries;
       this.items.sort(fn);
       this.entries = this.items.map((item) => item.getKey());
-      if (this.entries.join(',') !== oEntries.join(',')) {
+      if (this.entries.join(",") !== oEntries.join(",")) {
         this.releaseChange();
       }
     }
@@ -160,7 +170,7 @@ export default class Prop {
       }
     } else if (type === DataType.Scalar || type === DataType.Null) {
       if (this.entries.length > 0) {
-        this.entries.forEach((key) => this.stashKey(key));
+        this.entries.forEach((key) => { this.stashKey(key); });
         this.entries = [];
       }
       this.items = [];
@@ -178,7 +188,7 @@ export default class Prop {
       const nEntries = Object.keys(data);
       this.items = nEntries.map((key: string): Prop => {
         if (this.maps[key]) {
-          if (this.maps[key]!.setData(data[key], merge, true)) {
+          if (this.maps[key].setData(data[key], merge, true)) {
             modified = true;
           }
         } else {
@@ -190,7 +200,7 @@ export default class Prop {
         } else {
           modified = true;
         }
-        return this.maps[key]!;
+        return this.maps[key];
       });
 
       if (merge) {
@@ -199,7 +209,7 @@ export default class Prop {
       } else {
         this.entries = nEntries;
         if (oEntries.length > 0) {
-          oEntries.forEach((key) => this.stashKey(key));
+          oEntries.forEach((key) => { this.stashKey(key); });
           modified = true;
         }
       }
@@ -231,7 +241,7 @@ export default class Prop {
       this.entries = entries;
       if (oEntries.length > 0) {
         modified = true;
-        oEntries.forEach((key) => this.stashKey(key));
+        oEntries.forEach((key) => { this.stashKey(key); });
       }
     }
 
@@ -304,7 +314,7 @@ export default class Prop {
     }
     const changing = this.changing;
     this.changing = null;
-    return changing!;
+    return changing;
   }
 
   isStash(): boolean {
@@ -347,7 +357,7 @@ export default class Prop {
       this.type = DataType.List;
       if (this.inited) {
         if (this.entries.length > 0) {
-          this.entries.forEach((k) => this.stashKey(k));
+          this.entries.forEach((k) => { this.stashKey(k); });
         }
         this.maps[key] = new Prop(this, key, data, true);
         this.entries = [key];
@@ -391,7 +401,7 @@ export default class Prop {
       this.entries = Object.keys(this.rawData);
       this.items = this.entries.map((key) => {
         this.maps[key] = new Prop(this, key, this.rawData[key], true);
-        return this.maps[key]!;
+        return this.maps[key];
       });
       return;
     }
@@ -402,7 +412,7 @@ export default class Prop {
         const key: string = getKey(itemData, index);
         this.maps[key] = new Prop(this, key, itemData, true);
         this.entries.push(key);
-        return this.maps[key]!;
+        return this.maps[key];
       });
       return;
     }

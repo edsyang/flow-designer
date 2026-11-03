@@ -17,13 +17,37 @@ Flow Designer 是一个基于 React、TypeScript 和 AntV X6 的可扩展可视�
 - **数据导入与导出**：通过 `ContentTransformer` 连接内部文档模型和场景外部格式。
 - **完整示例**：仓库提供 BPMN、ComfyUI 和 ER 三个独立场景应用。
 
+## 国际化
+
+工作台以及 BPMN、ComfyUI、ER 示例支持简体中文和英语。默认使用简体中文；语言选择会保存在浏览器存储中。
+
+自定义应用把场景词条传给 `createDesigner`；engine 会在插件初始化前把核心词条和场景词条一起加载到 i18next：
+
+```ts
+const designer = await createDesigner({
+  documentType: "*",
+  documentVersion: "1.0.0",
+  localeMessages: {
+    "en-US": {
+      "custom.node.title": "My node",
+    },
+    "zh-CN": {
+      "custom.node.title": "我的节点",
+    },
+  },
+});
+await setLocale("en-US");
+```
+
+节点元数据和属性标签直接调用带语义 key 的 `t('custom.node.title')`。用户输入的节点标签保持原样。切换语言不会改写文档数据。
+
 ## 场景示例
 
-| 场景 | 示例内容 | 启动命令 |
-|---|---|---|
-| BPMN | 流程节点、流程内容模型、Sequence Flow | `pnpm dev:bpmn` |
+| 场景    | 示例内容                                    | 启动命令           |
+| ------- | ------------------------------------------- | ------------------ |
+| BPMN    | 流程节点、流程内容模型、Sequence Flow       | `pnpm dev:bpmn`    |
 | ComfyUI | 类型化数据端口、工作流导入/导出 transformer | `pnpm dev:comfyui` |
-| ER | Table、View、Enum 节点和关系边 | `pnpm dev:er` |
+| ER      | Table、View、Enum 节点和关系边              | `pnpm dev:er`      |
 
 开发服务器默认使用 Vite 端口。E2E 测试使用 `5179`、`5180` 和 `5181`；运行 E2E 前需在三个终端分别启动示例应用。
 
@@ -55,10 +79,10 @@ pnpm dev:er
 核心 API 可从 `@flow-designer/engine` 统一导入。以下示例展示了在已配置 React/Vite 应用中注册通用内容模型和一个节点，并渲染工作台：
 
 ```tsx
-import '@flow-designer/react/style.css';
-import '@flow-designer/skeleton/style.css';
-import '@flow-designer/plugins/style.css';
-import { createRoot } from 'react-dom/client';
+import "@flow-designer/react/style.css";
+import "@flow-designer/skeleton/style.css";
+import "@flow-designer/plugins/style.css";
+import { createRoot } from "react-dom/client";
 import {
   BuiltinSetters,
   contentTypesRegistry,
@@ -67,36 +91,38 @@ import {
   GenericContent,
   prototypeRegistry,
   Workbench,
-} from '@flow-designer/engine';
+} from "@flow-designer/engine";
 
-const mount = document.getElementById('root');
-if (!mount) throw new Error('Missing #root element');
+const mount = document.getElementById("root");
+if (!mount) throw new Error("Missing #root element");
 
 contentTypesRegistry.register(GenericContent);
-prototypeRegistry.register(defineNode({
-  meta: {
-    name: 'my-node',
-    typeName: 'MyNode',
-    category: 'basic',
-    icon: 'box',
-  },
-  view: {
-    type: 'node',
-    shape: 'fd-rect',
-    defaultSize: { width: 200, height: 60 },
-    ports: [
-      { group: 'in', position: 'left' },
-      { group: 'out', position: 'right' },
-    ],
-  },
-  schema: [{ name: 'name', type: 'string', defaultValue: '' }],
-  editor: [{ target: 'name', description: 'Name', setter: BuiltinSetters.String }],
-}));
+prototypeRegistry.register(
+  defineNode({
+    meta: {
+      name: "my-node",
+      typeName: "MyNode",
+      category: "basic",
+      icon: "box",
+    },
+    view: {
+      type: "node",
+      shape: "fd-rect",
+      defaultSize: { width: 200, height: 60 },
+      ports: [
+        { group: "in", position: "left" },
+        { group: "out", position: "right" },
+      ],
+    },
+    schema: [{ name: "name", type: "string", defaultValue: "" }],
+    editor: [{ target: "name", description: "Name", setter: BuiltinSetters.String }],
+  }),
+);
 
 const designer = await createDesigner({
   container: mount,
-  documentType: '*',
-  documentVersion: '1.0.0',
+  documentType: "*",
+  documentVersion: "1.0.0",
 });
 
 createRoot(mount).render(<Workbench engine={designer.engine} />);
@@ -111,7 +137,7 @@ createRoot(mount).render(<Workbench engine={designer.engine} />);
 节点定义等只使用内置编辑器名称的模块，应从轻量子路径导入：
 
 ```ts
-import { BuiltinSetters, type BuiltinSetterName } from '@flow-designer/setters/constants';
+import { BuiltinSetters, type BuiltinSetterName } from "@flow-designer/setters/constants";
 ```
 
 此入口支持工作区 source 解析、ESM、CommonJS 及对应类型声明，不会加载控件、React、Ant Design 或 model 代码，标识值保持不变。它不负责注册编辑器；运行时仍通过主包的 `registerBuiltinSetters` 注册。现有 `@flow-designer/setters` 主入口和 engine 门面导入继续兼容。`create-node` 的四种模板均生成轻量导入。
@@ -165,8 +191,7 @@ pnpm test:e2e
 
 ## 参与贡献
 
-欢迎提交 issue 和 pull request。提交改动前，请优先运行受影响包的测试与类型检查；跨包 API 或序列化格式变更也应覆盖相关示例应用和规格文档。
-GitHub Actions 会在每次 push 和 pull request 时执行工作区构建与 Vitest 单元测试。
+欢迎提交 issue 和 pull request。提交改动前，请优先运行受影响包的测试与类型检查；跨包 API 或序列化格式变更也应覆盖相关示例应用和规格文档。GitHub Actions 会在每次 push 和 pull request 时执行工作区构建与 Vitest 单元测试。
 
 ## 工程规范
 

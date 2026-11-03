@@ -17,13 +17,37 @@ Flow Designer is an extensible visual flow-editor framework built with React, Ty
 - **Import and export**: Use `ContentTransformer` to map between the internal document model and scenario-specific formats.
 - **Runnable examples**: Explore separate BPMN, ComfyUI, and ER applications in the workspace.
 
+## Localization
+
+The workbench and the BPMN, ComfyUI, and ER examples support Simplified Chinese and English. Simplified Chinese is the default; the language selector saves the choice in browser storage.
+
+Custom applications pass scenario messages to `createDesigner`; the engine initializes i18next with core and scenario messages before plugins start:
+
+```ts
+const designer = await createDesigner({
+  documentType: "*",
+  documentVersion: "1.0.0",
+  localeMessages: {
+    "en-US": {
+      "custom.node.title": "My node",
+    },
+    "zh-CN": {
+      "custom.node.title": "我的节点",
+    },
+  },
+});
+await setLocale("en-US");
+```
+
+Use semantic, namespaced keys with `t('custom.node.title')` directly in node metadata and field labels. User-entered node labels remain unchanged. Switching languages does not change document data.
+
 ## Example scenarios
 
-| Scenario | Example capabilities | Start command |
-|---|---|---|
-| BPMN | Process nodes, process content model, Sequence Flow | `pnpm dev:bpmn` |
-| ComfyUI | Typed data ports and workflow import/export transformer | `pnpm dev:comfyui` |
-| ER | Table, View, and Enum nodes with relation edges | `pnpm dev:er` |
+| Scenario | Example capabilities                                    | Start command      |
+| -------- | ------------------------------------------------------- | ------------------ |
+| BPMN     | Process nodes, process content model, Sequence Flow     | `pnpm dev:bpmn`    |
+| ComfyUI  | Typed data ports and workflow import/export transformer | `pnpm dev:comfyui` |
+| ER       | Table, View, and Enum nodes with relation edges         | `pnpm dev:er`      |
 
 Vite uses its default development port when running an individual app. E2E tests use ports `5179`, `5180`, and `5181`; start the three example apps in separate terminals before running the suite.
 
@@ -55,10 +79,10 @@ pnpm dev:er
 The framework API is available from the `@flow-designer/engine` facade. The example below registers generic content and a node, then renders the workbench in an existing React/Vite application:
 
 ```tsx
-import '@flow-designer/react/style.css';
-import '@flow-designer/skeleton/style.css';
-import '@flow-designer/plugins/style.css';
-import { createRoot } from 'react-dom/client';
+import "@flow-designer/react/style.css";
+import "@flow-designer/skeleton/style.css";
+import "@flow-designer/plugins/style.css";
+import { createRoot } from "react-dom/client";
 import {
   BuiltinSetters,
   contentTypesRegistry,
@@ -67,36 +91,38 @@ import {
   GenericContent,
   prototypeRegistry,
   Workbench,
-} from '@flow-designer/engine';
+} from "@flow-designer/engine";
 
-const mount = document.getElementById('root');
-if (!mount) throw new Error('Missing #root element');
+const mount = document.getElementById("root");
+if (!mount) throw new Error("Missing #root element");
 
 contentTypesRegistry.register(GenericContent);
-prototypeRegistry.register(defineNode({
-  meta: {
-    name: 'my-node',
-    typeName: 'MyNode',
-    category: 'basic',
-    icon: 'box',
-  },
-  view: {
-    type: 'node',
-    shape: 'fd-rect',
-    defaultSize: { width: 200, height: 60 },
-    ports: [
-      { group: 'in', position: 'left' },
-      { group: 'out', position: 'right' },
-    ],
-  },
-  schema: [{ name: 'name', type: 'string', defaultValue: '' }],
-  editor: [{ target: 'name', description: 'Name', setter: BuiltinSetters.String }],
-}));
+prototypeRegistry.register(
+  defineNode({
+    meta: {
+      name: "my-node",
+      typeName: "MyNode",
+      category: "basic",
+      icon: "box",
+    },
+    view: {
+      type: "node",
+      shape: "fd-rect",
+      defaultSize: { width: 200, height: 60 },
+      ports: [
+        { group: "in", position: "left" },
+        { group: "out", position: "right" },
+      ],
+    },
+    schema: [{ name: "name", type: "string", defaultValue: "" }],
+    editor: [{ target: "name", description: "Name", setter: BuiltinSetters.String }],
+  }),
+);
 
 const designer = await createDesigner({
   container: mount,
-  documentType: '*',
-  documentVersion: '1.0.0',
+  documentType: "*",
+  documentVersion: "1.0.0",
 });
 
 createRoot(mount).render(<Workbench engine={designer.engine} />);
@@ -111,7 +137,7 @@ This example requires React 18 and a JSX-capable build setup. Scenario apps shou
 Node definitions and other modules that only need built-in editor names should import the lightweight subpath:
 
 ```ts
-import { BuiltinSetters, type BuiltinSetterName } from '@flow-designer/setters/constants';
+import { BuiltinSetters, type BuiltinSetterName } from "@flow-designer/setters/constants";
 ```
 
 This entry supports workspace source resolution, ESM, CommonJS and their declarations without loading editor components, React, Ant Design or model code. Identifier values are unchanged. It does not register editors: runtime composition still uses `registerBuiltinSetters` from the main package. Existing imports from `@flow-designer/setters` and the engine facade remain compatible. All four `create-node` presets generate the lightweight import.
@@ -165,8 +191,7 @@ Some `e2e/*.mjs` files are manual diagnostic scripts and are not part of the Pla
 
 ## Contributing
 
-Issues and pull requests are welcome. Before submitting a change, run tests and type checks for affected packages. Changes to cross-package APIs or serialized formats should also be checked against relevant scenario apps and specifications.
-GitHub Actions runs the workspace build and Vitest unit tests on pushes and pull requests.
+Issues and pull requests are welcome. Before submitting a change, run tests and type checks for affected packages. Changes to cross-package APIs or serialized formats should also be checked against relevant scenario apps and specifications. GitHub Actions runs the workspace build and Vitest unit tests on pushes and pull requests.
 
 ## Engineering guidance
 

@@ -1,4 +1,4 @@
-import { toPascalCase, toCamelCase, toDefName, toRegisterFnName } from '../utils.js';
+import { toPascalCase, toDefName, toRegisterFnName } from "../utils.js";
 
 export interface BpmnTemplateOptions {
   kebabName: string;
@@ -6,16 +6,16 @@ export interface BpmnTemplateOptions {
 }
 
 const BPMN_ICONS: Record<string, string> = {
-  events: '⚡',
-  gateways: '◇',
-  tasks: '📋',
+  events: "⚡",
+  gateways: "◇",
+  tasks: "📋",
 };
 
 export function generateBpmnNodeDef(opts: BpmnTemplateOptions): string {
   const { kebabName, category } = opts;
   const pascalName = toPascalCase(kebabName);
   const defName = toDefName(kebabName);
-  const icon = BPMN_ICONS[category] ?? '📋';
+  const icon = BPMN_ICONS[category] ?? "📋";
 
   return `import { defineNode } from '@flow-designer/model';
 import { BuiltinSetters } from '@flow-designer/setters/constants';

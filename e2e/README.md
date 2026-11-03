@@ -24,7 +24,7 @@ The default browser remains Playwright's bundled Chromium. To use an installed C
 ## Suite classification
 
 | Files | Purpose / scope |
-|---|---|
+| --- | --- |
 | `e2e-canvas-quick-add.spec.ts` | Quick-add UI, keyboard focus, dock tools, panel bounds, selection, absence of selection-action popups, and shared keyboard editing commands |
 | `edge-edit-persistence.spec.ts` | Model-owned anchored-edge editing: hover/click stability, segment-drag ports and vertices, undo/redo, source-node movement and serialized document round-trip |
 | `edge-interaction-regression.spec.ts` | Rendered hover/selection color versus transparent hit paths; repeated segment drags without closed-loop buildup and restoration of caller styling |
@@ -49,7 +49,7 @@ For a production performance run, serve an existing BPMN build separately and us
 The first full Chrome run reproduced four failures from missing fixture prerequisites: an empty initial edge set, selected-edge color confounding hover, and two wheel cases without the required modifier/actual graph zoom measurement. These were test setup defects; they are not evidence of a product regression. No tests were skipped and no acceptance thresholds were lowered.
 
 | Cases | Corrected prerequisite and assertion |
-|---|---|
+| --- | --- |
 | `e2e-verify-fixes.spec.ts`, `e2e-verify-fixes2.spec.ts`, `e2e-verify-zoom.spec.ts` routing cases | `workbench-fixtures.ts` creates a model-owned `SequenceFlow` between explicit Start/End nodes with a bent route, verifies the relation exists and the projected edge is nonempty, then asserts every segment is orthogonal. |
 | `e2e-edge-segments.spec.mjs` hover/leave | Explicitly clears graph and model selection and verifies zero selected cells before separately checking hover color and restoration on leave. |
 | Wheel cases in `e2e-verify-fixes.spec.ts` and `e2e-verify-fixes2.spec.ts` | Dispatch a Ctrl+wheel event at the canvas and assert that the public graph zoom increases. |

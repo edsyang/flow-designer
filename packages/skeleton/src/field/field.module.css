@@ -28,7 +28,7 @@
   align-items: center;
 }
 
-.fieldHead>.iconTip {
+.fieldHead > .iconTip {
   margin-left: 2px;
 }
 
@@ -54,14 +54,14 @@
   padding: 5px 0;
 }
 
-.inlineField>.fieldHead {
+.inlineField > .fieldHead {
   display: inline-flex;
   background: none;
   padding: 0;
   height: auto;
 }
 
-.inlineField>.fieldHead>.fieldTitle {
+.inlineField > .fieldHead > .fieldTitle {
   display: inline-flex;
   width: 64px;
   flex-shrink: 0;
@@ -72,7 +72,7 @@
   text-overflow: ellipsis;
 }
 
-.inlineField>.fieldBody {
+.inlineField > .fieldBody {
   display: inline-flex;
   align-items: center;
   padding: 0;
@@ -88,18 +88,18 @@
   padding: 5px 0;
 }
 
-.blockField>.fieldHead {
+.blockField > .fieldHead {
   background: none;
   padding: 0;
   height: auto;
   margin-bottom: var(--fd-space-xs);
 }
 
-.blockField>.fieldHead>.fieldTitle {
+.blockField > .fieldHead > .fieldTitle {
   font-weight: 500;
 }
 
-.blockField>.fieldBody {
+.blockField > .fieldBody {
   margin: 0;
 }
 
@@ -109,12 +109,12 @@
   margin-bottom: 1px;
 }
 
-.accordionField>.fieldHead {
+.accordionField > .fieldHead {
   position: relative;
   cursor: pointer;
 }
 
-.accordionField>.fieldHead>.fieldTitle {
+.accordionField > .fieldHead > .fieldTitle {
   letter-spacing: 0.5px;
 }
 
@@ -139,7 +139,7 @@
   margin-bottom: 1px;
 }
 
-.popupField>.fieldTitle {
+.popupField > .fieldTitle {
   letter-spacing: 0.5px;
 }
 
@@ -151,7 +151,7 @@
   margin-top: var(--fd-space-sm);
 }
 
-.captionField>.fieldHead {
+.captionField > .fieldHead {
   position: absolute;
   background: none;
   top: -12px;
@@ -162,16 +162,16 @@
   cursor: default;
 }
 
-.captionField>.fieldBody {
+.captionField > .fieldBody {
   margin-top: var(--fd-space-md);
 }
 
 /* State modifiers */
-.collapsed>.fieldArrow {
+.collapsed > .fieldArrow {
   transform: rotate(0);
 }
 
-.collapsed>.fieldBody {
+.collapsed > .fieldBody {
   display: none;
 }
 
@@ -194,11 +194,11 @@
   padding: 0 0 16px;
 }
 
-.blockField>.fieldHead {
+.blockField > .fieldHead {
   margin-bottom: 6px;
 }
 
-.blockField>.fieldHead>.fieldTitle {
+.blockField > .fieldHead > .fieldTitle {
   line-height: 20px;
   font-size: 12px;
   font-weight: 500;

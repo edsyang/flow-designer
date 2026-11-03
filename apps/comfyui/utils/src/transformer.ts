@@ -1,5 +1,5 @@
-import type { SerializedNode, SerializedEdgeElement } from '@flow-designer/model';
-import type { ComfyUIWorkflow, TransformerDocumentData } from './types';
+import type { SerializedNode, SerializedEdgeElement } from "@flow-designer/model";
+import type { ComfyUIWorkflow, TransformerDocumentData } from "./types";
 
 let idCounter = 0;
 
@@ -8,8 +8,8 @@ function generateId(): string {
 }
 
 export const comfyuiTransformer = {
-  format: 'comfyui-api',
-  contentType: 'comfyui',
+  format: "comfyui-api",
+  contentType: "comfyui",
 
   transformIn(external: ComfyUIWorkflow): TransformerDocumentData {
     const nodes: SerializedNode[] = [];
@@ -44,7 +44,7 @@ export const comfyuiTransformer = {
           const sourceShellId = nodeIdMap.get(String(sourceComfyId))!;
           edges.push({
             id: generateId(),
-            typeName: 'Edge',
+            typeName: "Edge",
             sourceRef: sourceShellId,
             targetRef: targetShellId,
             sourcePort: `output_${sourceSlot}`,
@@ -54,15 +54,21 @@ export const comfyuiTransformer = {
       }
     }
 
-    return { type: 'comfyui', version: '1.0.0', elements: [...nodes, ...edges] };
+    return {
+      type: "comfyui",
+      version: "1.0.0",
+      elements: [...nodes, ...edges],
+    };
   },
 
   transformOut(data: TransformerDocumentData): ComfyUIWorkflow {
     const result: ComfyUIWorkflow = {};
     const shellIdToComfyId = new Map<string, string>();
 
-    const nodeElements = data.elements.filter((el): el is SerializedNode => !('sourceRef' in el));
-    const edgeElements = data.elements.filter((el): el is SerializedEdgeElement => 'sourceRef' in el);
+    const nodeElements = data.elements.filter((el): el is SerializedNode => !("sourceRef" in el));
+    const edgeElements = data.elements.filter(
+      (el): el is SerializedEdgeElement => "sourceRef" in el,
+    );
 
     nodeElements.forEach((node, index) => {
       shellIdToComfyId.set(node.id, String(index + 1));
@@ -80,8 +86,8 @@ export const comfyuiTransformer = {
     for (const edge of edgeElements) {
       const targetComfyId = shellIdToComfyId.get(edge.targetRef)!;
       const sourceComfyId = shellIdToComfyId.get(edge.sourceRef)!;
-      const slotIndex = parseInt(edge.sourcePort?.replace('output_', '') ?? '0');
-      const inputName = edge.targetPort ?? 'default';
+      const slotIndex = parseInt(edge.sourcePort?.replace("output_", "") ?? "0");
+      const inputName = edge.targetPort ?? "default";
       if (result[targetComfyId]) {
         result[targetComfyId].inputs[inputName] = [sourceComfyId, slotIndex];
       }

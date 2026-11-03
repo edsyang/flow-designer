@@ -1,32 +1,25 @@
-const strings: Record<string, Record<string, string>> = {
-  cn: {
-    'comfyui.checkpoint': '模型加载器',
-    'comfyui.ksampler': '采样器',
-    'comfyui.clipTextEncode': '文本编码',
-    'comfyui.vaeDecode': 'VAE 解码',
-    'comfyui.saveImage': '保存图片',
-    'comfyui.model': '模型',
-    'comfyui.clip': 'CLIP',
-    'comfyui.vae': 'VAE',
-    'comfyui.conditioning': '条件',
-    'comfyui.latent': '潜空间',
-    'comfyui.image': '图像',
-  },
-  en: {
-    'comfyui.checkpoint': 'Checkpoint Loader',
-    'comfyui.ksampler': 'KSampler',
-    'comfyui.clipTextEncode': 'CLIP Text Encode',
-    'comfyui.vaeDecode': 'VAE Decode',
-    'comfyui.saveImage': 'Save Image',
-    'comfyui.model': 'Model',
-    'comfyui.clip': 'CLIP',
-    'comfyui.vae': 'VAE',
-    'comfyui.conditioning': 'Conditioning',
-    'comfyui.latent': 'Latent',
-    'comfyui.image': 'Image',
-  },
+import { t as translate } from "@flow-designer/model";
+
+const keyMap: Record<string, string> = {
+  "comfyui.checkpoint": "comfyui.node.checkpointLoader",
+  "comfyui.ksampler": "comfyui.node.sampler",
+  "comfyui.clipTextEncode": "comfyui.node.clipTextEncode",
+  "comfyui.vaeDecode": "comfyui.node.vaeDecode",
+  "comfyui.saveImage": "comfyui.node.saveImage",
+  "comfyui.model": "comfyui.port.model",
+  "comfyui.clip": "comfyui.port.clip",
+  "comfyui.vae": "comfyui.port.vae",
+  "comfyui.conditioning": "comfyui.port.conditioning",
+  "comfyui.latent": "comfyui.port.latent",
+  "comfyui.image": "comfyui.port.image",
 };
 
-export function t(key: string, lang: string = 'cn'): string {
-  return strings[lang]?.[key] ?? key;
+export function t(key: string, language?: string): string {
+  const lng =
+    language === "cn" || language === "zh-CN"
+      ? "zh-CN"
+      : language === "en" || language === "en-US"
+        ? "en-US"
+        : undefined;
+  return translate(keyMap[key] ?? key, lng ? { lng } : undefined);
 }

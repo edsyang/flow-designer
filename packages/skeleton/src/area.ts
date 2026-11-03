@@ -1,5 +1,5 @@
-import type { IArea, PaneConfig } from '@flow-designer/model';
-import { makeAutoObservable, observable, action } from 'mobx';
+import type { IArea, PaneConfig } from "@flow-designer/model";
+import { makeAutoObservable, observable, action } from "mobx";
 
 export class Area implements IArea {
   private didMountCallbacks: Array<(container: HTMLElement) => void | (() => void)> = [];
@@ -7,7 +7,7 @@ export class Area implements IArea {
   private visible = true;
 
   constructor() {
-    makeAutoObservable<Area, 'didMountCallbacks'>(this, { didMountCallbacks: observable.shallow });
+    makeAutoObservable<Area, "didMountCallbacks">(this, { didMountCallbacks: observable.shallow });
   }
 
   hooks = {

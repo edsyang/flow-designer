@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import type { Editor } from '@flow-designer/core';
-import type { Skeleton } from '@flow-designer/skeleton';
+import type { ReactNode } from "react";
+import type { Editor } from "@flow-designer/core";
+import type { Skeleton } from "@flow-designer/skeleton";
 
 export interface EngineShape {
   editor: Editor;
@@ -10,6 +10,7 @@ export interface EngineShape {
 export interface WorkbenchProps {
   engine: EngineShape;
   className?: string;
+  documentTitleKey?: string;
 }
 
 export interface FlowDesignerProviderProps {

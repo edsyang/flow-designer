@@ -1,6 +1,6 @@
-import { EventEmitter } from 'eventemitter3';
-import Prototype from '../prototype';
-import type { PrototypeConfig, NodeDefinition } from '../prototype';
+import { EventEmitter } from "eventemitter3";
+import Prototype from "../prototype";
+import type { PrototypeConfig, NodeDefinition } from "../prototype";
 
 export default class PrototypeRegistry {
   private emitter: EventEmitter;
@@ -17,10 +17,21 @@ export default class PrototypeRegistry {
 
   register(config: NodeDefinition | PrototypeConfig): void {
     const proto: Prototype = new Prototype(config);
+    const existing = this.typedMaps.get(proto.getTypeName());
+    if (existing?.getDefinition() && "meta" in config && "schema" in config) {
+      const previousName = existing.getName();
+      existing.updateDefinition(config as NodeDefinition);
+      if (previousName !== existing.getName() && this.namedMaps.get(previousName) === existing) {
+        this.namedMaps.delete(previousName);
+      }
+      this.namedMaps.set(existing.getName(), existing);
+      this.emitter.emit("registrychange");
+      return;
+    }
     this.registry.push(proto);
     this.typedMaps.set(proto.getTypeName(), proto);
     this.namedMaps.set(proto.getName(), proto);
-    this.emitter.emit('registrychange');
+    this.emitter.emit("registrychange");
   }
 
   getPrototypeByType(typeName: string): Prototype | null {
@@ -40,9 +51,9 @@ export default class PrototypeRegistry {
   }
 
   onRegistryChange(func: () => void): () => void {
-    this.emitter.on('registrychange', func);
+    this.emitter.on("registrychange", func);
     return () => {
-      this.emitter.removeListener('registrychange', func);
+      this.emitter.removeListener("registrychange", func);
     };
   }
 }

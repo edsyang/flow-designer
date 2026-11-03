@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 export const erApi = {
   async saveSchema(_data: unknown): Promise<void> {},
 

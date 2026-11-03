@@ -40,78 +40,78 @@ interface SequenceLevels {
 }
 
 const MAP: KeyMap = {
-  8: 'backspace',
-  9: 'tab',
-  13: 'enter',
-  16: 'shift',
-  17: 'ctrl',
-  18: 'alt',
-  20: 'capslock',
-  27: 'esc',
-  32: 'space',
-  33: 'pageup',
-  34: 'pagedown',
-  35: 'end',
-  36: 'home',
-  37: 'left',
-  38: 'up',
-  39: 'right',
-  40: 'down',
-  45: 'ins',
-  46: 'del',
-  91: 'meta',
-  93: 'meta',
-  224: 'meta',
+  8: "backspace",
+  9: "tab",
+  13: "enter",
+  16: "shift",
+  17: "ctrl",
+  18: "alt",
+  20: "capslock",
+  27: "esc",
+  32: "space",
+  33: "pageup",
+  34: "pagedown",
+  35: "end",
+  36: "home",
+  37: "left",
+  38: "up",
+  39: "right",
+  40: "down",
+  45: "ins",
+  46: "del",
+  91: "meta",
+  93: "meta",
+  224: "meta",
 };
 
 const KEYCODE_MAP: KeyMap = {
-  106: '*',
-  107: '+',
-  109: '-',
-  110: '.',
-  111: '/',
-  186: ';',
-  187: '=',
-  188: ',',
-  189: '-',
-  190: '.',
-  191: '/',
-  192: '`',
-  219: '[',
-  220: '\\',
-  221: ']',
-  222: '\'',
+  106: "*",
+  107: "+",
+  109: "-",
+  110: ".",
+  111: "/",
+  186: ";",
+  187: "=",
+  188: ",",
+  189: "-",
+  190: ".",
+  191: "/",
+  192: "`",
+  219: "[",
+  220: "\\",
+  221: "]",
+  222: "'",
 };
 
 const SHIFT_MAP: CtrlKeyMap = {
-  '~': '`',
-  '!': '1',
-  '@': '2',
-  '#': '3',
-  '$': '4',
-  '%': '5',
-  '^': '6',
-  '&': '7',
-  '*': '8',
-  '(': '9',
-  ')': '0',
-  '_': '-',
-  '+': '=',
-  ':': ';',
-  '\"': '\'',
-  '<': ',',
-  '>': '.',
-  '?': '/',
-  '|': '\\',
+  "~": "`",
+  "!": "1",
+  "@": "2",
+  "#": "3",
+  $: "4",
+  "%": "5",
+  "^": "6",
+  "&": "7",
+  "*": "8",
+  "(": "9",
+  ")": "0",
+  _: "-",
+  "+": "=",
+  ":": ";",
+  '\"': "'",
+  "<": ",",
+  ">": ".",
+  "?": "/",
+  "|": "\\",
 };
 
 const SPECIAL_ALIASES: CtrlKeyMap = {
-  option: 'alt',
-  command: 'meta',
-  return: 'enter',
-  escape: 'esc',
-  plus: '+',
-  mod: /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? 'meta' : 'ctrl',
+  option: "alt",
+  command: "meta",
+  return: "enter",
+  escape: "esc",
+  plus: "+",
+  mod: /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? "meta" : "ctrl",
 };
 
 let REVERSE_MAP: CtrlKeyMap;
@@ -121,7 +121,7 @@ let REVERSE_MAP: CtrlKeyMap;
  * programatically
  */
 for (let i = 1; i < 20; ++i) {
-  MAP[111 + i] = 'f' + i;
+  MAP[111 + i] = "f" + i;
 }
 
 /**
@@ -137,7 +137,7 @@ for (let i = 0; i <= 9; ++i) {
 function characterFromEvent(e: KeyboardEvent): string {
   const keyCode = e.keyCode || e.which;
   // for keypress events we should return the character as is
-  if (e.type === 'keypress') {
+  if (e.type === "keypress") {
     let character = String.fromCharCode(keyCode);
     // if the shift key is not pressed then it is safe to assume
     // that we want the character to be lowercase.  this means if
@@ -168,11 +168,11 @@ function characterFromEvent(e: KeyboardEvent): string {
 }
 
 interface KeypressEvent extends KeyboardEvent {
-  type: 'keypress';
+  type: "keypress";
 }
 
 function isPressEvent(e: KeyboardEvent | ActionEvent): e is KeypressEvent {
-  return e.type === 'keypress';
+  return e.type === "keypress";
 }
 
 /**
@@ -183,7 +183,7 @@ function isPressEvent(e: KeyboardEvent | ActionEvent): e is KeypressEvent {
  * @returns {boolean}
  */
 function modifiersMatch(modifiers1: string[], modifiers2: string[]): boolean {
-  return modifiers1.sort().join(',') === modifiers2.sort().join(',');
+  return modifiers1.sort().join(",") === modifiers2.sort().join(",");
 }
 
 /**
@@ -196,19 +196,19 @@ function eventModifiers(e: KeyboardEvent): string[] {
   const modifiers = [];
 
   if (e.shiftKey) {
-    modifiers.push('shift');
+    modifiers.push("shift");
   }
 
   if (e.altKey) {
-    modifiers.push('alt');
+    modifiers.push("alt");
   }
 
   if (e.ctrlKey) {
-    modifiers.push('ctrl');
+    modifiers.push("ctrl");
   }
 
   if (e.metaKey) {
-    modifiers.push('meta');
+    modifiers.push("meta");
   }
 
   return modifiers;
@@ -221,7 +221,7 @@ function eventModifiers(e: KeyboardEvent): string[] {
  * @returns {boolean}
  */
 function isModifier(key: string): boolean {
-  return key === 'shift' || key === 'ctrl' || key === 'alt' || key === 'meta';
+  return key === "shift" || key === "ctrl" || key === "alt" || key === "meta";
 }
 
 /**
@@ -234,7 +234,6 @@ function getReverseMap(): CtrlKeyMap {
   if (!REVERSE_MAP) {
     REVERSE_MAP = {};
     for (const key in MAP) {
-
       // pull out the numeric keypad from here cause keypress should
       // be able to detect the keys from the character
       if (Number(key) > 95 && Number(key) < 112) {
@@ -260,12 +259,12 @@ function pickBestAction(key: string, modifiers: string[], action?: string): stri
   // if no action was picked in we should try to pick the one
   // that we think would work best for this key
   if (!action) {
-    action = getReverseMap()[key] ? 'keydown' : 'keypress';
+    action = getReverseMap()[key] ? "keydown" : "keypress";
   }
   // modifier keys don't work as expected with keypress,
   // switch to keydown
-  if (action === 'keypress' && modifiers.length) {
-    action = 'keydown';
+  if (action === "keypress" && modifiers.length) {
+    action = "keydown";
   }
   return action;
 }
@@ -277,12 +276,12 @@ function pickBestAction(key: string, modifiers: string[], action?: string): stri
  * @return {Array}
  */
 function keysFromString(combination: string): string[] {
-  if (combination === '+') {
-    return ['+'];
+  if (combination === "+") {
+    return ["+"];
   }
 
-  combination = combination.replace(/\+{2}/g, '+plus');
-  return combination.split('+');
+  combination = combination.replace(/\+{2}/g, "+plus");
+  return combination.split("+");
 }
 
 /**
@@ -294,7 +293,7 @@ function keysFromString(combination: string): string[] {
  */
 function getKeyInfo(combination: string, action?: string): KeyInfo {
   let keys: string[] = [];
-  let key: string = '';
+  let key: string = "";
   let i: number;
   const modifiers: string[] = [];
 
@@ -313,9 +312,9 @@ function getKeyInfo(combination: string, action?: string): KeyInfo {
     // if this is not a keypress event then we should
     // be smart about using shift keys
     // this will only work for US keyboards however
-    if (action && action !== 'keypress' && SHIFT_MAP[key]) {
+    if (action && action !== "keypress" && SHIFT_MAP[key]) {
       key = SHIFT_MAP[key]!;
-      modifiers.push('shift');
+      modifiers.push("shift");
     }
 
     // if this key is a modifier then add it to the list of modifiers
@@ -345,7 +344,12 @@ function getKeyInfo(combination: string, action?: string): KeyInfo {
  * @param {Event} e
  * @returns void
  */
-function fireCallback(callback: HotkeyCallback, e: KeyboardEvent, combo?: string, sequence?: string): void {
+function fireCallback(
+  callback: HotkeyCallback,
+  e: KeyboardEvent,
+  combo?: string,
+  _sequence?: string,
+): void {
   if (callback(e, combo) === false) {
     e.preventDefault();
     e.stopPropagation();
@@ -353,7 +357,10 @@ function fireCallback(callback: HotkeyCallback, e: KeyboardEvent, combo?: string
 }
 
 export default class Hotkey {
-  private listeners = new Map<Document, { count: number; handler: (event: KeyboardEvent) => void }>();
+  private listeners = new Map<
+    Document,
+    { count: number; handler: (event: KeyboardEvent) => void }
+  >();
   private completionTimer: ReturnType<typeof setTimeout> | null = null;
   private callBacks: HotkeyCallbacks = {};
   private directMap: HotkeyDirectMap = {};
@@ -373,7 +380,8 @@ export default class Hotkey {
     if (!entry) {
       entry = { count: 0, handler: this.handleKeyEvent.bind(this) };
       this.listeners.set(document, entry);
-      for (const event of ['keypress', 'keydown', 'keyup']) document.addEventListener(event, entry.handler as EventListener);
+      for (const event of ["keypress", "keydown", "keyup"])
+        document.addEventListener(event, entry.handler as EventListener);
     }
     entry.count++;
     let disposed = false;
@@ -381,7 +389,8 @@ export default class Hotkey {
       if (disposed) return;
       disposed = true;
       if (--entry.count > 0) return;
-      for (const event of ['keypress', 'keydown', 'keyup']) document.removeEventListener(event, entry.handler as EventListener);
+      for (const event of ["keypress", "keydown", "keyup"])
+        document.removeEventListener(event, entry.handler as EventListener);
       this.listeners.delete(document);
       if (!this.listeners.size) {
         if (this.resetTimer) clearTimeout(this.resetTimer);
@@ -391,25 +400,38 @@ export default class Hotkey {
     };
   }
 
-  bindScoped(combos: string[] | string, callback: HotkeyCallback, scope: () => HTMLElement | null, action?: string): () => void {
+  bindScoped(
+    combos: string[] | string,
+    callback: HotkeyCallback,
+    scope: () => HTMLElement | null,
+    action?: string,
+  ): () => void {
     const wrapped: HotkeyCallback = (event, combo) => {
       const container = scope();
-      if (!container || !(event.target instanceof Node) || !container.contains(event.target)) return;
+      if (!container || !(event.target instanceof Node) || !container.contains(event.target))
+        return;
       return callback(event, combo);
     };
     this.bind(combos, wrapped, action);
-    return () => { this.unbind(combos, wrapped, action); };
+    return () => {
+      this.unbind(combos, wrapped, action);
+    };
   }
 
   unbind(combos: string[] | string, callback?: HotkeyCallback, action?: string): void {
     for (const combo of Array.isArray(combos) ? combos : [combos]) {
       for (const key of Object.keys(this.callBacks)) {
         this.callBacks[key] = this.callBacks[key]!.filter((entry) => {
-          const matches = (entry.combo === combo || entry.seq === combo) && (!action || entry.action === action) && (!callback || entry.callback === callback || (entry.seq === combo && this.directMap[combo + ':' + action] === callback));
+          const matches =
+            (entry.combo === combo || entry.seq === combo) &&
+            (!action || entry.action === action) &&
+            (!callback ||
+              entry.callback === callback ||
+              (entry.seq === combo && this.directMap[`${combo}:${action}`] === callback));
           return !matches;
         });
       }
-      const directKey = combo + ':' + action;
+      const directKey = `${combo}:${action}`;
       if (!callback || this.directMap[directKey] === callback) delete this.directMap[directKey];
       delete this.sequenceLevels[combo];
     }
@@ -421,7 +443,7 @@ export default class Hotkey {
    * @param {callback} function
    * @param {action=} string
    */
-  bind(combos: string[] | string, callback: HotkeyCallback, action?: string): Hotkey {
+  bind(combos: string[] | string, callback: HotkeyCallback, action?: string): this {
     this.bindMultiple(Array.isArray(combos) ? combos : [combos], callback, action);
     return this;
   }
@@ -435,7 +457,7 @@ export default class Hotkey {
   private resetSequences(doNotReset?: SequenceLevels): void {
     // doNotReset = doNotReset || {};
     let activeSequences: boolean = false;
-    let key: string = '';
+    let key: string = "";
     for (key in this.sequenceLevels) {
       if (doNotReset && doNotReset[key]) {
         activeSequences = true;
@@ -479,7 +501,7 @@ export default class Hotkey {
     }
 
     // if a modifier key is coming up on its own we should allow it
-    if (action === 'keyup' && isModifier(character)) {
+    if (action === "keyup" && isModifier(character)) {
       modifiers = [character];
     }
 
@@ -507,9 +529,13 @@ export default class Hotkey {
       // chrome will not fire a keypress if meta or control is down
       // safari will fire a keypress if meta or meta+shift is down
       // firefox will fire a keypress if meta or control is down
-      if ((isPressEvent(e) && !e.metaKey && !e.ctrlKey) || modifiersMatch(modifiers, callback.modifiers)) {
+      if (
+        (isPressEvent(e) && !e.metaKey && !e.ctrlKey) ||
+        modifiersMatch(modifiers, callback.modifiers)
+      ) {
         const deleteCombo = !sequenceName && callback.combo === combination;
-        const deleteSequence = sequenceName && callback.seq === sequenceName && callback.level === level;
+        const deleteSequence =
+          sequenceName && callback.seq === sequenceName && callback.level === level;
         if (deleteCombo || deleteSequence) {
           this.callBacks[character].splice(i, 1);
         }
@@ -536,14 +562,12 @@ export default class Hotkey {
 
     // loop through matching callbacks for this key event
     for (i = 0; i < callbacks.length; ++i) {
-
       // fire for all sequence callbacks
       // this is because if for example you have multiple sequences
       // bound such as "g i" and "g t" they both need to fire the
       // callback for matching g cause otherwise you can only ever
       // match the first one
       if (callbacks[i]!.seq) {
-
         // only fire callbacks for the maxLevel to prevent
         // subsequences from also firing
         //
@@ -559,7 +583,7 @@ export default class Hotkey {
         processedSequenceCallback = true;
 
         // keep a list of which sequences were matches for later
-        doNotReset[callbacks[i]!.seq || ''] = 1;
+        doNotReset[callbacks[i]!.seq || ""] = 1;
         fireCallback(callbacks[i]!.callback, e, callbacks[i]!.combo, callbacks[i]!.seq);
         continue;
       }
@@ -571,12 +595,12 @@ export default class Hotkey {
       }
     }
 
-    const ignoreThisKeypress = e.type === 'keypress' && this.ignoreNextKeypress;
+    const ignoreThisKeypress = e.type === "keypress" && this.ignoreNextKeypress;
     if (e.type === this.nextExpectedAction && !isModifier(character) && !ignoreThisKeypress) {
       this.resetSequences(doNotReset);
     }
 
-    this.ignoreNextKeypress = processedSequenceCallback && e.type === 'keydown';
+    this.ignoreNextKeypress = processedSequenceCallback && e.type === "keydown";
   }
 
   private handleKeyEvent(e: KeyboardEvent): void {
@@ -584,7 +608,13 @@ export default class Hotkey {
     const target = e.target as HTMLElement | null;
     if (target) {
       const tag = target.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable || target.closest?.('[contenteditable="true"], [role="textbox"]')) {
+      if (
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target.isContentEditable ||
+        target.closest('[contenteditable="true"], [role="textbox"]')
+      ) {
         return;
       }
     }
@@ -597,7 +627,7 @@ export default class Hotkey {
     }
 
     // need to use === for the character check because the character can be 0
-    if (e.type === 'keyup' && this.ignoreNextKeyup === character) {
+    if (e.type === "keyup" && this.ignoreNextKeyup === character) {
       this.ignoreNextKeyup = false;
       return;
     }
@@ -609,10 +639,17 @@ export default class Hotkey {
     if (this.resetTimer) {
       clearTimeout(this.resetTimer);
     }
-    this.resetTimer = setTimeout(() => this.resetSequences(), 1000);
+    this.resetTimer = setTimeout(() => {
+      this.resetSequences();
+    }, 1000);
   }
 
-  private bindSequence(combo: string, keys: string[], callback: HotkeyCallback, action?: string): void {
+  private bindSequence(
+    combo: string,
+    keys: string[],
+    callback: HotkeyCallback,
+    action?: string,
+  ): void {
     // const self: any = this;
     this.sequenceLevels[combo] = 0;
     const increaseSequence = (nextAction: string) => {
@@ -625,34 +662,38 @@ export default class Hotkey {
     const callbackAndReset = (e: KeyboardEvent): void => {
       fireCallback(callback, e, combo);
 
-      if (action !== 'keyup') {
+      if (action !== "keyup") {
         this.ignoreNextKeyup = characterFromEvent(e);
       }
 
       if (this.completionTimer) clearTimeout(this.completionTimer);
-      this.completionTimer = setTimeout(() => { this.resetSequences(); }, 10);
+      this.completionTimer = setTimeout(() => {
+        this.resetSequences();
+      }, 10);
     };
     for (let i = 0; i < keys.length; ++i) {
       const isFinal = i + 1 === keys.length;
-      const wrappedCallback = isFinal ?
-        callbackAndReset :
-        increaseSequence(action || getKeyInfo(keys[i + 1]!).action);
+      const wrappedCallback = isFinal
+        ? callbackAndReset
+        : increaseSequence(action || getKeyInfo(keys[i + 1]!).action);
       this.bindSingle(keys[i]!, wrappedCallback, action, combo, i);
     }
   }
 
   private bindSingle(
-    combination: string, callback: HotkeyCallback, action?: string,
-    sequenceName?: string, level?: number,
+    combination: string,
+    callback: HotkeyCallback,
+    action?: string,
+    sequenceName?: string,
+    level?: number,
   ): void {
     // store a direct mapped reference for use with HotKey.trigger
-    this.directMap[combination + ':' + action] = callback;
+    this.directMap[`${combination}:${action}`] = callback;
 
     // make sure multiple spaces in a row become a single space
-    combination = combination.replace(/\s+/g, ' ');
+    combination = combination.replace(/\s+/g, " ");
 
-    const sequence: string[] = combination.split(' ');
-    let info: KeyInfo;
+    const sequence: string[] = combination.split(" ");
 
     // if this pattern is a sequence of keys then run through this method
     // to reprocess each pattern one key at a time
@@ -661,14 +702,21 @@ export default class Hotkey {
       return;
     }
 
-    info = getKeyInfo(combination, action);
+    const info: KeyInfo = getKeyInfo(combination, action);
 
     // make sure to initialize array if this is the first time
     // a callback is added for this key
     this.callBacks[info.key] = this.callBacks[info.key] || [];
 
     // remove an existing match if there is one
-    this.getMatches(info.key, info.modifiers, {type: info.action}, sequenceName, combination, level);
+    this.getMatches(
+      info.key,
+      info.modifiers,
+      { type: info.action },
+      sequenceName,
+      combination,
+      level,
+    );
 
     // add this call back to the array
     // if it is a sequence put it at the beginning
@@ -676,7 +724,7 @@ export default class Hotkey {
     //
     // this is important because the way these are processed expects
     // the sequence ones to come first
-    this.callBacks[info.key]![sequenceName ? 'unshift' : 'push']({
+    this.callBacks[info.key]![sequenceName ? "unshift" : "push"]({
       callback,
       modifiers: info.modifiers,
       action: info.action,

@@ -1,4 +1,4 @@
-import type { ContentData } from '@flow-designer/model';
+import type { ContentData } from "@flow-designer/model";
 
 export interface SerializedFlowElement {
   id: string;

@@ -1,19 +1,25 @@
-import { autorun } from 'mobx';
-import type { Document, ContentNode, GenericRelation } from '@flow-designer/model';
-import { prototypeRegistry } from '@flow-designer/model';
-import type { GraphManager } from '@flow-designer/graph';
-import { NodeBridge } from './node-bridge';
-import { EdgeBridge } from './edge-bridge';
+import { autorun } from "mobx";
+import type { Document, ContentNode, GenericRelation } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import type { GraphManager } from "@flow-designer/graph";
+import { NodeBridge } from "./node-bridge";
+import { EdgeBridge } from "./edge-bridge";
 
-export type SyncDirection = 'idle' | 'model-to-graph' | 'graph-to-model';
-type TimelineData = Parameters<Document['applyTimelinePointData']>[0];
+export type SyncDirection = "idle" | "model-to-graph" | "graph-to-model";
+type TimelineData = Parameters<Document["applyTimelinePointData"]>[0];
 
 export function truncateLabel(raw: string, shape?: string): string {
-  const maxW = shape?.includes('diamond') ? 10
-    : shape?.includes('circle') ? 4
-    : 12;
+  const maxW = shape?.includes("diamond")
+    ? 10
+    : shape?.includes("circle")
+      ? /^[\u0000-\u007f]*$/.test(raw)
+        ? 8
+        : 4
+      : 12;
   let labelW = 0;
-  for (const ch of raw) { labelW += ch.charCodeAt(0) > 0x7f ? 2 : 1; }
+  for (const ch of raw) {
+    labelW += ch.charCodeAt(0) > 0x7f ? 2 : 1;
+  }
   if (labelW <= maxW) return raw;
   let w = 0;
   let end = 0;
@@ -23,7 +29,7 @@ export function truncateLabel(raw: string, shape?: string): string {
     w += cw;
     end++;
   }
-  return raw.slice(0, end) + '…';
+  return raw.slice(0, end) + "…";
 }
 
 interface NodeBridgeEntry {
@@ -46,7 +52,7 @@ interface X6NodeHandle {
 }
 
 export class GraphBridge {
-  private syncDirection: SyncDirection = 'idle';
+  private syncDirection: SyncDirection = "idle";
   private isResetting = false;
   private prevNodeIds: Set<string> = new Set();
   private nodeBridges: Map<string, NodeBridgeEntry> = new Map();
@@ -77,14 +83,14 @@ export class GraphBridge {
   }
 
   setup(): void {
-    this.disposeAutorun = autorun(() => this.syncModelToGraph());
+    this.disposeAutorun = autorun(() => { this.syncModelToGraph(); });
     this.bindGraphEvents();
   }
 
   teardown(): void {
     this.disposeAutorun?.();
     this.disposeAutorun = null;
-    this.eventOffs.forEach((off) => off());
+    this.eventOffs.forEach((off) => { off(); });
     this.eventOffs = [];
     this.nodeBridges.forEach((entry) => {
       entry.node.dispose();
@@ -112,17 +118,18 @@ export class GraphBridge {
         }
       }
       this.graphManager.batchUpdate(() => {
-      for (const node of nodes) {
-        if (!this.prevNodeIds.has(node.getId())) this.graphManager.addNode(this.toNodeConfig(node));
-      }
-      for (const node of nodes) {
-        if (!this.prevNodeIds.has(node.getId())) {
-          this.attachBridges(node);
-        } else {
-          this.nodeBridges.get(node.getId())?.node.refresh();
-          this.nodeBridges.get(node.getId())?.edge.refresh();
+        for (const node of nodes) {
+          if (!this.prevNodeIds.has(node.getId()))
+            this.graphManager.addNode(this.toNodeConfig(node));
         }
-      }
+        for (const node of nodes) {
+          if (!this.prevNodeIds.has(node.getId())) {
+            this.attachBridges(node);
+          } else {
+            this.nodeBridges.get(node.getId())?.node.refresh();
+            this.nodeBridges.get(node.getId())?.edge.refresh();
+          }
+        }
       });
       this.prevNodeIds = ids;
     } finally {
@@ -141,7 +148,7 @@ export class GraphBridge {
       return;
     }
 
-    this.syncDirection = 'model-to-graph';
+    this.syncDirection = "model-to-graph";
     try {
       removedIds.forEach((id) => {
         this.graphManager.removeCell(id);
@@ -155,10 +162,10 @@ export class GraphBridge {
       });
       this.graphManager.batchUpdate(() => {
         added.forEach((node) => this.graphManager.addNode(this.toNodeConfig(node)));
-        added.forEach((node) => this.attachBridges(node));
+        added.forEach((node) => { this.attachBridges(node); });
       });
     } finally {
-      this.syncDirection = 'idle';
+      this.syncDirection = "idle";
     }
     this.prevNodeIds = currentIds;
   }
@@ -175,43 +182,52 @@ export class GraphBridge {
     const prototype = prototypeRegistry.getPrototypeByType(node.getTypeName());
     const type = prototype?.getName() ?? node.getTypeName();
     const { x, y } = node.getPosition();
-    const name = node.getProps().getProp('name')?.getData() as string | undefined;
-    const raw = name || type;
+    const name = node.getProps().getProp("name")?.getData() as string | undefined;
     const shape = prototype?.getView().shape;
-    const label = truncateLabel(raw, shape);
-    return { id: node.getId(), type, x, y, label, data: { contentNode: node, __nodeType: node.getTypeName() } };
+    const label = truncateLabel(prototype?.getNameForValue(name) ?? name ?? type, shape);
+    return {
+      id: node.getId(),
+      type,
+      x,
+      y,
+      label,
+      data: { contentNode: node, __nodeType: node.getTypeName() },
+    };
   }
 
   private toEdgeConfigs(node: ContentNode<GenericRelation>) {
-    return node.getRelation().serialize().map((edge) => {
-      let source: string | { cell: string; port: string } = node.getId();
-      let target: string | { cell: string; port: string } = edge.targetNodeId;
+    return node
+      .getRelation()
+      .serialize()
+      .map((edge) => {
+        let source: string | { cell: string; port: string } = node.getId();
+        let target: string | { cell: string; port: string } = edge.targetNodeId;
 
-      if (edge.sourcePort) {
-        source = { cell: node.getId(), port: edge.sourcePort };
-      } else {
-        const defaultPort = this.getDefaultOutPort(node.getId());
-        if (defaultPort) source = { cell: node.getId(), port: defaultPort };
-      }
+        if (edge.sourcePort) {
+          source = { cell: node.getId(), port: edge.sourcePort };
+        } else {
+          const defaultPort = this.getDefaultOutPort(node.getId());
+          if (defaultPort) source = { cell: node.getId(), port: defaultPort };
+        }
 
-      if (edge.targetPort) {
-        target = { cell: edge.targetNodeId, port: edge.targetPort };
-      } else {
-        const defaultPort = this.getDefaultInPort(edge.targetNodeId);
-        if (defaultPort) target = { cell: edge.targetNodeId, port: defaultPort };
-      }
+        if (edge.targetPort) {
+          target = { cell: edge.targetNodeId, port: edge.targetPort };
+        } else {
+          const defaultPort = this.getDefaultInPort(edge.targetNodeId);
+          if (defaultPort) target = { cell: edge.targetNodeId, port: defaultPort };
+        }
 
-      return { id: edge.id, type: edge.type, source, target, vertices: edge.vertices };
-    });
+        return { id: edge.id, type: edge.type, source, target, vertices: edge.vertices };
+      });
   }
 
   private getDefaultOutPort(nodeId: string): string | null {
-    const portDef = this.getFirstPortOfGroup(nodeId, 'out');
+    const portDef = this.getFirstPortOfGroup(nodeId, "out");
     return portDef ? (portDef.id ?? `${portDef.group}-${portDef.position}`) : null;
   }
 
   private getDefaultInPort(nodeId: string): string | null {
-    const portDef = this.getFirstPortOfGroup(nodeId, 'in');
+    const portDef = this.getFirstPortOfGroup(nodeId, "in");
     return portDef ? (portDef.id ?? `${portDef.group}-${portDef.position}`) : null;
   }
 
@@ -224,13 +240,13 @@ export class GraphBridge {
       const payload = args[0] as { cell?: X6NodeHandle; node?: X6NodeHandle } | undefined;
       const cell = payload?.cell ?? payload?.node;
       if (!cell) return;
-      this.syncDirection = 'graph-to-model';
+      this.syncDirection = "graph-to-model";
       try {
         const contentNode = this.document.getContent().getNode(cell.id);
         if (contentNode) {
           const pos = cell.position();
           this.markPositionEcho(cell.id);
-          void this.document.transaction('Move node', () => {
+          void this.document.transaction("Move node", () => {
             contentNode.setPosition(pos.x, pos.y);
             const graph = this.graphManager.getX6Graph() as {
               getCellById(id: string): X6NodeHandle | null;
@@ -239,27 +255,33 @@ export class GraphBridge {
             const graphNode = graph?.getCellById(cell.id);
             const edges = graph && graphNode ? graph.getConnectedEdges(graphNode) : [];
             for (const edge of edges) {
-              if (edge.getSourceCellId() !== cell.id && edge.getTargetCellId() !== cell.id) continue;
-              const source = this.document.getContent().getNode(edge.getSourceCellId()) as ContentNode<GenericRelation> | null;
+              if (edge.getSourceCellId() !== cell.id && edge.getTargetCellId() !== cell.id)
+                continue;
+              const source = this.document
+                .getContent()
+                .getNode(edge.getSourceCellId()) as ContentNode<GenericRelation> | null;
               const relation = source?.getRelation();
-              if (relation?.getEdgeById(edge.id)) relation.updateEdge(edge.id, {
-                sourcePort: edge.getSourcePortId(), targetPort: edge.getTargetPortId(), vertices: edge.getVertices(),
-              });
+              if (relation?.getEdgeById(edge.id))
+                relation.updateEdge(edge.id, {
+                  sourcePort: edge.getSourcePortId(),
+                  targetPort: edge.getTargetPortId(),
+                  vertices: edge.getVertices(),
+                });
             }
           });
         }
       } finally {
-        this.syncDirection = 'idle';
+        this.syncDirection = "idle";
       }
     };
-    this.graphManager.on('node:moved', onNodeMoved);
-    this.eventOffs.push(() => this.graphManager.off('node:moved', onNodeMoved));
+    this.graphManager.on("node:moved", onNodeMoved);
+    this.eventOffs.push(() => { this.graphManager.off("node:moved", onNodeMoved); });
 
     const onSelectionChanged = () => {
       this.document.getSelection().setKeys(this.graphManager.getSelection());
     };
-    this.graphManager.on('selection:changed', onSelectionChanged);
-    this.eventOffs.push(() => this.graphManager.off('selection:changed', onSelectionChanged));
+    this.graphManager.on("selection:changed", onSelectionChanged);
+    this.eventOffs.push(() => { this.graphManager.off("selection:changed", onSelectionChanged); });
 
     const onEdgeClick = (...args: unknown[]) => {
       const payload = args[0] as { edge?: { id: string } } | undefined;
@@ -267,26 +289,34 @@ export class GraphBridge {
       if (!edge) return;
       this.graphManager.select([edge.id]);
     };
-    this.graphManager.on('edge:click', onEdgeClick);
-    this.eventOffs.push(() => this.graphManager.off('edge:click', onEdgeClick));
+    this.graphManager.on("edge:click", onEdgeClick);
+    this.eventOffs.push(() => { this.graphManager.off("edge:click", onEdgeClick); });
 
     const onEdgeConnected = (...args: unknown[]) => {
       const payload = args[0] as { edge?: X6EdgeHandle } | undefined;
       const edge = payload?.edge;
       if (!edge) return;
-      this.syncDirection = 'graph-to-model';
+      this.syncDirection = "graph-to-model";
       try {
-        const sourceNode = this.document.getContent().getNode(edge.getSourceCellId()) as ContentNode<GenericRelation> | null;
+        const sourceNode = this.document
+          .getContent()
+          .getNode(edge.getSourceCellId()) as ContentNode<GenericRelation> | null;
         if (sourceNode) {
-          const nodes = this.document.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
+          const nodes = this.document.getContent().getNodes() as Array<
+            ContentNode<GenericRelation>
+          >;
           const previous = nodes.find((node) => node.getRelation().getEdgeById(edge.id));
           const existing = previous?.getRelation().getEdgeById(edge.id);
           if (existing && previous) {
-            const patch = { targetNodeId: edge.getTargetCellId(), sourcePort: edge.getSourcePortId(), targetPort: edge.getTargetPortId() };
+            const patch = {
+              targetNodeId: edge.getTargetCellId(),
+              sourcePort: edge.getSourcePortId(),
+              targetPort: edge.getTargetPortId(),
+            };
             if (previous.getId() === sourceNode.getId()) {
               previous.getRelation().updateEdge(edge.id, patch);
             } else {
-              void this.document.transaction('Reconnect edge', () => {
+              void this.document.transaction("Reconnect edge", () => {
                 previous.getRelation().removeEdgeById(edge.id);
                 sourceNode.getRelation().addEdge({ ...existing, ...patch });
               });
@@ -294,7 +324,10 @@ export class GraphBridge {
             this.graphManager.select([edge.id]);
             return;
           }
-          const edgeTypeName = this.graphManager.getEdgeTypeName(edge.id) ?? this.graphManager.getDefaultEdgeType() ?? undefined;
+          const edgeTypeName =
+            this.graphManager.getEdgeTypeName(edge.id) ??
+            this.graphManager.getDefaultEdgeType() ??
+            undefined;
           const edgeProps: Record<string, unknown> = {};
           if (edgeTypeName) {
             const edgeConfig = this.graphManager.getEdgeTypeConfig(edgeTypeName);
@@ -321,28 +354,33 @@ export class GraphBridge {
         }
         this.graphManager.select([edge.id]);
       } finally {
-        this.syncDirection = 'idle';
+        this.syncDirection = "idle";
       }
     };
     const onEdgeMouseUp = (...args: unknown[]) => {
       const edge = (args[0] as { edge?: X6EdgeHandle } | undefined)?.edge;
       if (!edge) return;
       const nodes = this.document.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
-      const relation = nodes.map((node) => node.getRelation()).find((item) => item.getEdgeById(edge.id));
+      const relation = nodes
+        .map((node) => node.getRelation())
+        .find((item) => item.getEdgeById(edge.id));
       const existing = relation?.getEdgeById(edge.id);
       const vertices = edge.getVertices();
       if (existing && JSON.stringify(existing.vertices ?? []) !== JSON.stringify(vertices)) {
-        void this.document.transaction('Edit edge vertices', () => { relation?.updateEdge(edge.id, { vertices }); });
+        void this.document.transaction("Edit edge vertices", () => {
+          relation?.updateEdge(edge.id, { vertices });
+        });
       }
     };
-    this.graphManager.on('edge:vertices:committed', onEdgeMouseUp);
-    this.eventOffs.push(() => this.graphManager.off('edge:vertices:committed', onEdgeMouseUp));
+    this.graphManager.on("edge:vertices:committed", onEdgeMouseUp);
+    this.eventOffs.push(() => { this.graphManager.off("edge:vertices:committed", onEdgeMouseUp); });
 
-    this.graphManager.on('edge:connected', onEdgeConnected);
-    this.eventOffs.push(() => this.graphManager.off('edge:connected', onEdgeConnected));
+    this.graphManager.on("edge:connected", onEdgeConnected);
+    this.eventOffs.push(() => { this.graphManager.off("edge:connected", onEdgeConnected); });
 
     const onNodeAddedByStencil = (...args: unknown[]) => {
-      const payload = args[0] as { cell?: X6NodeHandle & { getData<T = Record<string, unknown>>(): T } } | undefined;
+      const payload = args[0] as
+        { cell?: X6NodeHandle & { getData<T = Record<string, unknown>>(): T } } | undefined;
       const cell = payload?.cell;
       if (!cell) return;
       const pos = cell.position();
@@ -353,15 +391,17 @@ export class GraphBridge {
       // an id collision between the temp drop and the model-driven cell.
       this.graphManager.removeCell(cell.id);
       if (!nodeType) return;
-      void this.document.transaction('Create node', async () => {
-        const newNode = await this.document.getContent().addNode({ type: nodeType, props: { __position: pos } });
+      void this.document.transaction("Create node", async () => {
+        const newNode = await this.document
+          .getContent()
+          .addNode({ type: nodeType, props: { __position: pos } });
         if (newNode && this.disposeAutorun) {
           this.graphManager.select([newNode.getId()]);
           this.document.getSelection().setKeys([newNode.getId()]);
         }
       });
     };
-    this.graphManager.on('node:added-by-stencil', onNodeAddedByStencil);
-    this.eventOffs.push(() => this.graphManager.off('node:added-by-stencil', onNodeAddedByStencil));
+    this.graphManager.on("node:added-by-stencil", onNodeAddedByStencil);
+    this.eventOffs.push(() => { this.graphManager.off("node:added-by-stencil", onNodeAddedByStencil); });
   }
 }

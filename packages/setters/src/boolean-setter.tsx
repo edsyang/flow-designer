@@ -1,5 +1,5 @@
-import { Switch } from 'antd';
-import type { SetterProps } from './types';
+import { Switch } from "antd";
+import type { SetterProps } from "./types";
 
 export function BooleanSetter({ value, onChange, disabled }: SetterProps<boolean>) {
   return (
@@ -7,7 +7,7 @@ export function BooleanSetter({ value, onChange, disabled }: SetterProps<boolean
       size="small"
       checked={value ?? false}
       disabled={disabled}
-      onChange={(checked) => onChange(checked)}
+      onChange={(checked) => { onChange(checked); }}
     />
   );
 }

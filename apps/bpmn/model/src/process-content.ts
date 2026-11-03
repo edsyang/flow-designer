@@ -1,20 +1,24 @@
-import { Content, ContentNode } from '@flow-designer/model';
-import type { NodeData } from '@flow-designer/model';
-import type { SerializedRelation, SerializedEdgeElement } from '@flow-designer/model';
-import { ProcessRelation } from './process-relation';
-import type { IProcessContentData } from './types';
+import { Content } from "@flow-designer/model";
+import type {
+  ContentNode,
+  NodeData,
+  SerializedEdgeElement,
+  SerializedRelation,
+} from "@flow-designer/model";
+import { ProcessRelation } from "./process-relation";
+import type { IProcessContentData } from "./types";
 
 export class ProcessContent extends Content<ProcessRelation> {
-  static readonly compatibleType: string = 'process';
-  static readonly compatibleVersion: string = '~1.0.0';
+  static readonly compatibleType: string = "process";
+  static readonly compatibleVersion: string = "~1.0.0";
 
   private pendingRelations: Map<string, SerializedRelation[]> = new Map();
   private serialIdCounter = 0;
 
   override applyTimelinePointData(data: IProcessContentData): void {
     super.applyTimelinePointData(data);
-    this.getNodes().forEach(node => node.getRelation().resetFlowins());
-    this.getNodes().forEach(node => node.getRelation().didInit());
+    this.getNodes().forEach((node) => { node.getRelation().resetFlowins(); });
+    this.getNodes().forEach((node) => { node.getRelation().didInit(); });
   }
 
   nodesFromData(
@@ -52,9 +56,7 @@ export class ProcessContent extends Content<ProcessRelation> {
       if (edges) {
         this.pendingRelations.set(el.id, edges);
       }
-      const nodeProps = el.position
-        ? { ...el.props, __position: el.position }
-        : el.props;
+      const nodeProps = el.position ? { ...el.props, __position: el.position } : el.props;
       return creator({
         id: el.id,
         type: el.typeName || el.type,
@@ -69,7 +71,7 @@ export class ProcessContent extends Content<ProcessRelation> {
 
     for (const node of this.getNodes()) {
       const props = node.getProps().getData();
-      if (props && typeof props === 'object') {
+      if (props && typeof props === "object") {
         delete props.__position;
       }
       nodeElements.push({
@@ -82,7 +84,7 @@ export class ProcessContent extends Content<ProcessRelation> {
       for (const edge of node.getRelation().serialize()) {
         const edgeEl: SerializedEdgeElement = {
           id: edge.id,
-          typeName: edge.type || 'SequenceFlow',
+          typeName: edge.type || "SequenceFlow",
           sourceRef: node.getId(),
           targetRef: edge.targetNodeId,
         };
@@ -113,7 +115,7 @@ export class ProcessContent extends Content<ProcessRelation> {
 
   getSerialId(namespace: string, value?: string | null, forceGenerator: boolean = false): string {
     const sidHeap = this.getNodes()
-      .map((node) => node.getProps().getPropData('sid'))
+      .map((node) => node.getProps().getPropData("sid"))
       .filter((sid) => sid != null);
 
     if (value != null) {
@@ -137,6 +139,6 @@ export class ProcessContent extends Content<ProcessRelation> {
 
   getNodeBySerialId(serialId: string): ContentNode<ProcessRelation> | null {
     if (!serialId) return null;
-    return this.getNodes().find((node) => node.getProps().getPropData('sid') === serialId) || null;
+    return this.getNodes().find((node) => node.getProps().getPropData("sid") === serialId) || null;
   }
 }

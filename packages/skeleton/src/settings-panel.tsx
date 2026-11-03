@@ -1,10 +1,10 @@
-import { isValidElement, useEffect, useReducer } from 'react';
-import { DisplayType, setterRegistry } from '@flow-designer/model';
-import type { Setting } from '@flow-designer/model';
-import type { SettingsPanelProps, SettingFieldProps } from './types';
-import { Field } from './field';
-import { createContent, isReactComponent } from './create-content';
-import styles from './settings.module.css';
+import { isValidElement, useEffect, useReducer } from "react";
+import { DisplayType, setterRegistry } from "@flow-designer/model";
+import type { Setting } from "@flow-designer/model";
+import type { SettingsPanelProps, SettingFieldProps } from "./types";
+import { Field } from "./field";
+import { createContent, isReactComponent } from "./create-content";
+import styles from "./settings.module.css";
 
 export function SettingsPanel(props: SettingsPanelProps) {
   const settings = props.settings ?? props.node?.getSettings();
@@ -28,7 +28,7 @@ export function SettingField(props: SettingFieldProps) {
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    const detach = setting.onBehaviorChange(() => forceUpdate());
+    const detach = setting.onBehaviorChange(() => { forceUpdate(); });
     setting.updateBehavior();
     return detach;
   }, [setting]);
@@ -44,14 +44,14 @@ export function SettingField(props: SettingFieldProps) {
   };
 
   if (setting.isGroup()) {
-    const childSettings = setting.getItems().map((item) => (
-      <SettingField key={item.getId()} setting={item} />
-    ));
+    const childSettings = setting
+      .getItems()
+      .map((item) => <SettingField key={item.getId()} setting={item} />);
 
     return (
       <Field
         display={display}
-        title={setting.getDescription() || ''}
+        title={setting.getDescription() || ""}
         tip={setting.getTip()}
         behaviors={setting.getBehaviors()}
         isGroup
@@ -66,7 +66,7 @@ export function SettingField(props: SettingFieldProps) {
   return (
     <Field
       display={display}
-      title={setting.getDescription() || ''}
+      title={setting.getDescription() || ""}
       tip={setting.getTip()}
       behaviors={setting.getBehaviors()}
       isGroup={false}
@@ -83,14 +83,14 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    const detachValue = setting.onValueChange(() => forceUpdate());
+    const detachValue = setting.onValueChange(() => { forceUpdate(); });
     const changeableProps = setting.getSetterChangeableProps();
     const detachFns = changeableProps
-      ? changeableProps.map((changeable: any) => changeable.listen(() => forceUpdate()))
+      ? changeableProps.map((changeable: any) => changeable.listen(() => { forceUpdate(); }))
       : [];
     return () => {
       detachValue();
-      detachFns.forEach((off: () => void) => off());
+      detachFns.forEach((off: () => void) => { off(); });
     };
   }, [setting]);
 
@@ -110,15 +110,16 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   computedProps.prop = setting;
   computedProps.field = setting;
   computedProps.value = setting.getValue();
-  computedProps.onChange = (newValue: any) => setting.setValue(newValue);
+  computedProps.onChange = (newValue: any) => { setting.setValue(newValue); };
 
-  if (isValidElement(setter) || isReactComponent(setter)) return createContent(setter, computedProps);
+  if (isValidElement(setter) || isReactComponent(setter))
+    return createContent(setter, computedProps);
 
-  if (typeof setter === 'string') {
+  if (typeof setter === "string") {
     setter = { type: setter };
   }
 
-  if (typeof setter === 'object' && setter !== null && 'type' in setter) {
+  if (typeof setter === "object" && setter !== null && "type" in setter) {
     const { type, props: setterProps, ...extraProps } = setter as any;
     const setterType = setterRegistry.getSetter(type);
     if (!setterType) {
@@ -138,4 +139,3 @@ function SetterRenderer(props: { setting: Setting<any> }) {
 
   return null;
 }
-

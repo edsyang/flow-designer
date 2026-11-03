@@ -1,17 +1,20 @@
-import Content from './index';
-import type { ContentData } from './index';
-import ContentNode from './node';
-import type { NodeData } from './node';
-import { GenericRelation } from './relation';
-import type { SerializedRelation, SerializedEdgeElement } from '../types';
+import Content from "./index";
+import type { ContentData } from "./index";
+import type ContentNode from "./node";
+import type { NodeData } from "./node";
+import { GenericRelation } from "./relation";
+import type { SerializedRelation, SerializedEdgeElement } from "../types";
 
 export default class GenericContent extends Content<GenericRelation> {
-  static readonly compatibleType = '*';
-  static readonly compatibleVersion = '*';
+  static readonly compatibleType = "*";
+  static readonly compatibleVersion = "*";
 
   private pendingRelations: Map<string, SerializedRelation[]> = new Map();
 
-  nodesFromData(data: ContentData, creator: (nodeData: NodeData) => ContentNode<GenericRelation>): Array<ContentNode<GenericRelation>> {
+  nodesFromData(
+    data: ContentData,
+    creator: (nodeData: NodeData) => ContentNode<GenericRelation>,
+  ): Array<ContentNode<GenericRelation>> {
     if (!this.pendingRelations) {
       this.pendingRelations = new Map();
     }
@@ -63,7 +66,8 @@ export default class GenericContent extends Content<GenericRelation> {
 
     for (const node of this.getNodes()) {
       const rawProps = node.getProps().getData();
-      const { __position, ...props } = (rawProps && typeof rawProps === 'object') ? rawProps : { __position: undefined };
+      const { __position, ...props } =
+        rawProps && typeof rawProps === "object" ? rawProps : { __position: undefined };
       nodeElements.push({
         id: node.getId(),
         typeName: node.getTypeName(),
@@ -74,7 +78,7 @@ export default class GenericContent extends Content<GenericRelation> {
       for (const edge of node.getRelation().serialize()) {
         const edgeEl: SerializedEdgeElement = {
           id: edge.id,
-          typeName: edge.type || 'Edge',
+          typeName: edge.type || "Edge",
           sourceRef: node.getId(),
           targetRef: edge.targetNodeId,
         };

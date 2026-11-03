@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type { IPluginContext } from '@flow-designer/core';
-import { GraphManager } from '@flow-designer/graph';
-import { prototypeRegistry, signal } from '@flow-designer/model';
-import type { Document } from '@flow-designer/model';
-import { pluginX6Graph } from '../src/x6-graph';
-import { setupRegistries, createDocument } from './test-helpers';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import type { IPluginContext } from "@flow-designer/core";
+import { GraphManager } from "@flow-designer/graph";
+import { prototypeRegistry, signal } from "@flow-designer/model";
+import type { Document } from "@flow-designer/model";
+import { pluginX6Graph } from "../src/x6-graph";
+import { setupRegistries, createDocument } from "./test-helpers";
 
 function createMockContext(document: Document) {
   let mountCallback: ((container: HTMLElement) => void) | null = null;
@@ -35,13 +35,13 @@ function createMockContext(document: Document) {
   };
 }
 
-describe('pluginX6Graph', () => {
+describe("pluginX6Graph", () => {
   let container: HTMLElement;
   let document: Document;
 
   beforeEach(() => {
     setupRegistries();
-    container = window.document.createElement('div');
+    container = window.document.createElement("div");
     window.document.body.appendChild(container);
     document = createDocument();
   });
@@ -50,14 +50,14 @@ describe('pluginX6Graph', () => {
     container.parentNode?.removeChild(container);
   });
 
-  it('has the expected name and no dependencies', () => {
+  it("has the expected name and no dependencies", () => {
     const { ctx } = createMockContext(document);
     const config = pluginX6Graph(ctx);
-    expect(config.name).toBe('plugin-x6-graph');
+    expect(config.name).toBe("plugin-x6-graph");
     expect(config.dep).toEqual([]);
   });
 
-  it('initializes the GraphManager and injects it into the editor once mounted', () => {
+  it("initializes the GraphManager and injects it into the editor once mounted", () => {
     const { ctx, triggerMount, setGraph } = createMockContext(document);
     const config = pluginX6Graph(ctx);
     config.init!();
@@ -69,7 +69,7 @@ describe('pluginX6Graph', () => {
     expect(graphManager.getX6Graph()).toBeTruthy();
   });
 
-  it('does not mount after the plugin is destroyed', () => {
+  it("does not mount after the plugin is destroyed", () => {
     const { ctx, triggerMount, setGraph } = createMockContext(document);
     const config = pluginX6Graph(ctx);
     config.init!();
@@ -78,49 +78,49 @@ describe('pluginX6Graph', () => {
     expect(setGraph).not.toHaveBeenCalled();
   });
 
-  it('registers all currently-known prototypes as node types', () => {
+  it("registers all currently-known prototypes as node types", () => {
     const { ctx, triggerMount } = createMockContext(document);
     const config = pluginX6Graph(ctx);
     config.init!();
     triggerMount(container);
 
     const { graphManager } = config.exports!() as { graphManager: GraphManager };
-    graphManager.addNode({ id: 'n1', type: 'rect', x: 0, y: 0 });
-    expect(graphManager.getPortDefinition('n1', 'out')).toMatchObject({ id: 'out', group: 'out' });
+    graphManager.addNode({ id: "n1", type: "rect", x: 0, y: 0 });
+    expect(graphManager.getPortDefinition("n1", "out")).toMatchObject({ id: "out", group: "out" });
   });
 
-  it('sets up a GraphBridge that syncs the document to the graph', async () => {
+  it("sets up a GraphBridge that syncs the document to the graph", async () => {
     const { ctx, triggerMount } = createMockContext(document);
     const config = pluginX6Graph(ctx);
     config.init!();
     triggerMount(container);
 
     const { graphManager } = config.exports!() as { graphManager: GraphManager };
-    const node = await document.getContent().addNode({ type: 'rect', props: {} });
+    const node = await document.getContent().addNode({ type: "rect", props: {} });
     expect(graphManager.getCellById(node!.getId())).toBeTruthy();
   });
 
-  it('sends a graph:init-failed signal and renders an error message when init throws', () => {
+  it("sends a graph:init-failed signal and renders an error message when init throws", () => {
     const { ctx, triggerMount } = createMockContext(document);
-    const initSpy = vi.spyOn(GraphManager.prototype, 'init').mockImplementation(() => {
-      throw new Error('boom');
+    const initSpy = vi.spyOn(GraphManager.prototype, "init").mockImplementation(() => {
+      throw new Error("boom");
     });
 
     const received: unknown[] = [];
-    const off = signal.onSignal('graph:init-failed', (error) => received.push(error));
+    const off = signal.onSignal("graph:init-failed", (error) => received.push(error));
 
     const config = pluginX6Graph(ctx);
     config.init!();
     triggerMount(container);
 
     expect(received).toHaveLength(1);
-    expect(container.textContent).toContain('画布初始化失败');
+    expect(container.textContent).toContain("画布初始化失败");
 
     off();
     initSpy.mockRestore();
   });
 
-  it('destroy tears down the bridge, disposes the graph, and clears the editor reference', () => {
+  it("destroy tears down the bridge, disposes the graph, and clears the editor reference", () => {
     const { ctx, triggerMount, setGraph } = createMockContext(document);
     const config = pluginX6Graph(ctx);
     config.init!();

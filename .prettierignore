@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.turbo/
+.nuxt/
+.svelte-kit/
+coverage/
+*.tsbuildinfo
+
+# Test & Playwright artifacts (从你的目录结构看到)
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
+# Lockfiles & Package Manager
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+pnpm-workspace.yaml
+
+# Version Control & System files
+.git/
+.github/
+.husky/
+.DS_Store
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 生成的文档或自动生成的文件 (视你的项目而定)
+CHANGELOG.md
+LICENSE

@@ -1,4 +1,4 @@
-import type { SetterComponentType } from '../settings/setting';
+import type { SetterComponentType } from "../settings/setting";
 
 interface TypedMaps {
   [typeName: string]: SetterComponentType;

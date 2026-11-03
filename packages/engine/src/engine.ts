@@ -1,5 +1,5 @@
-import { Editor, PluginManager } from '@flow-designer/core';
-import { Skeleton } from '@flow-designer/skeleton';
+import { Editor, PluginManager } from "@flow-designer/core";
+import { Skeleton } from "@flow-designer/skeleton";
 
 export class Engine {
   readonly editor: Editor;
@@ -36,12 +36,16 @@ export class Engine {
     this.editor.setGraph(null);
     this.editor.setContainer(null);
     try {
-      this.editor.getDocument()?.destroy();
+      this.editor.getDocument().destroy();
     } catch (error) {
       errors.push(error);
     }
     for (const dispose of this.disposers.splice(0).reverse()) {
-      try { dispose(); } catch (error) { errors.push(error); }
+      try {
+        dispose();
+      } catch (error) {
+        errors.push(error);
+      }
     }
     if (errors.length) throw errors[0];
   }

@@ -15,7 +15,7 @@ If no semantic validator is configured, the graph adapter returns `true`. This m
 ## Built-in semantic policies
 
 | Validator | Accepts | Rejects |
-|---|---|---|
+| --- | --- | --- |
 | `sameDataType` | A source port has a non-null `dataType` and it exactly equals the target port's `dataType`. | Missing source port/type, missing target port, or unequal values. Matching `undefined` values are not accepted. |
 | `directionOnly` | `sourcePort.group === 'out'` and `targetPort.group === 'in'`. | Missing ports or any other group/direction, including reversed endpoints. |
 | `allowAll` | Every semantic context (the implementation does not inspect its arguments). | Nothing semantically. |

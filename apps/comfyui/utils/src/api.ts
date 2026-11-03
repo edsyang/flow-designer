@@ -3,10 +3,9 @@ export const comfyuiApi = {
     return {};
   },
 
-  async saveWorkflow(_id: string, _data: Record<string, unknown>): Promise<void> {
-  },
+  async saveWorkflow(_id: string, _data: Record<string, unknown>): Promise<void> {},
 
   async queuePrompt(_workflow: Record<string, unknown>): Promise<{ prompt_id: string }> {
-    return { prompt_id: '' };
+    return { prompt_id: "" };
   },
 };

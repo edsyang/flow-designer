@@ -4,15 +4,16 @@
 
 `createDesigner(options)` composes one runtime in this order:
 
-1. Configure MobX actions.
-2. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
-3. Register built-in setters unless disabled.
-4. Register enabled built-in plugins, passing graph options to the X6 graph plugin.
-5. Register caller-supplied plugins and explicitly requested optional plugins such as autosave or the unsaved-changes prompt.
-6. Construct the `Document` from the requested document type/version and settings.
-7. Initialize the plugin manager and return the engine, editor, document, graph, plugin proxy, and `destroy()`.
+1. Initialize the shared i18next instance with core messages and optional scenario `localeMessages`.
+2. Configure MobX actions.
+3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
+4. Register built-in setters unless disabled.
+5. Register enabled built-in plugins, passing graph options to the X6 graph plugin.
+6. Register caller-supplied plugins and explicitly requested optional plugins such as autosave or the unsaved-changes prompt.
+7. Construct the `Document` from the requested document type/version and settings.
+8. Initialize the plugin manager and return the engine, editor, document, graph, plugin proxy, and `destroy()`.
 
-Scenario registration (content types, node prototypes, edge types, and transformers) belongs in the scenario app before the runtime needs those registrations. The engine remains scenario-neutral.
+Scenario registration (content types, node prototypes, edge types, and transformers) belongs in the scenario app before the runtime needs those registrations. Scenario translation catalogs are passed through `DesignerOptions.localeMessages`; the engine initializes the shared i18next instance without depending on scenario packages or schemas.
 
 ## Plugin manager contract
 
@@ -44,7 +45,7 @@ Primary implementation: `packages/engine/src/create-designer.ts`, `packages/engi
 
 **Current implementation:** resolving `createDesigner()` means plugin initialization has completed, not that the canvas is mounted. The X6 plugin installs a skeleton mount callback. Rendering `Workbench` invokes it, initializes the graph and bridges, then emits `graph:ready`. Install ready listeners before rendering. The returned `designer.graph` is a live getter, normally `null` at creation and reflecting `editor.getGraph()` after mount. The editor graph reference is observable so mounted controls can respond to readiness.
 
-`documentType`, `documentVersion`, and `docSettings` take effect during document construction. `disableBuiltinSetters`, `disableBuiltinPlugins`, `plugins`, `autoSave`, and `unsavedPrompt` affect registration/initialization. `graphOptions` is passed to the graph plugin and applied when the canvas mounts. `autoSave` and `unsavedPrompt` are opt-in; autosave's default interval is 30 seconds.
+`documentType`, `documentVersion`, and `docSettings` take effect during document construction. `localeMessages` are merged with core translations during i18next initialization, before plugin initialization. `disableBuiltinSetters`, `disableBuiltinPlugins`, `plugins`, `autoSave`, and `unsavedPrompt` affect registration/initialization. `graphOptions` is passed to the graph plugin and applied when the canvas mounts. `autoSave` and `unsavedPrompt` are opt-in; autosave's default interval is 30 seconds.
 
 `DesignerOptions.container` supplies the nullable live `PluginContext.container` and scopes keyboard commands; it does not mount React. If omitted, the React canvas records its owning workbench element when mounted. Apps own their React root. `DesignerOptions.transformers` registers format transformers before plugins initialize and releases those exact registrations on destruction or failed creation. The shared registry preserves first-registered format precedence; this does not establish per-editor transformer overrides.
 

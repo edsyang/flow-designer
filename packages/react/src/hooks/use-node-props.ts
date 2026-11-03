@@ -1,5 +1,5 @@
-import { useFlowDesigner } from '../context';
-import type { Props, ContentNode } from '@flow-designer/model';
+import { useFlowDesigner } from "../context";
+import type { Props, ContentNode } from "@flow-designer/model";
 
 export function useNodeProps(nodeId: string): Props<ContentNode> | null {
   const doc = useFlowDesigner().editor.getDocument();

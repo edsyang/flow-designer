@@ -1,4 +1,7 @@
-export interface EdgePoint { x: number; y: number }
+export interface EdgePoint {
+  x: number;
+  y: number;
+}
 
 /** Normalize an editable orthogonal chain and erase closed bends from repeated edits. */
 export function normalizeOrthogonalVertices(
@@ -26,9 +29,9 @@ export function normalizeOrthogonalVertices(
       const isLastSeg = i === chain.length - 1;
       let hFirst: boolean;
       if (isFirstSeg && sourceDir) {
-        hFirst = sourceDir === 'left' || sourceDir === 'right';
+        hFirst = sourceDir === "left" || sourceDir === "right";
       } else if (isLastSeg && targetDir) {
-        hFirst = targetDir === 'top' || targetDir === 'bottom';
+        hFirst = targetDir === "top" || targetDir === "bottom";
       } else {
         hFirst = dx >= dy;
       }
@@ -40,30 +43,50 @@ export function normalizeOrthogonalVertices(
   // Pass 2: force the exit stub at the source to align with the port's fixed axis.
   if (sourceDir && path.length > 2) {
     const first = path[1]!;
-    const needH = sourceDir === 'left' || sourceDir === 'right';
+    const needH = sourceDir === "left" || sourceDir === "right";
     const isH = Math.abs(first.y - source.y) <= EPS;
     const isV = Math.abs(first.x - source.x) <= EPS;
     if (needH && !isH) {
-      const padding = sourceDir === 'right' ? STUB : -STUB;
-      path = [source, { x: source.x + padding, y: source.y }, { x: source.x + padding, y: first.y }, ...path.slice(1)];
+      const padding = sourceDir === "right" ? STUB : -STUB;
+      path = [
+        source,
+        { x: source.x + padding, y: source.y },
+        { x: source.x + padding, y: first.y },
+        ...path.slice(1),
+      ];
     } else if (!needH && !isV) {
-      const padding = sourceDir === 'bottom' ? STUB : -STUB;
-      path = [source, { x: source.x, y: source.y + padding }, { x: first.x, y: source.y + padding }, ...path.slice(1)];
+      const padding = sourceDir === "bottom" ? STUB : -STUB;
+      path = [
+        source,
+        { x: source.x, y: source.y + padding },
+        { x: first.x, y: source.y + padding },
+        ...path.slice(1),
+      ];
     }
   }
 
   // Pass 3: force the entry stub at the target to align with the port's fixed axis.
   if (targetDir && path.length > 2) {
     const last = path[path.length - 2]!;
-    const needH = targetDir === 'left' || targetDir === 'right';
+    const needH = targetDir === "left" || targetDir === "right";
     const isH = Math.abs(target.y - last.y) <= EPS;
     const isV = Math.abs(target.x - last.x) <= EPS;
     if (needH && !isH) {
-      const padding = targetDir === 'left' ? -STUB : STUB;
-      path = [...path.slice(0, -1), { x: target.x + padding, y: last.y }, { x: target.x + padding, y: target.y }, target];
+      const padding = targetDir === "left" ? -STUB : STUB;
+      path = [
+        ...path.slice(0, -1),
+        { x: target.x + padding, y: last.y },
+        { x: target.x + padding, y: target.y },
+        target,
+      ];
     } else if (!needH && !isV) {
-      const padding = targetDir === 'top' ? -STUB : STUB;
-      path = [...path.slice(0, -1), { x: last.x, y: target.y + padding }, { x: target.x, y: target.y + padding }, target];
+      const padding = targetDir === "top" ? -STUB : STUB;
+      path = [
+        ...path.slice(0, -1),
+        { x: last.x, y: target.y + padding },
+        { x: target.x, y: target.y + padding },
+        target,
+      ];
     }
   }
 
@@ -73,17 +96,26 @@ export function normalizeOrthogonalVertices(
   while (crossing) {
     crossing = false;
     outer: for (let i = 0; i < path.length - 2; i++) {
-      const a = path[i]!; const b = path[i + 1]!;
+      const a = path[i]!;
+      const b = path[i + 1]!;
       for (let j = i + 2; j < path.length - 1; j++) {
-        const c = path[j]!; const d = path[j + 1]!;
+        const c = path[j]!;
+        const d = path[j + 1]!;
         const horizontalA = Math.abs(a.y - b.y) <= EPS;
         const horizontalB = Math.abs(c.y - d.y) <= EPS;
         if (horizontalA === horizontalB) continue;
-        const h1 = horizontalA ? a : c; const h2 = horizontalA ? b : d;
-        const v1 = horizontalA ? c : a; const v2 = horizontalA ? d : b;
+        const h1 = horizontalA ? a : c;
+        const h2 = horizontalA ? b : d;
+        const v1 = horizontalA ? c : a;
+        const v2 = horizontalA ? d : b;
         const point = { x: v1.x, y: h1.y };
-        if (point.x < Math.min(h1.x, h2.x) - EPS || point.x > Math.max(h1.x, h2.x) + EPS
-          || point.y < Math.min(v1.y, v2.y) - EPS || point.y > Math.max(v1.y, v2.y) + EPS) continue;
+        if (
+          point.x < Math.min(h1.x, h2.x) - EPS ||
+          point.x > Math.max(h1.x, h2.x) + EPS ||
+          point.y < Math.min(v1.y, v2.y) - EPS ||
+          point.y > Math.max(v1.y, v2.y) + EPS
+        )
+          continue;
         path = [...path.slice(0, i + 1), point, ...path.slice(j + 1)];
         crossing = true;
         break outer;
@@ -113,8 +145,10 @@ export function normalizeOrthogonalVertices(
       const currIsH = Math.abs(nxt.y - curr.y) <= EPS;
       const prevIsV = Math.abs(curr.x - prev.x) <= EPS;
       const currIsV = Math.abs(nxt.x - curr.x) <= EPS;
-      if (((prevIsH && currIsH) || (prevIsV && currIsV))
-          && (curr.x - prev.x) * (nxt.x - curr.x) + (curr.y - prev.y) * (nxt.y - curr.y) >= 0) {
+      if (
+        ((prevIsH && currIsH) || (prevIsV && currIsV)) &&
+        (curr.x - prev.x) * (nxt.x - curr.x) + (curr.y - prev.y) * (nxt.y - curr.y) >= 0
+      ) {
         next.splice(i, 1);
         stable = false;
         break;

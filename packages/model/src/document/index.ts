@@ -1,16 +1,15 @@
-import { EventEmitter } from 'eventemitter3';
-import { contentTypesRegistry } from '../registries';
-import { signal } from '../signals';
-import Props from '../props';
-import type { PropsData } from '../props';
-import Content from '../content';
-import type { ContentType, ContentData } from '../content';
-import Settings from '../settings/index';
-import type { SettingConfig } from '../settings/setting';
-import { hasOwn } from '../utils/index';
-import type { ChangeKeys } from '../props/prop';
-import Selection from './selection';
-import Timeline from './timeline';
+import { EventEmitter } from "eventemitter3";
+import { contentTypesRegistry } from "../registries";
+import { signal } from "../signals";
+import Props from "../props";
+import type { PropsData } from "../props";
+import type Content from "../content";
+import Settings from "../settings/index";
+import type { SettingConfig } from "../settings/setting";
+import { hasOwn } from "../utils/index";
+import type { ChangeKeys } from "../props/prop";
+import Selection from "./selection";
+import Timeline from "./timeline";
 
 export interface DocumentData {
   id: string;
@@ -21,7 +20,7 @@ export interface DocumentData {
 }
 
 export enum DocumentSignal {
-  PROPS_UPDATE = 'document.propsupdate',
+  PROPS_UPDATE = "document.propsupdate",
 }
 
 export type AspectFn = (...args: any[]) => any;
@@ -44,11 +43,11 @@ function invoke(hooks: AspectFn[], args: any[]): Promise<any> {
     if (e) {
       errorData = e instanceof Error ? e : new Error(e);
     }
-    i.reject(errorData || new Error('Unknown'));
+    i.reject(errorData || new Error("Unknown"));
   };
 
   const done = () => {
-    if (errorData != null) {
+    if (errorData !== null) {
       fail();
     } else {
       i.resolve(runData);
@@ -56,7 +55,7 @@ function invoke(hooks: AspectFn[], args: any[]): Promise<any> {
   };
 
   const setData = (data: any) => {
-    if (data != null && (runData == null || data.constructor === runData.constructor)) {
+    if (data !== null && (runData == null || data.constructor === runData.constructor)) {
       runData = data;
     }
   };
@@ -66,22 +65,25 @@ function invoke(hooks: AspectFn[], args: any[]): Promise<any> {
       errorData = data;
     }
 
-    if (errorData != null || data === false) {
-      return fail();
+    if (errorData !== null || data === false) {
+      fail();
+      return;
     }
 
     setData(data);
 
     const hook = hooks.shift();
     if (!hook) {
-      return done();
+      done();
+      return;
     }
 
     let res;
     try {
       res = hook.apply(null, [...args, runData]);
     } catch (e) {
-      return fail(e);
+      fail(e);
+      return;
     }
 
     if (res && res.then) {
@@ -117,7 +119,7 @@ export default class Document {
 
     const ContentModel = contentTypesRegistry.getSuitableContentType(documentType, documentVersion);
     if (!ContentModel) {
-      throw new Error('Cannot find suitable content model');
+      throw new Error("Cannot find suitable content model");
     }
 
     this.props = new Props(this, props);
@@ -133,7 +135,9 @@ export default class Document {
     this.settings = new Settings(this.props, settingsConfig || []);
     this.timeline = new Timeline(
       () => this.getData(),
-      (pointData: DocumentData) => this.applyTimelinePointData(pointData),
+      (pointData: DocumentData) => {
+        this.applyTimelinePointData(pointData);
+      },
     );
   }
 
@@ -170,7 +174,8 @@ export default class Document {
   }
 
   applyTimelinePointData(data: DocumentData): void {
-    const { id, documentType, documentVersion, props, ...contents } = data;
+    const { id: _id, documentType: _documentType, documentVersion: _documentVersion, props, ...contents } =
+      data;
     this.disableTimelineLogging = true;
     try {
       this.props.setData(props);
@@ -242,9 +247,9 @@ export interface DocumentCollectionData {
 }
 
 export enum DocumentCollectionSignal {
-  DOC_ADD = 'documentcollection.docadd',
-  DOC_REMOVE = 'documentcollection.docremove',
-  CURRENT_CHANGE = 'documentcollection.currentchange',
+  DOC_ADD = "documentcollection.docadd",
+  DOC_REMOVE = "documentcollection.docremove",
+  CURRENT_CHANGE = "documentcollection.currentchange",
 }
 
 export class DocumentCollection {
@@ -252,7 +257,10 @@ export class DocumentCollection {
   private items: Document[] = [];
   private current: Document | null = null;
 
-  constructor(data: DocumentCollectionData, private settingsConfig?: Array<SettingConfig<Document>>) {
+  constructor(
+    data: DocumentCollectionData,
+    private settingsConfig?: Array<SettingConfig<Document>>,
+  ) {
     this.items = [];
   }
 
@@ -312,20 +320,20 @@ export class DocumentCollection {
     const orig = this.current;
     this.current = doc;
     signal.sendSignal(DocumentCollectionSignal.CURRENT_CHANGE, this, doc, orig);
-    this.emitter.emit('currentchange');
+    this.emitter.emit("currentchange");
   }
 
   onItemsChange(fn: () => void): () => void {
-    this.emitter.on('itemschange', fn);
+    this.emitter.on("itemschange", fn);
     return () => {
-      this.emitter.removeListener('itemschange', fn);
+      this.emitter.removeListener("itemschange", fn);
     };
   }
 
   onCurrentChange(fn: () => void): () => void {
-    this.emitter.on('currentchange', fn);
+    this.emitter.on("currentchange", fn);
     return () => {
-      this.emitter.removeListener('currentchange', fn);
+      this.emitter.removeListener("currentchange", fn);
     };
   }
 

@@ -30,11 +30,14 @@
 
 .edgeHeader {
   font-size: 13px;
+  line-height: 23px;
   font-weight: 600;
   color: var(--fd-text-primary);
   padding-bottom: var(--fd-space-sm);
-  margin-bottom: var(--fd-space-md);
-  border-bottom: 1px solid var(--fd-border);
+  max-width: calc(100% - var(--fd-space-lg));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .edgeField {
@@ -48,7 +51,19 @@
   margin-bottom: var(--fd-space-xs);
 }
 
-.contextLabel { font-size:10px; line-height:18px; color:var(--fd-text-tertiary); margin-bottom:3px; letter-spacing:.3px; }
-.edgeHeader { font-size:15px; line-height:23px; padding-bottom:12px; margin-bottom:10px; border-bottom:1px solid var(--fd-border); }
-.edgeField { margin-bottom:18px; }
-.edgeLabel { line-height:20px; margin-bottom:6px; }
+.contextLabel {
+  font-size: 10px;
+  line-height: 18px;
+  color: var(--fd-text-tertiary);
+  margin-bottom: 3px;
+  letter-spacing: 0.3px;
+}
+
+.edgeField {
+  margin-bottom: 18px;
+}
+
+.edgeLabel {
+  line-height: 20px;
+  margin-bottom: 6px;
+}

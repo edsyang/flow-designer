@@ -1,0 +1,71 @@
+.helpButton {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fd-text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.helpButton:hover {
+  background: var(--fd-surface-tertiary);
+}
+
+.helpButton:active {
+  background: var(--fd-accent-light);
+}
+
+.helpButton:focus-visible {
+  outline: 2px solid var(--fd-accent);
+  outline-offset: 2px;
+}
+
+.canvasHelpDialog :global(.ant-modal-content) {
+  border: 1px solid var(--fd-border);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+.helpBody > p {
+  color: var(--fd-text-tertiary);
+  font-size: 12px;
+  margin: 0 0 20px;
+}
+
+.helpBody dl {
+  margin: 0;
+}
+
+.helpBody dl > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  min-height: 44px;
+  border-top: 1px solid var(--fd-border);
+}
+
+.helpBody dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fd-text-primary);
+}
+
+.helpBody dd {
+  margin: 0;
+  color: var(--fd-text-secondary);
+  font-size: 12px;
+}
+
+.helpBody kbd {
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: var(--fd-surface-secondary);
+  border: 1px solid var(--fd-border);
+  font: inherit;
+}

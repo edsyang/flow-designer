@@ -1,9 +1,9 @@
-import type { ComponentType, ReactElement } from 'react';
-import type { PropsData } from '../props';
-import Props from '../props';
-import type { PropConfig, ChangeKeys } from '../props/prop';
-import type { SettingConfig } from '../settings/setting';
-import type ContentNode from '../content/node';
+import type { ComponentType, ReactElement } from "react";
+import type { PropsData } from "../props";
+import type Props from "../props";
+import type { PropConfig, ChangeKeys } from "../props/prop";
+import type { SettingConfig } from "../settings/setting";
+import type ContentNode from "../content/node";
 
 export interface NodeMeta {
   name: string;
@@ -11,10 +11,11 @@ export interface NodeMeta {
   description?: string;
   icon?: string | ReactElement;
   category?: string;
+  categoryTitle?: string;
 }
 
 export interface NodeView {
-  type: 'node' | 'edge';
+  type: "node" | "edge";
   quickAdd?: boolean;
   draggable?: boolean;
   deletable?: boolean;
@@ -34,7 +35,7 @@ export interface NodeComponentProps {
 export interface PortDefinition {
   id?: string;
   group: string;
-  position: 'top' | 'bottom' | 'left' | 'right';
+  position: "top" | "bottom" | "left" | "right";
   maxConnections?: number;
   dataType?: string;
   label?: string;
@@ -44,7 +45,7 @@ export interface PortDefinition {
 
 export interface PropSchema {
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'object' | 'array' | 'enum';
+  type: "string" | "number" | "boolean" | "object" | "array" | "enum";
   defaultValue?: unknown;
   required?: boolean;
   properties?: PropSchema[];
@@ -53,7 +54,7 @@ export interface PropSchema {
 }
 
 export interface EditorField {
-  type?: 'item' | 'group';
+  type?: "item" | "group";
   target?: string | string[];
   description?: string;
   tip?: string | { content: string; url?: string };
@@ -66,7 +67,11 @@ export interface EditorField {
 }
 
 export interface NodeLifecycle {
-  propsDidChange?(changing: ChangeKeys, props: Props<ContentNode<any>>, node: ContentNode<any>): void;
+  propsDidChange?(
+    changing: ChangeKeys,
+    props: Props<ContentNode<any>>,
+    node: ContentNode<any>,
+  ): void;
   nodeDidInit?(node: ContentNode<any>, isAdd: boolean): void;
   nodeDidAdd?(node: ContentNode<any>): void;
   nodeDidPurge?(node: ContentNode<any>): void;
@@ -95,11 +100,16 @@ export function defineNode<S extends PropSchema>(config: NodeDefinitionInput<S>)
 export interface PrototypeConfig {
   name: string;
   typeName?: string;
+  category?: string;
   description?: string;
   icon?: string;
   home?: string;
   props?: PropConfig[];
-  propsDidChange?: (changing: ChangeKeys, props: Props<ContentNode<any>>, node: ContentNode<any>) => void;
+  propsDidChange?: (
+    changing: ChangeKeys,
+    props: Props<ContentNode<any>>,
+    node: ContentNode<any>,
+  ) => void;
   nodeDidInit?: (node: ContentNode<any>, isAdd: boolean) => void;
   nodeDidAdd?: (node: ContentNode<any>) => void;
   nodeDidPurge?: (node: ContentNode<any>) => void;
@@ -128,16 +138,18 @@ export default class Prototype {
   private defaultProps!: PropsData;
   private icon?: string;
   private home?: string;
+  private category?: string;
 
   constructor(config: NodeDefinition | PrototypeConfig) {
-    if ('meta' in config && 'schema' in config) {
+    if ("meta" in config && "schema" in config) {
       const def = config as NodeDefinition;
       this.definition = def;
       this.name = def.meta.name;
       this.typeName = def.meta.typeName;
       this.description = def.meta.description || this.name;
-      this.icon = typeof def.meta.icon === 'string' ? def.meta.icon : undefined;
+      this.icon = typeof def.meta.icon === "string" ? def.meta.icon : undefined;
       this.view = def.view;
+      this.category = def.meta.category;
       this.settings = def.editor?.map(editorFieldToSettingConfig) || [];
       this.propConfigs = def.schema?.map(schemaToLegacyProp) || [];
     } else {
@@ -147,11 +159,19 @@ export default class Prototype {
       this.description = config.description || this.name;
       this.icon = config.icon;
       this.home = config.home;
+      this.category = config.category;
       this.legacyView = config.view;
       this.view = legacyViewToNodeView(config.view);
       this.settings = config.settings || [];
       this.propConfigs = config.props || generatePropsFromView(config.view);
     }
+  }
+
+  updateDefinition(definition: NodeDefinition): void {
+    if (this.definition?.meta.typeName !== definition.meta.typeName) {
+      throw new Error(`Cannot update prototype ${this.typeName} with ${definition.meta.typeName}`);
+    }
+    Object.assign(this, new Prototype(definition));
   }
 
   getDefinition(): NodeDefinition | null {
@@ -167,7 +187,15 @@ export default class Prototype {
   }
 
   getName(): string {
-    return this.name;
+    return this.definition?.meta.name ?? this.name;
+  }
+
+  getNameForValue(value?: string): string {
+    if (!value) return this.getName();
+    const defaultName = this.definition?.schema.find(
+      (field) => field.name === "name",
+    )?.defaultValue;
+    return value === defaultName ? this.getName() : value;
   }
 
   getTypeName(): string {
@@ -175,7 +203,11 @@ export default class Prototype {
   }
 
   getCategory(): string {
-    return this.definition?.meta.category || '';
+    return this.definition?.meta.category ?? this.category ?? "";
+  }
+
+  getCategoryTitle(): string {
+    return this.definition?.meta.categoryTitle ?? this.getCategory();
   }
 
   getSchema(): PropSchema[] {
@@ -195,18 +227,22 @@ export default class Prototype {
   }
 
   getHome(): string {
-    return this.home || '';
+    return this.home || "";
   }
 
   getIcon(): string {
-    return typeof this.icon === 'string' ? this.icon : '';
+    return typeof this.icon === "string" ? this.icon : "";
   }
 
   getView(): NodeView {
     return this.view;
   }
 
-  propsDidChange(changing: ChangeKeys, props: Props<ContentNode<any>>, node: ContentNode<any>): void {
+  propsDidChange(
+    changing: ChangeKeys,
+    props: Props<ContentNode<any>>,
+    node: ContentNode<any>,
+  ): void {
     const lifecycle = this.definition?.lifecycle;
     if (lifecycle?.propsDidChange) {
       lifecycle.propsDidChange(changing, props, node);
@@ -264,9 +300,9 @@ function generatePropsFromView(view: View): PropConfig[] {
 function legacyViewToNodeView(view: View): NodeView {
   const shapeVal: unknown = view.shape;
   return {
-    type: view.type === 'line' ? 'edge' : 'node',
+    type: view.type === "line" ? "edge" : "node",
     draggable: view.pulled ?? false,
-    shape: typeof shapeVal === 'string' ? shapeVal : undefined,
+    shape: typeof shapeVal === "string" ? shapeVal : undefined,
   };
 }
 
@@ -279,9 +315,11 @@ function schemaToLegacyProp(schema: PropSchema): PropConfig {
 
 function editorFieldToSettingConfig(field: EditorField): SettingConfig<any> {
   return {
-    type: field.type === 'group' ? 'group' as any : 'item' as any,
+    type: field.type === "group" ? ("group" as any) : ("item" as any),
     target: field.target,
-    description: field.description,
+    get description() {
+      return field.description;
+    },
     tip: field.tip as any,
     display: field.display as any,
     setter: field.setter as any,

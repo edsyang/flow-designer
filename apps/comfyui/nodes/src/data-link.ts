@@ -1,22 +1,25 @@
-import type { EdgeTypeConfig } from '@flow-designer/model';
+import type { EdgeTypeConfig } from "@flow-designer/model";
 
 export const dataLinkConfig: EdgeTypeConfig = {
   defaultAttrs: {
     line: {
-      stroke: '#a1a1a1',
+      stroke: "#a1a1a1",
       strokeWidth: 2,
       sourceMarker: null,
       targetMarker: null,
     },
   },
   router: null,
-  connector: { name: 'port-curve' },
+  connector: { name: "port-curve" },
   schema: [],
   editor: [],
 };
 
-export const DATA_LINK_TYPE = 'DataLink';
+export const DATA_LINK_TYPE = "DataLink";
 
-export function getDataLinkEdgeType(): { name: string; config: EdgeTypeConfig } {
+export function getDataLinkEdgeType(): {
+  name: string;
+  config: EdgeTypeConfig;
+} {
   return { name: DATA_LINK_TYPE, config: dataLinkConfig };
 }

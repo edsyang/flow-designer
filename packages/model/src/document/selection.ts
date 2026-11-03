@@ -1,14 +1,14 @@
-import { EventEmitter } from 'eventemitter3';
-import { makeAutoObservable } from 'mobx';
-import Document from './index';
-import { queueTick, queueTask, queueRemoveTask } from '../utils/index';
-import type { TaskInterface } from '../utils/index';
+import { EventEmitter } from "eventemitter3";
+import { makeAutoObservable } from "mobx";
+import type Document from "./index";
+import { queueTick, queueTask, queueRemoveTask } from "../utils/index";
+import type { TaskInterface } from "../utils/index";
 
 export enum SelectionSignal {
-  ADD_ITEM = 'selection.additem',
-  REMOVE_ITEM = 'selection.removeitem',
-  SYNC_CHANGE = 'selection.syncchange',
-  CHANGE = 'selection.change',
+  ADD_ITEM = "selection.additem",
+  REMOVE_ITEM = "selection.removeitem",
+  SYNC_CHANGE = "selection.syncchange",
+  CHANGE = "selection.change",
 }
 
 export default class Selection implements TaskInterface {
@@ -62,28 +62,28 @@ export default class Selection implements TaskInterface {
   runTask(): void {
     if (JSON.stringify(this.dirty) !== JSON.stringify(this.selections.sort())) {
       this.getDocument().sendSignal(SelectionSignal.CHANGE, this.selections, this);
-      this.emitter.emit('selectionchange', this.selections);
+      this.emitter.emit("selectionchange", this.selections);
     }
     this.dirty = this.selections.slice(0).sort();
   }
 
   onSelectionSyncChange(fn: (keys: string[]) => void): () => void {
-    this.emitter.on('selectionsyncchange', fn);
+    this.emitter.on("selectionsyncchange", fn);
     return () => {
-      this.emitter.removeListener('selectionsyncchange', fn);
+      this.emitter.removeListener("selectionsyncchange", fn);
     };
   }
 
   onSelectionChange(fn: (keys: string[]) => void): () => void {
-    this.emitter.on('selectionchange', fn);
+    this.emitter.on("selectionchange", fn);
     return () => {
-      this.emitter.removeListener('selectionchange', fn);
+      this.emitter.removeListener("selectionchange", fn);
     };
   }
 
   private tickChange(): void {
     this.getDocument().sendSignal(SelectionSignal.SYNC_CHANGE, this.selections, this);
-    this.emitter.emit('selectionsyncchange', this.selections);
+    this.emitter.emit("selectionsyncchange", this.selections);
     queueTask(this);
     queueTick();
   }

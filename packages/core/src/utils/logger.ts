@@ -1,4 +1,4 @@
-export type Level = 'log' | 'warn' | 'error' | 'debug' | 'info';
+export type Level = "log" | "warn" | "error" | "debug" | "info";
 
 export class Logger {
   private level: Level;
@@ -10,7 +10,7 @@ export class Logger {
   }
 
   log(...args: any[]) {
-    if (this.shouldLog('log')) {
+    if (this.shouldLog("log")) {
       console.log(`[${this.bizName}]`, ...args);
     }
   }
@@ -24,19 +24,19 @@ export class Logger {
   }
 
   debug(...args: any[]) {
-    if (this.shouldLog('debug')) {
+    if (this.shouldLog("debug")) {
       console.debug(`[${this.bizName}]`, ...args);
     }
   }
 
   info(...args: any[]) {
-    if (this.shouldLog('info')) {
+    if (this.shouldLog("info")) {
       console.info(`[${this.bizName}]`, ...args);
     }
   }
 
   private shouldLog(method: Level): boolean {
-    const levels: Level[] = ['debug', 'log', 'info', 'warn', 'error'];
+    const levels: Level[] = ["debug", "log", "info", "warn", "error"];
     return levels.indexOf(method) >= levels.indexOf(this.level);
   }
 }

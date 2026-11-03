@@ -33,13 +33,13 @@
   background: var(--fd-border, #e4e8ef);
 }
 
-@media (max-width:760px) {
+@media (max-width: 760px) {
   .slider {
     width: 64px;
   }
 }
 
-@media (max-width:760px) {
+@media (max-width: 760px) {
   .control {
     gap: 1px;
   }
@@ -67,7 +67,11 @@
   height: 4px;
   border: 0;
   border-radius: 4px;
-  background: linear-gradient(to right, var(--fd-accent, #4d7cfe) var(--zoom-fill), var(--fd-border, #e4e8ef) var(--zoom-fill));
+  background: linear-gradient(
+    to right,
+    var(--fd-accent, #4d7cfe) var(--zoom-fill),
+    var(--fd-border, #e4e8ef) var(--zoom-fill)
+  );
 }
 
 .slider::-webkit-slider-thumb {

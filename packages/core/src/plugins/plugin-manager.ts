@@ -1,11 +1,11 @@
-import type { RegisterOptions, IPluginManager, IPlugin, PluginCreator } from './types';
-import { PluginContext } from './plugin-context';
-import type { Editor } from '../editor';
-import { EditorPlugin } from './plugin';
-import { invariant, getLogger } from '../utils';
-import sequencify from './sequencify';
+import type { RegisterOptions, IPluginManager, IPlugin, PluginCreator } from "./types";
+import { PluginContext } from "./plugin-context";
+import type { Editor } from "../editor";
+import { EditorPlugin } from "./plugin";
+import { invariant, getLogger } from "../utils";
+import sequencify from "./sequencify";
 
-const logger = getLogger({ level: 'warn', bizName: 'editor:pluginManager' });
+const logger = getLogger({ level: "warn", bizName: "editor:pluginManager" });
 
 export class PluginManager implements IPluginManager {
   private plugins: IPlugin[] = [];
@@ -43,7 +43,7 @@ export class PluginManager implements IPluginManager {
 
     this.plugins.push(plugin);
     this.pluginsMap.set(plugin.name, plugin);
-    logger.log('plugin registered with config:', config, ', options:', pluginOptions);
+    logger.log("plugin registered with config:", config, ", options:", pluginOptions);
   }
 
   get(pluginName: string): IPlugin | undefined {
@@ -59,7 +59,7 @@ export class PluginManager implements IPluginManager {
   }
 
   async delete(pluginName: string): Promise<boolean> {
-    const idx = this.plugins.findIndex(plugin => plugin.name === pluginName);
+    const idx = this.plugins.findIndex((plugin) => plugin.name === pluginName);
     if (idx === -1) return false;
     const plugin = this.plugins[idx];
     try {
@@ -76,13 +76,13 @@ export class PluginManager implements IPluginManager {
   async init() {
     const pluginNames: string[] = [];
     const pluginObj: { [name: string]: IPlugin } = {};
-    this.plugins.forEach(plugin => {
+    this.plugins.forEach((plugin) => {
       pluginNames.push(plugin.name);
       pluginObj[plugin.name] = plugin;
     });
     const { missingTasks, sequence } = sequencify(pluginObj, pluginNames);
-    invariant(!missingTasks.length, 'plugin dependency missing', missingTasks);
-    logger.log('load plugin sequence:', sequence);
+    invariant(!missingTasks.length, "plugin dependency missing", missingTasks);
+    logger.log("load plugin sequence:", sequence);
 
     const initialized: IPlugin[] = [];
     for (const pluginName of sequence) {
@@ -91,12 +91,18 @@ export class PluginManager implements IPluginManager {
         await plugin.init();
         initialized.push(plugin);
       } catch (error) {
-        logger.error(`Failed to initialize plugin "${pluginName}"; stopping plugin initialization.`, error);
+        logger.error(
+          `Failed to initialize plugin "${pluginName}"; stopping plugin initialization.`,
+          error,
+        );
         for (const initializedPlugin of initialized.reverse()) {
           try {
             await initializedPlugin.destroy();
           } catch (cleanupError) {
-            logger.error(`Failed to clean up plugin "${initializedPlugin.name}" after initialization failure.`, cleanupError);
+            logger.error(
+              `Failed to clean up plugin "${initializedPlugin.name}" after initialization failure.`,
+              cleanupError,
+            );
           }
         }
         throw error;

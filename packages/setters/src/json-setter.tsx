@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Input } from 'antd';
-import type { SetterProps } from './types';
+import { useState } from "react";
+import { Input } from "antd";
+import type { SetterProps } from "./types";
 
 export function JsonSetter({ value, onChange, disabled }: SetterProps<object>) {
   const [text, setText] = useState(() => JSON.stringify(value ?? {}, null, 2));
@@ -18,12 +18,15 @@ export function JsonSetter({ value, onChange, disabled }: SetterProps<object>) {
 
   return (
     <Input.TextArea
-      style={{ fontFamily: 'monospace', fontSize: 12 }}
-      status={error ? 'error' : undefined}
+      style={{ fontFamily: "monospace", fontSize: 12 }}
+      status={error ? "error" : undefined}
       value={text}
       disabled={disabled}
       autoSize={{ minRows: 4 }}
-      onChange={(e) => { setText(e.target.value); setError(false); }}
+      onChange={(e) => {
+        setText(e.target.value);
+        setError(false);
+      }}
       onBlur={handleBlur}
     />
   );

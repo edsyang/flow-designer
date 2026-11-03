@@ -1,4 +1,4 @@
-import Setting from './setting';
+import type Setting from "./setting";
 
 export interface ChangeableConfig<T> {
   name: string;
@@ -9,8 +9,10 @@ export interface ChangeableConfig<T> {
 export default class Changeable<T> {
   private computed: any;
 
-  constructor(private setting: Setting<T>, private config: ChangeableConfig<T>) {
-  }
+  constructor(
+    private setting: Setting<T>,
+    private config: ChangeableConfig<T>,
+  ) {}
 
   getName(): string {
     return this.config.name;
@@ -19,7 +21,9 @@ export default class Changeable<T> {
   listen(fn: (computed: any) => void): () => void {
     this.compute();
     if (!this.config.listen) {
-      return () => { return; };
+      return () => {
+        return;
+      };
     }
     return this.config.listen(this.setting, () => {
       this.compute();

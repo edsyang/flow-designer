@@ -1,4 +1,4 @@
-import { toPascalCase, toCamelCase, toDefName, toRegisterFnName } from '../utils.js';
+import { toPascalCase, toDefName, toRegisterFnName } from "../utils.js";
 
 export interface ComfyUITemplateOptions {
   kebabName: string;
@@ -8,42 +8,26 @@ export interface ComfyUITemplateOptions {
 const CATEGORY_PORTS: Record<string, { inPorts: PortTmpl[]; outPorts: PortTmpl[] }> = {
   loaders: {
     inPorts: [],
-    outPorts: [
-      { id: 'output', dataType: 'MODEL', label: 'MODEL', color: '#b39ddb' },
-    ],
+    outPorts: [{ id: "output", dataType: "MODEL", label: "MODEL", color: "#b39ddb" }],
   },
   sampling: {
     inPorts: [
-      { id: 'model', dataType: 'MODEL', label: 'MODEL', color: '#b39ddb' },
-      { id: 'conditioning', dataType: 'CONDITIONING', label: 'CONDITIONING', color: '#ffb74d' },
+      { id: "model", dataType: "MODEL", label: "MODEL", color: "#b39ddb" },
+      { id: "conditioning", dataType: "CONDITIONING", label: "CONDITIONING", color: "#ffb74d" },
     ],
-    outPorts: [
-      { id: 'output', dataType: 'LATENT', label: 'LATENT', color: '#ff6e9c' },
-    ],
+    outPorts: [{ id: "output", dataType: "LATENT", label: "LATENT", color: "#ff6e9c" }],
   },
   conditioning: {
-    inPorts: [
-      { id: 'clip', dataType: 'CLIP', label: 'CLIP', color: '#ffd54f' },
-    ],
-    outPorts: [
-      { id: 'output', dataType: 'CONDITIONING', label: 'CONDITIONING', color: '#ffb74d' },
-    ],
+    inPorts: [{ id: "clip", dataType: "CLIP", label: "CLIP", color: "#ffd54f" }],
+    outPorts: [{ id: "output", dataType: "CONDITIONING", label: "CONDITIONING", color: "#ffb74d" }],
   },
   latent: {
-    inPorts: [
-      { id: 'input', dataType: 'LATENT', label: 'LATENT', color: '#ff6e9c' },
-    ],
-    outPorts: [
-      { id: 'output', dataType: 'IMAGE', label: 'IMAGE', color: '#64b5f6' },
-    ],
+    inPorts: [{ id: "input", dataType: "LATENT", label: "LATENT", color: "#ff6e9c" }],
+    outPorts: [{ id: "output", dataType: "IMAGE", label: "IMAGE", color: "#64b5f6" }],
   },
   image: {
-    inPorts: [
-      { id: 'input', dataType: 'IMAGE', label: 'IMAGE', color: '#64b5f6' },
-    ],
-    outPorts: [
-      { id: 'output', dataType: 'IMAGE', label: 'IMAGE', color: '#64b5f6' },
-    ],
+    inPorts: [{ id: "input", dataType: "IMAGE", label: "IMAGE", color: "#64b5f6" }],
+    outPorts: [{ id: "output", dataType: "IMAGE", label: "IMAGE", color: "#64b5f6" }],
   },
 };
 
@@ -54,8 +38,8 @@ interface PortTmpl {
   color: string;
 }
 
-function formatPort(p: PortTmpl, group: 'in' | 'out'): string {
-  const position = group === 'in' ? 'left' : 'right';
+function formatPort(p: PortTmpl, group: "in" | "out"): string {
+  const position = group === "in" ? "left" : "right";
   return `      { id: '${p.id}', group: '${group}', position: '${position}', dataType: '${p.dataType}', label: '${p.label}', color: '${p.color}' },`;
 }
 
@@ -64,11 +48,11 @@ export function generateComfyUINodeDef(opts: ComfyUITemplateOptions): string {
   const pascalName = toPascalCase(kebabName);
   const defName = toDefName(kebabName);
 
-  const portConfig = CATEGORY_PORTS[category] ?? CATEGORY_PORTS['image']!;
+  const portConfig = CATEGORY_PORTS[category] ?? CATEGORY_PORTS["image"]!;
   const portLines = [
-    ...portConfig.inPorts.map(p => formatPort(p, 'in')),
-    ...portConfig.outPorts.map(p => formatPort(p, 'out')),
-  ].join('\n');
+    ...portConfig.inPorts.map((p) => formatPort(p, "in")),
+    ...portConfig.outPorts.map((p) => formatPort(p, "out")),
+  ].join("\n");
 
   return `import { defineNode } from '@flow-designer/model';
 import { BuiltinSetters } from '@flow-designer/setters/constants';

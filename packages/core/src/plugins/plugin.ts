@@ -1,7 +1,7 @@
-import type { IPlugin, IPluginManager, IPluginConfig } from './types';
-import { EventEmitter } from 'eventemitter3';
-import type { Logger } from '../utils';
-import { getLogger, invariant } from '../utils';
+import type { IPlugin, IPluginManager, IPluginConfig } from "./types";
+import { EventEmitter } from "eventemitter3";
+import type { Logger } from "../utils";
+import { getLogger, invariant } from "../utils";
 
 export class EditorPlugin implements IPlugin {
   config: IPluginConfig;
@@ -18,16 +18,12 @@ export class EditorPlugin implements IPlugin {
 
   private _disabled = false;
 
-  constructor(
-    manager: IPluginManager,
-    config: IPluginConfig,
-    options: any = {},
-  ) {
+  constructor(manager: IPluginManager, config: IPluginConfig, options: any = {}) {
     this.manager = manager;
     this.config = config;
     this.options = options;
     this.emitter = new EventEmitter();
-    this.logger = getLogger({ level: 'warn', bizName: `designer:plugin:${config.name}` });
+    this.logger = getLogger({ level: "warn", bizName: `designer:plugin:${config.name}` });
   }
 
   get name() {
@@ -35,7 +31,7 @@ export class EditorPlugin implements IPlugin {
   }
 
   get dep() {
-    if (typeof this.config.dep === 'string') return [this.config.dep];
+    if (typeof this.config.dep === "string") return [this.config.dep];
     return this.config.dep || [];
   }
 
@@ -64,7 +60,7 @@ export class EditorPlugin implements IPlugin {
 
   async init(forceInit?: boolean) {
     if (this._inited && !forceInit) return;
-    this.logger.log('method init called');
+    this.logger.log("method init called");
     try {
       await this.config.init?.call(undefined);
       this._inited = true;
@@ -72,7 +68,7 @@ export class EditorPlugin implements IPlugin {
       try {
         await this.config.destroy?.call(undefined);
       } catch (cleanupError) {
-        this.logger.error('Failed to clean up plugin after initialization error:', cleanupError);
+        this.logger.error("Failed to clean up plugin after initialization error:", cleanupError);
       }
       throw error;
     }
@@ -80,7 +76,7 @@ export class EditorPlugin implements IPlugin {
 
   async destroy() {
     if (!this._inited) return;
-    this.logger.log('method destroy called');
+    this.logger.log("method destroy called");
     try {
       await this.config?.destroy?.call(undefined);
     } finally {
@@ -93,7 +89,7 @@ export class EditorPlugin implements IPlugin {
   }
 
   toProxy() {
-    invariant(this._inited, 'Could not call toProxy before init');
+    invariant(this._inited, "Could not call toProxy before init");
     const exports = this.config.exports?.();
     return new Proxy(this, {
       get(target, prop, receiver) {

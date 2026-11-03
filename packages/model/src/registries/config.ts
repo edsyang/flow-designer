@@ -1,5 +1,5 @@
-import Document from '../document';
-import type { SettingConfig } from '../settings/setting';
+import type Document from "../document";
+import type { SettingConfig } from "../settings/setting";
 
 interface Configs {
   [key: string]: any;

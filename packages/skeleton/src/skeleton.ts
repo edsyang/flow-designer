@@ -1,5 +1,5 @@
-import type { ISkeleton, PaneConfig } from '@flow-designer/model';
-import { Area } from './area';
+import type { ISkeleton, PaneConfig } from "@flow-designer/model";
+import { Area } from "./area";
 
 export class Skeleton implements ISkeleton {
   header = new Area();
@@ -11,19 +11,19 @@ export class Skeleton implements ISkeleton {
   add(config: PaneConfig) {
     const { area } = config;
     switch (area) {
-      case 'header':
+      case "header":
         this.header.add(config);
         break;
-      case 'canvasToolbar':
+      case "canvasToolbar":
         this.canvasToolbar.add(config);
         break;
-      case 'sidebar':
+      case "sidebar":
         this.sidebar.add(config);
         break;
-      case 'inspector':
+      case "inspector":
         this.inspector.add(config);
         break;
-      case 'canvas':
+      case "canvas":
         this.canvas.add(config);
         break;
     }

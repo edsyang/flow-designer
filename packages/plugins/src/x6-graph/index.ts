@@ -1,8 +1,8 @@
-import type { IPluginConfig, IPluginContext } from '@flow-designer/core';
-import { GraphManager } from '@flow-designer/graph';
-import { prototypeRegistry, signal } from '@flow-designer/model';
-import type { NodeMeta, GraphOptions, Prototype } from '@flow-designer/model';
-import { GraphBridge } from './bridge/graph-bridge';
+import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
+import { GraphManager } from "@flow-designer/graph";
+import { prototypeRegistry, signal, t } from "@flow-designer/model";
+import type { NodeMeta, GraphOptions, Prototype } from "@flow-designer/model";
+import { GraphBridge } from "./bridge/graph-bridge";
 
 function toNodeMeta(prototype: Prototype): NodeMeta {
   return {
@@ -10,15 +10,16 @@ function toNodeMeta(prototype: Prototype): NodeMeta {
     typeName: prototype.getTypeName(),
     icon: prototype.getIcon() || undefined,
     category: prototype.getCategory() || undefined,
+    categoryTitle: prototype.getCategoryTitle() || undefined,
   };
 }
 
 function showInitError(container: HTMLElement): void {
-  const message = document.createElement('div');
-  message.style.padding = '16px';
-  message.style.color = '#f5222d';
-  message.style.fontSize = '14px';
-  message.textContent = '画布初始化失败，请刷新页面重试';
+  const message = document.createElement("div");
+  message.style.padding = "16px";
+  message.style.color = "#f5222d";
+  message.style.fontSize = "14px";
+  message.textContent = t("plugin.graph.initFailed");
   container.appendChild(message);
 }
 
@@ -37,7 +38,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
   }
 
   return {
-    name: 'plugin-x6-graph',
+    name: "plugin-x6-graph",
     dep: [],
     init() {
       try {
@@ -48,26 +49,36 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
           let ownedContainer: HTMLElement | null = null;
           let errorMessage: HTMLElement | null = null;
           let cleaned = false;
-          const onRoutingFailure = (payload: unknown) => { ctx.logger.warn('No obstacle-free route within the routing budget:', payload); };
+          const onRoutingFailure = (payload: unknown) => {
+            ctx.logger.warn("No obstacle-free route within the routing budget:", payload);
+          };
           const cleanup = () => {
             if (cleaned) return;
             cleaned = true;
-            unsubscribeRegistry?.(); unsubscribeRegistry = null;
-            graphBridge?.teardown(); graphBridge = null;
-            doc.getTimeline().setApplier((data: Parameters<typeof doc.applyTimelinePointData>[0]) => { doc.applyTimelinePointData(data); });
-            graphManager.off('edge:routing:failed', onRoutingFailure);
+            unsubscribeRegistry?.();
+            unsubscribeRegistry = null;
+            graphBridge?.teardown();
+            graphBridge = null;
+            doc
+              .getTimeline()
+              .setApplier((data: Parameters<typeof doc.applyTimelinePointData>[0]) => {
+                doc.applyTimelinePointData(data);
+              });
+            graphManager.off("edge:routing:failed", onRoutingFailure);
             graphManager.dispose();
             ctx.editor.setGraph(null);
-            if (ownedContainer && ctx.editor.getContainer() === ownedContainer) ctx.editor.setContainer(null);
+            if (ownedContainer && ctx.editor.getContainer() === ownedContainer)
+              ctx.editor.setContainer(null);
             errorMessage?.remove();
             if (cleanupMount === cleanup) cleanupMount = null;
           };
           cleanupMount = cleanup;
           try {
             graphManager.init(container, options);
-            graphManager.on('edge:routing:failed', onRoutingFailure);
+            graphManager.on("edge:routing:failed", onRoutingFailure);
             if (!ctx.editor.getContainer()) {
-              ownedContainer = container.closest<HTMLElement>('[data-fd-area="workbench"]') ?? container;
+              ownedContainer =
+                container.closest<HTMLElement>('[data-fd-area="workbench"]') ?? container;
               ctx.editor.setContainer(ownedContainer);
             }
             ctx.editor.setGraph(graphManager);
@@ -76,13 +87,17 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
 
             graphBridge = new GraphBridge(graphManager, doc);
             graphBridge.setup();
-            doc.getTimeline().setApplier((data: Parameters<typeof doc.applyTimelinePointData>[0]) => { if (graphBridge) graphBridge.resetFromData(data); else doc.applyTimelinePointData(data); });
+            doc
+              .getTimeline()
+              .setApplier((data: Parameters<typeof doc.applyTimelinePointData>[0]) => {
+                if (graphBridge) graphBridge.resetFromData(data);
+                else doc.applyTimelinePointData(data);
+              });
 
-            signal.sendSignal('graph:ready', graphManager);
-
+            signal.sendSignal("graph:ready", graphManager);
           } catch (error) {
             cleanup();
-            signal.sendSignal('graph:init-failed', error);
+            signal.sendSignal("graph:init-failed", error);
             showInitError(container);
             errorMessage = container.lastElementChild as HTMLElement | null;
             return () => errorMessage?.remove();
@@ -90,12 +105,13 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
           return cleanup;
         });
       } catch (error) {
-        signal.sendSignal('graph:init-failed', error);
+        signal.sendSignal("graph:init-failed", error);
       }
     },
     destroy() {
       destroyed = true;
-      unregisterMount?.(); unregisterMount = undefined;
+      unregisterMount?.();
+      unregisterMount = undefined;
       cleanupMount?.();
     },
     exports() {

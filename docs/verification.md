@@ -9,7 +9,7 @@ The CI workflow currently builds the workspace and runs package tests serially. 
 ## Checks by change type
 
 | Change | Minimum relevant checks |
-|---|---|
+| --- | --- |
 | Documentation only | Review diff, local links/paths, command names, and claims against implementation; no new runtime tests required |
 | Lint/build/test configuration | Parse/load config, exercise positive and negative cases for new rules, compare affected checks before/after |
 | Package-local behavior | Owning package's tests and typecheck; lint changed source; include relevant failure/cleanup cases |
@@ -69,7 +69,6 @@ After the helper moved from core to skeleton, `pnpm check:boundaries` passes 38 
 
 Focused suites pass: core 40 tests, skeleton 26 tests (including function/class/memo/forwardRef/element rendering, key/ref preservation and registered setter precedence), and react 20 tests. Their package typechecks pass, the new helper's ESLint check has no diagnostics, and the frozen/offline lockfile consistency check passes without dependency upgrades. These are focused migration results; the final full-workspace build, test and typecheck results must be reported separately.
 
-
 ## Canvas performance measurement (2026-10-30)
 
 The model-backed BPMN fixture uses 100, 300 and 500 nodes with twice as many edges, a 1440×900 viewport, Node 22.23.2, and locally installed Chrome in headless mode. Start a BPMN development server on 5179 or a production preview on 5189, then run:
@@ -91,7 +90,7 @@ In the final production run with presentation culling, synchronous load at 100/3
 The final uncommitted worktree was verified with Node 22.23.2 and pnpm 9.15.9. These measurements supersede earlier unverified or intermediate results for the changed code; they do not rewrite the historical baseline above.
 
 | Check | Executed result |
-|---|---|
+| --- | --- |
 | `pnpm build` | **19/19 tasks successful**. |
 | `pnpm -r --workspace-concurrency=1 test` | **384/384 tests passed**. |
 | `pnpm -r --workspace-concurrency=1 typecheck` | **Exit 0** across the workspace. |
@@ -109,7 +108,7 @@ The full browser collection includes the six large-document viewport-culling cor
 This later verification covers removal of the automatic-layout capability and redundant UI counts, supported-operation hints, user-controlled narrow-viewport panels, and anchored edge-editing fixes. It is a separate measurement of the refined worktree; the earlier 384-test/38-case evidence above is retained as history.
 
 | Check | Executed result for this refinement |
-|---|---|
+| --- | --- |
 | `pnpm build` | **19/19 tasks successful**. |
 | `pnpm -r --workspace-concurrency=1 test` | **385/385 tests passed across 14 test packages**. Included owning-package counts: graph **53**, plugins **44**, React **20**. |
 | `pnpm -r --workspace-concurrency=1 typecheck` | **Passed** across the workspace. |
@@ -122,7 +121,7 @@ The added `edge-edit-persistence.spec.ts` creates an explicit model-owned BPMN e
 The final development-server samples on port 5179 used 100/300/500 nodes with twice as many edges:
 
 | Nodes / edges | Synchronous load | Undo | Normal drag frame p95 | Normal drag intervals above 25ms | Fit-view drag frame p95 |
-|---|---:|---:|---:|---:|---:|
+| --- | --: | --: | --: | --: | --: |
 | 100 / 200 | 48.5ms | 13.3ms | 16.8ms | 2.67% | 16.7ms |
 | 300 / 600 | 121.7ms | 16.5ms | 33.3ms | 5.45% | 16.7ms |
 | 500 / 1000 | 185.2ms | 15.0ms | 33.3ms | 7.37% | 16.8ms |
@@ -136,7 +135,7 @@ These are development-mode observations, not a production before/after compariso
 This later pass verifies the React-helper ownership migration, the lightweight setter-constants entry, and the refined edge-interaction contract. It preserves the earlier 384/385-test and 38/39-case measurements as history. Environment: Node 22.23.2, pnpm 9.15.9 and locally installed Chrome; this is a tested local runtime, not a new workspace-wide engines requirement.
 
 | Check | Executed result for this pass |
-|---|---|
+| --- | --- |
 | `pnpm build` | **19/19 tasks successful**. |
 | `pnpm -r --workspace-concurrency=1 test` | **405/405 tests passed across 14 test packages**. Included counts: model **101**, create-node **27**, core **40**, graph **58**, setters **22**, skeleton **26**, react **20**, plugins **44**. |
 | `pnpm -r --workspace-concurrency=1 typecheck` | **Passed** across the workspace. |
@@ -153,7 +152,7 @@ The current edge contract supersedes the earlier paragraph describing node movem
 Latest development-server samples used 100/300/500 nodes with twice as many edges:
 
 | Nodes / edges | Synchronous load | Undo | Normal drag frame p95 | Normal drag intervals above 25ms | Fit-view drag frame p95 |
-|---|---:|---:|---:|---:|---:|
+| --- | --: | --: | --: | --: | --: |
 | 100 / 200 | 49.0ms | 9.9ms | 16.8ms | 3.70% | 16.8ms |
 | 300 / 600 | 119.3ms | 17.5ms | 33.2ms | 5.83% | 16.7ms |
 | 500 / 1000 | 185.2ms | 14.9ms | 33.2ms | 5.15% | 16.8ms |
@@ -167,7 +166,7 @@ These are local development-mode observations, not production before/after measu
 This pass covers the graphic-card node library and floating work surfaces, modal operation help, graph-synchronized zoom slider, configured-node inspector reopening, pointer-local quick add, and the accompanying viewport/edge interaction changes. Earlier measurements above remain historical evidence. Runtime: Node **22.23.2**, pnpm **9.15.9**, and locally installed Chrome.
 
 | Check | Executed result for this pass |
-|---|---|
+| --- | --- |
 | `pnpm build` | **19/19 tasks successful**. Log: `/private/tmp/flow-designer-modern-build.log`. |
 | `pnpm -r --workspace-concurrency=1 test` | **431/431 tests passed across 14 test packages**. Included owning-package counts: graph **80**, React **21**, plugins **47**. Log: `/private/tmp/flow-designer-modern-tests.log`. |
 | `pnpm -r --workspace-concurrency=1 typecheck` | **Exit 0** across the workspace. Log: `/private/tmp/flow-designer-modern-types.log`. |
@@ -182,7 +181,7 @@ Visual checks at **543px, 800px and 1440px** show a real selected UserTask and i
 The final production steady-state long-drag samples used 100/300/500 nodes with twice as many edges, retaining all 200/600/1000 edges. Routing failures and errors were **zero** for all three samples.
 
 | Nodes / edges | Synchronous load | Final rendered-path stability | Undo | 300px drag frame p95 | Drag intervals above 25ms | Pan frame p95 | Wheel frame p95 | Fit-view drag frame p95 |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| --- | --: | --: | --: | --: | --: | --: | --: | --: |
 | 100 / 200 | 53.7ms | 664.0ms | 27.9ms | 16.7ms | 1.64% | 16.7ms | 16.7ms | 16.7ms |
 | 300 / 600 | 130.4ms | 2178.7ms | 36.9ms | 16.8ms | 1.67% | 16.7ms | 16.8ms | 16.7ms |
 | 500 / 1000 | 207.4ms | 4747.3ms | 72.6ms | 16.8ms | 1.64% | 16.7ms | 16.7ms | 16.8ms |
@@ -192,10 +191,10 @@ The normal long-drag fixture produced **30 position events / 120 route computati
 The final **30px short-drag** samples also retained all 200/600/1000 edges with zero routing failures/errors:
 
 | Nodes / edges | Short-drag frame p95 | Intervals above 25ms | Position events / route computations |
-|---|---:|---:|---:|
-| 100 / 200 | 16.7ms | 1.67% | 3 / 12 |
-| 300 / 600 | 16.7ms | 0% | 3 / 12 |
-| 500 / 1000 | 16.8ms | 1.64% | 3 / 12 |
+| ------------- | -------------------: | -------------------: | -----------------------------------: |
+| 100 / 200     |               16.7ms |                1.67% |                               3 / 12 |
+| 300 / 600     |               16.7ms |                   0% |                               3 / 12 |
+| 500 / 1000    |               16.8ms |                1.64% |                               3 / 12 |
 
 The six production artifacts are `/private/tmp/flow-prod-perf-final/{long,short}/{100,300,500}-nodes.json`; execution logs are `/private/tmp/flow-prod-final-long.log` and `/private/tmp/flow-prod-final-short.log`.
 

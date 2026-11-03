@@ -12,10 +12,14 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+
 jobs:
   verify:
-    name: Workspace build and tests
+    name: Workspace verify
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -34,8 +38,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build workspace
-        run: pnpm build
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
 
-      - name: Run Vitest unit tests
-        run: pnpm -r --workspace-concurrency=1 test
+      - name: Format check
+        run: pnpm turbo run //#format:check
+
+      - name: Lint
+        run: pnpm turbo run lint
+
+      - name: Typecheck, Build and Test
+        run: pnpm turbo run typecheck build test
+        

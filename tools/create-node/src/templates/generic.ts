@@ -1,4 +1,4 @@
-import { toPascalCase, toCamelCase, toDefName, toRegisterFnName } from '../utils.js';
+import { toPascalCase, toDefName, toRegisterFnName } from "../utils.js";
 
 export interface GenericTemplateOptions {
   kebabName: string;

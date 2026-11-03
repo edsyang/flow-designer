@@ -1,27 +1,55 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createDesigner } from '../src/create-designer';
-import { contentTypesRegistry, GenericContent, utils } from '@flow-designer/model';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createDesigner } from "../src/create-designer";
+import { contentTypesRegistry, GenericContent, t, utils } from "@flow-designer/model";
 
 beforeEach(() => {
-  if (!contentTypesRegistry.getSuitableContentType('default')) {
+  if (!contentTypesRegistry.getSuitableContentType("default")) {
     contentTypesRegistry.register(GenericContent as any);
   }
 });
 
 const ALL_DISABLED = [
-  'plugin-x6-graph', 'plugin-zoom', 'plugin-undo-redo',
-  'plugin-copy-paste', 'plugin-delete', 'plugin-stencil-panel',
-  'plugin-selection-panel', 'plugin-edge-label', 'plugin-debug-loader',
-  'plugin-schema-viewer',
+  "plugin-x6-graph",
+  "plugin-zoom",
+  "plugin-undo-redo",
+  "plugin-copy-paste",
+  "plugin-delete",
+  "plugin-stencil-panel",
+  "plugin-selection-panel",
+  "plugin-edge-label",
+  "plugin-debug-loader",
+  "plugin-schema-viewer",
+  "plugin-canvas-help",
+  "plugin-language-switcher",
 ];
 
-describe('createDesigner', () => {
-  it('returns engine, editor, document, graph, plugins, and destroy', async () => {
-    const container = document.createElement('div');
+describe("createDesigner", () => {
+  it("initializes locale resources before plugins initialize", async () => {
+    const pluginInit = vi.fn(() => {
+      expect(t("scenario.test.ready")).toBe("场景已就绪");
+    });
+    const designer = await createDesigner({
+      container: document.createElement("div"),
+      documentType: "default",
+      documentVersion: "1.0.0",
+      localeMessages: {
+        "en-US": { "scenario.test.ready": "Scenario ready" },
+        "zh-CN": { "scenario.test.ready": "场景已就绪" },
+      },
+      plugins: [() => ({ name: "i18n-ordering-test", init: pluginInit })],
+      disableBuiltinPlugins: ALL_DISABLED,
+    });
+
+    expect(pluginInit).toHaveBeenCalledOnce();
+    await designer.destroy();
+  });
+
+  it("returns engine, editor, document, graph, plugins, and destroy", async () => {
+    const container = document.createElement("div");
     const designer = await createDesigner({
       container,
-      documentType: 'default',
-      documentVersion: '1.0.0',
+      documentType: "default",
+      documentVersion: "1.0.0",
       disableBuiltinPlugins: ALL_DISABLED,
     });
 
@@ -29,18 +57,18 @@ describe('createDesigner', () => {
     expect(designer.editor).toBeDefined();
     expect(designer.document).toBeDefined();
     expect(designer.plugins).toBeDefined();
-    expect(typeof designer.destroy).toBe('function');
+    expect(typeof designer.destroy).toBe("function");
     expect(designer.editor.getDocument()).toBeDefined();
 
     await designer.destroy();
   });
 
-  it('creates document with correct documentType', async () => {
-    const container = document.createElement('div');
+  it("creates document with correct documentType", async () => {
+    const container = document.createElement("div");
     const designer = await createDesigner({
       container,
-      documentType: 'default',
-      documentVersion: '2.0.0',
+      documentType: "default",
+      documentVersion: "2.0.0",
       disableBuiltinPlugins: ALL_DISABLED,
     });
 
@@ -51,19 +79,19 @@ describe('createDesigner', () => {
     await designer.destroy();
   });
 
-  it('registers custom plugins from options', async () => {
+  it("registers custom plugins from options", async () => {
     const initFn = vi.fn();
     const customPlugin = () => ({
-      name: 'test-custom',
+      name: "test-custom",
       dep: [],
       init: initFn,
     });
 
-    const container = document.createElement('div');
+    const container = document.createElement("div");
     const designer = await createDesigner({
       container,
-      documentType: 'default',
-      documentVersion: '1.0.0',
+      documentType: "default",
+      documentVersion: "1.0.0",
       plugins: [customPlugin],
       disableBuiltinPlugins: ALL_DISABLED,
     });
@@ -72,36 +100,38 @@ describe('createDesigner', () => {
     await designer.destroy();
   });
 
-  it('rejects creation and cleans up initialized plugins when a plugin fails', async () => {
+  it("rejects creation and cleans up initialized plugins when a plugin fails", async () => {
     const destroyFirstPlugin = vi.fn();
     const firstPlugin = () => ({
-      name: 'test-first',
+      name: "test-first",
       init() {},
       destroy: destroyFirstPlugin,
     });
     const failingPlugin = () => ({
-      name: 'test-failing',
+      name: "test-failing",
       init() {
-        throw new Error('plugin initialization failed');
+        throw new Error("plugin initialization failed");
       },
     });
 
-    await expect(createDesigner({
-      container: document.createElement('div'),
-      documentType: 'default',
-      documentVersion: '1.0.0',
-      plugins: [firstPlugin, failingPlugin],
-      disableBuiltinPlugins: ALL_DISABLED,
-    })).rejects.toThrow('plugin initialization failed');
+    await expect(
+      createDesigner({
+        container: document.createElement("div"),
+        documentType: "default",
+        documentVersion: "1.0.0",
+        plugins: [firstPlugin, failingPlugin],
+        disableBuiltinPlugins: ALL_DISABLED,
+      }),
+    ).rejects.toThrow("plugin initialization failed");
     expect(destroyFirstPlugin).toHaveBeenCalledOnce();
   });
 
-  it('destroy cleans up graph reference', async () => {
-    const container = document.createElement('div');
+  it("destroy cleans up graph reference", async () => {
+    const container = document.createElement("div");
     const designer = await createDesigner({
       container,
-      documentType: 'default',
-      documentVersion: '1.0.0',
+      documentType: "default",
+      documentVersion: "1.0.0",
       disableBuiltinPlugins: ALL_DISABLED,
     });
 
@@ -109,12 +139,12 @@ describe('createDesigner', () => {
     expect(designer.editor.getGraph()).toBeNull();
   });
 
-  it('does not register unsavedPrompt by default', async () => {
-    const container = document.createElement('div');
+  it("does not register unsavedPrompt by default", async () => {
+    const container = document.createElement("div");
     const designer = await createDesigner({
       container,
-      documentType: 'default',
-      documentVersion: '1.0.0',
+      documentType: "default",
+      documentVersion: "1.0.0",
       disableBuiltinPlugins: ALL_DISABLED,
     });
 
@@ -122,36 +152,67 @@ describe('createDesigner', () => {
   });
 });
 
-
-describe('designer resource ownership', () => {
-  it('passes the container to plugins without mounting and exposes the current graph', async () => {
-    const container = document.createElement('div');
-    const designer = await createDesigner({ container, documentType:'default', documentVersion:'1.0.0', disableBuiltinPlugins:ALL_DISABLED,
-      plugins:[(ctx) => ({ name:'container-probe', init() { expect(ctx.container).toBe(container); } })],
+describe("designer resource ownership", () => {
+  it("passes the container to plugins without mounting and exposes the current graph", async () => {
+    const container = document.createElement("div");
+    const designer = await createDesigner({
+      container,
+      documentType: "default",
+      documentVersion: "1.0.0",
+      disableBuiltinPlugins: ALL_DISABLED,
+      plugins: [
+        (ctx) => ({
+          name: "container-probe",
+          init() {
+            expect(ctx.container).toBe(container);
+          },
+        }),
+      ],
     });
     expect(container.children.length).toBe(0);
     expect(designer.graph).toBeNull();
-    expect(Object.getOwnPropertyDescriptor(designer, 'graph')?.get).toBeTypeOf('function');
-    const destroy = vi.spyOn(designer.document, 'destroy');
+    expect(Object.getOwnPropertyDescriptor(designer, "graph")?.get).toBeTypeOf("function");
+    const destroy = vi.spyOn(designer.document, "destroy");
     await Promise.all([designer.destroy(), designer.destroy()]);
     expect(destroy).toHaveBeenCalledOnce();
   });
-  it('releases acquired listeners when registration throws before plugin initialization', async () => {
+  it("releases acquired listeners when registration throws before plugin initialization", async () => {
     const dispose = vi.fn();
-    const init = vi.spyOn(utils.hotkey, 'init').mockReturnValue(dispose);
+    const init = vi.spyOn(utils.hotkey, "init").mockReturnValue(dispose);
     try {
-      await expect(createDesigner({ documentType:'default', documentVersion:'1.0.0', disableBuiltinPlugins:ALL_DISABLED,
-        plugins:[() => { throw new Error('factory failure'); }],
-      })).rejects.toThrow('factory failure');
+      await expect(
+        createDesigner({
+          documentType: "default",
+          documentVersion: "1.0.0",
+          disableBuiltinPlugins: ALL_DISABLED,
+          plugins: [
+            () => {
+              throw new Error("factory failure");
+            },
+          ],
+        }),
+      ).rejects.toThrow("factory failure");
       expect(dispose).toHaveBeenCalledOnce();
-    } finally { init.mockRestore(); }
+    } finally {
+      init.mockRestore();
+    }
   });
-  it('registers option transformers and restores the registry on destruction', async () => {
-    const format = 'owned-transformer-test';
-    const transformer = { format, contentType:'default', transformIn: () => ({ owned:true }), transformOut: () => 'owned' };
-    const designer = await createDesigner({ documentType:'default', documentVersion:'1.0.0', disableBuiltinPlugins:ALL_DISABLED, transformers:[transformer] });
-    expect(contentTypesRegistry.transform(format, {})).toEqual({ owned:true });
+  it("registers option transformers and restores the registry on destruction", async () => {
+    const format = "owned-transformer-test";
+    const transformer = {
+      format,
+      contentType: "default",
+      transformIn: () => ({ owned: true }),
+      transformOut: () => "owned",
+    };
+    const designer = await createDesigner({
+      documentType: "default",
+      documentVersion: "1.0.0",
+      disableBuiltinPlugins: ALL_DISABLED,
+      transformers: [transformer],
+    });
+    expect(contentTypesRegistry.transform(format, {})).toEqual({ owned: true });
     await designer.destroy();
-    expect(() => contentTypesRegistry.transform(format, {})).toThrow('No transformer registered');
+    expect(() => contentTypesRegistry.transform(format, {})).toThrow("No transformer registered");
   });
 });

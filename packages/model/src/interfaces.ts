@@ -1,5 +1,5 @@
-import type { ComponentType, ReactElement } from 'react';
-import type { NodeMeta, NodeView, PortDefinition } from './prototype';
+import type { ComponentType, ReactElement } from "react";
+import type { NodeMeta, NodeView, PortDefinition } from "./prototype";
 
 // --- Cross-package interfaces (defined in model, implemented by skeleton/graph) ---
 
@@ -55,7 +55,11 @@ export interface IGraphManager {
   getX6Graph(): unknown;
   useX6Plugin(plugin: unknown): void;
   createStencil(container: HTMLElement, groups?: Array<{ name: string; title?: string }>): void;
-  getStencilNodeGroups(): Array<{ name: string; title: string; items: Array<{ type: string; name: string; icon: string; shape: string }> }>;
+  getStencilNodeGroups(): Array<{
+    name: string;
+    title: string;
+    items: Array<{ type: string; name: string; icon: string; shape: string }>;
+  }>;
   startNodeDrag(nodeType: string, event: MouseEvent): void;
 }
 
@@ -63,13 +67,13 @@ export interface IGraphManager {
 
 export interface PaneConfig {
   key: string;
-  area: 'canvasToolbar' | 'header' | 'canvas' | 'inspector' | 'sidebar';
-  align?: 'left' | 'right' | 'center';
+  area: "canvasToolbar" | "header" | "canvas" | "inspector" | "sidebar";
+  align?: "left" | "right" | "center";
   content: string | ReactElement | ComponentType<any>;
   contentProps?: Record<string, unknown>;
 }
 
-export type InteractionMode = 'select' | 'pan';
+export type InteractionMode = "select" | "pan";
 
 export interface GraphOptions {
   /** Enable X6 virtual rendering; disabled by default. */
@@ -92,7 +96,7 @@ export interface GraphOptions {
 export interface GridConfig {
   size?: number;
   visible?: boolean;
-  type?: 'dot' | 'fixedDot' | 'mesh' | 'doubleMesh';
+  type?: "dot" | "fixedDot" | "mesh" | "doubleMesh";
 }
 
 export type ConnectionValidator = (context: ConnectionContext) => boolean;
@@ -105,15 +109,25 @@ export interface ConnectionContext {
 }
 
 export type GraphEvent =
-  | 'edge:routing:failed'
-  | 'node:click' | 'node:dblclick' | 'node:mouseenter' | 'node:mouseleave'
-  | 'node:move' | 'node:moved'
-  | 'node:added-by-stencil'
-  | 'edge:click' | 'edge:dblclick' | 'edge:mouseenter' | 'edge:mouseleave'
-  | 'edge:connected' | 'edge:vertices:committed'
-  | 'blank:click' | 'blank:dblclick'
-  | 'selection:changed'
-  | 'scale' | 'interaction:change';
+  | "edge:routing:failed"
+  | "node:click"
+  | "node:dblclick"
+  | "node:mouseenter"
+  | "node:mouseleave"
+  | "node:move"
+  | "node:moved"
+  | "node:added-by-stencil"
+  | "edge:click"
+  | "edge:dblclick"
+  | "edge:mouseenter"
+  | "edge:mouseleave"
+  | "edge:connected"
+  | "edge:vertices:committed"
+  | "blank:click"
+  | "blank:dblclick"
+  | "selection:changed"
+  | "scale"
+  | "interaction:change";
 
 export interface NodeConfig {
   id: string;

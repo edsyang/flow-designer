@@ -1,4 +1,4 @@
-import styles from './field.module.css';
+import styles from "./field.module.css";
 
 export interface FieldTitleProps {
   tip?: any;
@@ -8,14 +8,12 @@ export interface FieldTitleProps {
 
 export function FieldTitle(props: FieldTitleProps) {
   const { tip, title, compact } = props;
-  const cls = compact
-    ? `${styles.fieldTitle} ${styles.fieldTitleCompact}`
-    : styles.fieldTitle;
+  const cls = compact ? `${styles.fieldTitle} ${styles.fieldTitleCompact}` : styles.fieldTitle;
 
   if (tip) {
-    const tipContent = typeof tip === 'object' && tip !== null ? tip.content : tip;
+    const tipContent = typeof tip === "object" && tip !== null ? tip.content : tip;
     return (
-      <span className={cls} title={typeof tipContent === 'string' ? tipContent : undefined}>
+      <span className={cls} title={typeof tipContent === "string" ? tipContent : undefined}>
         {title}
       </span>
     );

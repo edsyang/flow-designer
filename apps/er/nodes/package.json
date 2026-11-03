@@ -11,6 +11,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
+    },
+    "./i18n": {
+      "source": "./src/i18n.ts",
+      "types": "./dist/i18n.d.ts",
+      "import": "./dist/i18n.mjs",
+      "require": "./dist/i18n.cjs"
     }
   },
   "files": [

@@ -1,15 +1,17 @@
-import { EventEmitter } from 'eventemitter3';
-import Content from '../index';
-import ContentNode from '../node';
-import type { NodeData } from '../node';
-import type { ChangeKeys } from '../../props/prop';
-import type { SerializedRelation } from '../../types';
+import { EventEmitter } from "eventemitter3";
+import type Content from "../index";
+import type ContentNode from "../node";
+import type { NodeData } from "../node";
+import type { ChangeKeys } from "../../props/prop";
+import type { SerializedRelation } from "../../types";
 
 export default class Relation {
   protected emitter: EventEmitter = new EventEmitter();
 
-  constructor(protected content: Content<any>, protected node: ContentNode<any>) {
-  }
+  constructor(
+    protected content: Content<any>,
+    protected node: ContentNode<any>,
+  ) {}
 
   getContent(): Content<any> {
     return this.content;
@@ -27,7 +29,7 @@ export default class Relation {
     return data;
   }
 
-  didInit(isAdd: boolean = false): void {
+  didInit(_isAdd: boolean = false): void {
     return;
   }
 
@@ -35,7 +37,7 @@ export default class Relation {
     return;
   }
 
-  didChange(changing: ChangeKeys): void {
+  didChange(_changing: ChangeKeys): void {
     return;
   }
 
@@ -48,14 +50,14 @@ export default class Relation {
   }
 
   onChange(fn: () => void): () => void {
-    this.emitter.on('change', fn);
+    this.emitter.on("change", fn);
     return () => {
-      this.emitter.removeListener('change', fn);
+      this.emitter.removeListener("change", fn);
     };
   }
 
   protected emitChange(): void {
-    this.emitter.emit('change');
+    this.emitter.emit("change");
   }
 }
 
@@ -68,27 +70,27 @@ export class GenericRelation extends Relation {
   }
 
   addEdge(edge: SerializedRelation): void {
-    this.edges = [...this.edges.filter(item => item.id !== edge.id), structuredClone(edge)];
-    this.getDocument().timelineLog('Add edge');
+    this.edges = [...this.edges.filter((item) => item.id !== edge.id), structuredClone(edge)];
+    this.getDocument().timelineLog("Add edge");
     this.emitChange();
   }
 
   removeEdge(targetNodeId: string): void {
-    if (!this.edges.some(edge => edge.targetNodeId === targetNodeId)) return;
-    this.edges = this.edges.filter(e => e.targetNodeId !== targetNodeId);
-    this.getDocument().timelineLog('Remove edge');
+    if (!this.edges.some((edge) => edge.targetNodeId === targetNodeId)) return;
+    this.edges = this.edges.filter((e) => e.targetNodeId !== targetNodeId);
+    this.getDocument().timelineLog("Remove edge");
     this.emitChange();
   }
 
   removeEdgeById(edgeId: string): void {
-    if (!this.edges.some(edge => edge.id === edgeId)) return;
-    this.edges = this.edges.filter(e => e.id !== edgeId);
-    this.getDocument().timelineLog('Remove edge');
+    if (!this.edges.some((edge) => edge.id === edgeId)) return;
+    this.edges = this.edges.filter((e) => e.id !== edgeId);
+    this.getDocument().timelineLog("Remove edge");
     this.emitChange();
   }
 
   getEdgeById(edgeId: string): SerializedRelation | null {
-    const edge = this.edges.find(e => e.id === edgeId);
+    const edge = this.edges.find((e) => e.id === edgeId);
     return edge ? structuredClone(edge) : null;
   }
 
@@ -98,10 +100,12 @@ export class GenericRelation extends Relation {
   }
 
   updateEdge(edgeId: string, patch: Partial<SerializedRelation>): void {
-    const edge = this.edges.find(item => item.id === edgeId);
+    const edge = this.edges.find((item) => item.id === edgeId);
     if (!edge) return;
-    this.setEdges(this.edges.map(item => item.id === edgeId ? { ...item, ...patch, id: edgeId } : item));
-    this.getDocument().timelineLog('Update edge');
+    this.setEdges(
+      this.edges.map((item) => (item.id === edgeId ? { ...item, ...patch, id: edgeId } : item)),
+    );
+    this.getDocument().timelineLog("Update edge");
   }
 
   setEdges(edges: SerializedRelation[]): void {
@@ -122,21 +126,25 @@ export class GenericRelation extends Relation {
   override didPurge(): void {
     for (const node of this.content.getNodes()) {
       const relation = node.getRelation();
-      if (relation instanceof GenericRelation && relation !== this) relation.removeEdge(this.node.getId());
+      if (relation instanceof GenericRelation && relation !== this)
+        relation.removeEdge(this.node.getId());
     }
     super.didPurge();
   }
 }
 
 export enum TreeRelationSignal {
-  CHILDREN_CHANGE = 'treerelation.childrenchange',
+  CHILDREN_CHANGE = "treerelation.childrenchange",
 }
 
 export class TreeRelation extends Relation {
   private parentNode: ContentNode<TreeRelation> | null = null;
   private children: Array<ContentNode<TreeRelation>> = [];
 
-  constructor(protected override content: Content<TreeRelation>, protected override node: ContentNode<TreeRelation>) {
+  constructor(
+    protected override content: Content<TreeRelation>,
+    protected override node: ContentNode<TreeRelation>,
+  ) {
     super(content, node);
   }
 
@@ -152,11 +160,11 @@ export class TreeRelation extends Relation {
     if (index === null || index > this.children.length) {
       index = this.children.length;
     } else if (index < 0) {
-      index = this.children.length + index % this.children.length;
+      index = this.children.length + (index % this.children.length);
     }
     this.children.splice(index, 0, node);
     this.getDocument().sendSignal(TreeRelationSignal.CHILDREN_CHANGE, this);
-    this.emitter.emit('childrenchange');
+    this.emitter.emit("childrenchange");
     node.getRelation().setParent(this.node);
   }
 
@@ -191,7 +199,7 @@ export class TreeRelation extends Relation {
     if (i > -1) {
       this.children.splice(i, 1);
       this.getDocument().sendSignal(TreeRelationSignal.CHILDREN_CHANGE, this);
-      this.emitter.emit('childrenchange');
+      this.emitter.emit("childrenchange");
     }
   }
 
@@ -237,9 +245,9 @@ export class TreeRelation extends Relation {
   }
 
   onChildrenChange(fn: () => void): () => void {
-    this.emitter.on('childrenchange', fn);
+    this.emitter.on("childrenchange", fn);
     return () => {
-      this.emitter.removeListener('childrenchange', fn);
+      this.emitter.removeListener("childrenchange", fn);
     };
   }
 }

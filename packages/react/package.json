@@ -28,6 +28,7 @@
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\""
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.2",
     "@flow-designer/core": "workspace:*",
     "@flow-designer/model": "workspace:*",
     "@flow-designer/skeleton": "workspace:*"

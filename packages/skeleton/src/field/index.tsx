@@ -1,18 +1,18 @@
-import { useState, useEffect } from 'react';
-import { DisplayType } from '@flow-designer/model';
-import type { FieldProps, FieldBehaviors } from '../types';
-import { InlineField } from './inline';
-import { BlockField } from './block';
-import { AccordionField } from './accordion';
-import { CaptionField } from './caption';
-import { PlainField } from './plain';
-import { PopupField } from './popup';
-import styles from './field.module.css';
+import { useState, useEffect } from "react";
+import { DisplayType } from "@flow-designer/model";
+import type { FieldProps, FieldBehaviors } from "../types";
+import { InlineField } from "./inline";
+import { BlockField } from "./block";
+import { AccordionField } from "./accordion";
+import { CaptionField } from "./caption";
+import { PlainField } from "./plain";
+import { PopupField } from "./popup";
+import styles from "./field.module.css";
 
 export { styles as fieldStyles };
 
 export function buildClassName(...parts: Array<string | false | undefined | null>): string {
-  return parts.filter(Boolean).join(' ');
+  return parts.filter(Boolean).join(" ");
 }
 
 export function useBehaviors(behaviors?: FieldBehaviors) {
@@ -56,5 +56,9 @@ export function Field(props: FieldProps) {
   }
 
   const TheField = getFieldComponent(display);
-  return <TheField display={display} {...rest}>{children}</TheField>;
+  return (
+    <TheField display={display} {...rest}>
+      {children}
+    </TheField>
+  );
 }

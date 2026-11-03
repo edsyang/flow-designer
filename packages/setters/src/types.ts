@@ -1,5 +1,5 @@
-import type { ComponentType } from 'react';
-import type { Setting, ContentNode } from '@flow-designer/model';
+import type { ComponentType } from "react";
+import type { Setting, ContentNode } from "@flow-designer/model";
 
 export interface SetterProps<V = unknown> {
   value: V;
@@ -21,7 +21,7 @@ export interface SelectSetterProps extends SetterProps<string> {
 
 export interface RadioGroupSetterProps extends SetterProps<string> {
   options: Array<{ label: string; value: string }>;
-  direction?: 'horizontal' | 'vertical';
+  direction?: "horizontal" | "vertical";
 }
 
 export type SetterComponent<P extends SetterProps = SetterProps> = ComponentType<P>;

@@ -1,8 +1,8 @@
 export function toPascalCase(kebab: string): string {
   return kebab
-    .split('-')
-    .map(s => s.charAt(0).toUpperCase() + s.slice(1))
-    .join('');
+    .split("-")
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+    .join("");
 }
 
 export function toCamelCase(kebab: string): string {
@@ -11,7 +11,7 @@ export function toCamelCase(kebab: string): string {
 }
 
 export function toDefName(kebab: string): string {
-  return toCamelCase(kebab) + 'Def';
+  return toCamelCase(kebab) + "Def";
 }
 
 export function toRegisterFnName(kebab: string): string {

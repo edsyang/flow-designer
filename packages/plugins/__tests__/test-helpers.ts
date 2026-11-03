@@ -4,7 +4,7 @@ import {
   contentTypesRegistry,
   prototypeRegistry,
   defineNode,
-} from '@flow-designer/model';
+} from "@flow-designer/model";
 
 type DocumentData = ConstructorParameters<typeof Document>[0];
 
@@ -14,29 +14,29 @@ export function setupRegistries(): void {
   if (registriesReady) return;
   registriesReady = true;
 
-  if (!contentTypesRegistry.getSuitableContentType('*')) {
+  if (!contentTypesRegistry.getSuitableContentType("*")) {
     contentTypesRegistry.register(GenericContent as any);
   }
-  if (!prototypeRegistry.getPrototypeByType('Unknown')) {
+  if (!prototypeRegistry.getPrototypeByType("Unknown")) {
     prototypeRegistry.register(
       defineNode({
-        meta: { name: 'unknown', typeName: 'Unknown' },
-        view: { type: 'node', shape: 'fd-rect' },
+        meta: { name: "unknown", typeName: "Unknown" },
+        view: { type: "node", shape: "fd-rect" },
         schema: [],
         editor: [],
       }),
     );
   }
-  if (!prototypeRegistry.getPrototypeByType('rect')) {
+  if (!prototypeRegistry.getPrototypeByType("rect")) {
     prototypeRegistry.register(
       defineNode({
-        meta: { name: 'rect', typeName: 'rect' },
+        meta: { name: "rect", typeName: "rect" },
         view: {
-          type: 'node',
-          shape: 'fd-rect',
+          type: "node",
+          shape: "fd-rect",
           ports: [
-            { id: 'out', group: 'out', position: 'right' },
-            { id: 'in', group: 'in', position: 'left' },
+            { id: "out", group: "out", position: "right" },
+            { id: "in", group: "in", position: "left" },
           ],
         },
         schema: [],
@@ -48,9 +48,9 @@ export function setupRegistries(): void {
 
 export function createDocument(overrides?: Partial<DocumentData>): Document {
   return new Document({
-    id: 'doc-1',
-    documentType: '*',
-    documentVersion: '1.0.0',
+    id: "doc-1",
+    documentType: "*",
+    documentVersion: "1.0.0",
     nodes: [],
     ...overrides,
   } as DocumentData);

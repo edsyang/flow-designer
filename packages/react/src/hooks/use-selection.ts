@@ -1,4 +1,4 @@
-import { useFlowDesigner } from '../context';
+import { useFlowDesigner } from "../context";
 
 export function useSelection() {
   const doc = useFlowDesigner().editor.getDocument();
@@ -6,7 +6,7 @@ export function useSelection() {
 
   return {
     keys: selection.getKeys(),
-    setKeys: (keys: string[]) => selection.setKeys(keys),
-    clear: () => selection.setKeys([]),
+    setKeys: (keys: string[]) => { selection.setKeys(keys); },
+    clear: () => { selection.setKeys([]); },
   };
 }

@@ -1,13 +1,13 @@
-import { Input } from 'antd';
-import type { SetterProps } from './types';
+import { Input } from "antd";
+import type { SetterProps } from "./types";
 
 export function TextAreaSetter({ value, onChange, disabled }: SetterProps<string>) {
   return (
     <Input.TextArea
-      value={value ?? ''}
+      value={value ?? ""}
       disabled={disabled}
       autoSize={{ minRows: 3 }}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => { onChange(e.target.value); }}
     />
   );
 }

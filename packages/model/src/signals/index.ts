@@ -1,4 +1,4 @@
-import { EventEmitter } from 'eventemitter3';
+import { EventEmitter } from "eventemitter3";
 
 export type signalFn = (...args: any[]) => void;
 export type destroyFn = () => void;

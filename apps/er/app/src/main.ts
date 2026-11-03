@@ -1,1 +1,1 @@
-import('./app').catch(console.error);
+import("./app").catch(console.error);

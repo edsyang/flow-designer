@@ -1,46 +1,54 @@
-import { defineNode } from '@flow-designer/model';
-import { BuiltinSetters } from '@flow-designer/setters/constants';
-import { BPMN_CATEGORIES } from './constants';
+import { defineNode, t } from "@flow-designer/model";
+import { BuiltinSetters } from "@flow-designer/setters/constants";
+import { BPMN_CATEGORIES } from "./constants";
 
 export const timerEventDef = defineNode({
   meta: {
-    name: '定时事件',
-    typeName: 'TimerEvent',
+    name: t("bpmn.node.timerEvent"),
+    typeName: "TimerEvent",
     category: BPMN_CATEGORIES.EVENTS,
-    icon: '⏱',
+    icon: "⏱",
   },
   view: {
-    type: 'node',
-    shape: 'fd-rect-event',
+    type: "node",
+    shape: "fd-rect-event",
     defaultSize: { width: 100, height: 32 },
     ports: [
-      { group: 'in', position: 'top' },
-      { group: 'in', position: 'left' },
-      { group: 'out', position: 'bottom' },
-      { group: 'out', position: 'right' },
+      { group: "in", position: "top" },
+      { group: "in", position: "left" },
+      { group: "out", position: "bottom" },
+      { group: "out", position: "right" },
     ],
   },
   schema: [
-    { name: 'name', type: 'string', defaultValue: '定时事件' },
-    { name: 'timerType', type: 'string', defaultValue: 'duration' },
-    { name: 'timerValue', type: 'string', defaultValue: '' },
+    { name: "name", type: "string", defaultValue: "定时事件" },
+    { name: "timerType", type: "string", defaultValue: "duration" },
+    { name: "timerValue", type: "string", defaultValue: "" },
   ],
   editor: [
-    { target: 'name', description: '名称', setter: BuiltinSetters.String },
     {
-      target: 'timerType',
-      description: '定时类型',
+      target: "name",
+      description: t("bpmn.property.name"),
+      setter: BuiltinSetters.String,
+    },
+    {
+      target: "timerType",
+      description: t("bpmn.property.timerType"),
       setter: {
-        type: 'SelectSetter',
+        type: "SelectSetter",
         props: {
           options: [
-            { label: '持续时间', value: 'duration' },
-            { label: '循环', value: 'cycle' },
-            { label: '指定时间', value: 'date' },
+            { label: t("bpmn.property.duration"), value: "duration" },
+            { label: t("bpmn.property.cycle"), value: "cycle" },
+            { label: t("bpmn.property.date"), value: "date" },
           ],
         },
       },
     },
-    { target: 'timerValue', description: '定时表达式', setter: BuiltinSetters.String },
+    {
+      target: "timerValue",
+      description: t("bpmn.property.timerExpression"),
+      setter: BuiltinSetters.String,
+    },
   ],
 });

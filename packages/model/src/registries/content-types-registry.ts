@@ -1,6 +1,6 @@
-import semver from 'semver';
-import type { ContentType } from '../content';
-import type { ContentTransformer } from '../types';
+import semver from "semver";
+import type { ContentType } from "../content";
+import type { ContentTransformer } from "../types";
 
 export default class ContentTypesRegistry {
   private contentTypes: ContentType[] = [];
@@ -10,16 +10,19 @@ export default class ContentTypesRegistry {
     this.contentTypes.push(contentType);
   }
 
-  getSuitableContentType(documentType: string = 'default', documentVersion?: string): ContentType | null {
+  getSuitableContentType(
+    documentType: string = "default",
+    documentVersion?: string,
+  ): ContentType | null {
     const exact = this.contentTypes.find((item: ContentType) => {
       return (
-        item.compatibleType === documentType
-        && (!documentVersion || semver.satisfies(documentVersion, item.compatibleVersion))
+        item.compatibleType === documentType &&
+        (!documentVersion || semver.satisfies(documentVersion, item.compatibleVersion))
       );
     });
     if (exact) return exact;
 
-    return this.contentTypes.find((item: ContentType) => item.compatibleType === '*') || null;
+    return this.contentTypes.find((item: ContentType) => item.compatibleType === "*") || null;
   }
 
   registerTransformer(transformer: ContentTransformer): () => void {
@@ -31,7 +34,7 @@ export default class ContentTypesRegistry {
   }
 
   transform(format: string, externalData: unknown): any {
-    const transformer = this.transformers.find(t => t.format === format);
+    const transformer = this.transformers.find((t) => t.format === format);
     if (!transformer) {
       throw new Error(`No transformer registered for format: ${format}`);
     }
@@ -39,7 +42,7 @@ export default class ContentTypesRegistry {
   }
 
   transformOut(format: string, data: any): unknown {
-    const transformer = this.transformers.find(t => t.format === format);
+    const transformer = this.transformers.find((t) => t.format === format);
     if (!transformer) {
       throw new Error(`No transformer registered for format: ${format}`);
     }

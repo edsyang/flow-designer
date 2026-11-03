@@ -1,10 +1,10 @@
-import type { IPluginConfig, IPluginContext } from '@flow-designer/core';
+import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 
 export function pluginUnsavedPrompt(ctx: IPluginContext): IPluginConfig {
   let handler: ((e: BeforeUnloadEvent) => void) | null = null;
 
   return {
-    name: 'plugin-unsaved-prompt',
+    name: "plugin-unsaved-prompt",
     dep: [],
     init() {
       handler = (e: BeforeUnloadEvent) => {
@@ -13,11 +13,11 @@ export function pluginUnsavedPrompt(ctx: IPluginContext): IPluginConfig {
           e.preventDefault();
         }
       };
-      window.addEventListener('beforeunload', handler);
+      window.addEventListener("beforeunload", handler);
     },
     destroy() {
       if (handler) {
-        window.removeEventListener('beforeunload', handler);
+        window.removeEventListener("beforeunload", handler);
         handler = null;
       }
     },

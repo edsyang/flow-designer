@@ -1,15 +1,26 @@
-import { configure } from 'mobx';
-import { getLogger } from '@flow-designer/core';
-import { Document, setterRegistry, contentTypesRegistry, utils } from '@flow-designer/model';
-import { registerBuiltinPlugins, pluginAutoSave, pluginUnsavedPrompt } from '@flow-designer/plugins';
-import { registerBuiltinSetters } from '@flow-designer/setters';
-import { Engine } from './engine';
-import type { DesignerOptions, Designer } from './types';
+import { configure } from "mobx";
+import { getLogger } from "@flow-designer/core";
+import {
+  Document,
+  initializeI18n,
+  setterRegistry,
+  contentTypesRegistry,
+  utils,
+} from "@flow-designer/model";
+import {
+  registerBuiltinPlugins,
+  pluginAutoSave,
+  pluginUnsavedPrompt,
+} from "@flow-designer/plugins";
+import { registerBuiltinSetters } from "@flow-designer/setters";
+import { Engine } from "./engine";
+import type { DesignerOptions, Designer } from "./types";
 
-const logger = getLogger({ level: 'error', bizName: 'engine:createDesigner' });
+const logger = getLogger({ level: "error", bizName: "engine:createDesigner" });
 
 export async function createDesigner(options: DesignerOptions): Promise<Designer> {
-  configure({ enforceActions: 'observed' });
+  await initializeI18n(options.localeMessages);
+  configure({ enforceActions: "observed" });
 
   const engine = new Engine();
   const { editor, plugins } = engine;
@@ -38,7 +49,7 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
     }
 
     if (options.autoSave) {
-      const autoSaveOptions = typeof options.autoSave === 'object' ? options.autoSave : undefined;
+      const autoSaveOptions = typeof options.autoSave === "object" ? options.autoSave : undefined;
       await plugins.register(pluginAutoSave, autoSaveOptions);
     }
 
@@ -46,11 +57,14 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
       await plugins.register(pluginUnsavedPrompt);
     }
 
-    const doc = new Document({
-      id: 'main',
-      documentType: options.documentType,
-      documentVersion: options.documentVersion,
-    }, options.docSettings);
+    const doc = new Document(
+      {
+        id: "main",
+        documentType: options.documentType,
+        documentVersion: options.documentVersion,
+      },
+      options.docSettings,
+    );
     editor.setDocument(doc);
 
     await plugins.init();
@@ -59,7 +73,9 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
       engine,
       editor,
       document: doc,
-      get graph() { return editor.getGraph(); },
+      get graph() {
+        return editor.getGraph();
+      },
       plugins: plugins.toProxy(),
       destroy: () => engine.destroy(),
     };
@@ -67,7 +83,7 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
     try {
       await engine.destroy();
     } catch (cleanupError) {
-      logger.error('Failed to clean up after designer creation error:', cleanupError);
+      logger.error("Failed to clean up after designer creation error:", cleanupError);
     }
     throw error;
   }

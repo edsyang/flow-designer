@@ -1,26 +1,35 @@
-import { defineNode } from '@flow-designer/model';
-import { BuiltinSetters } from '@flow-designer/setters/constants';
-import { COMFYUI_CATEGORIES, COMFYUI_TYPE_NAMES, DATA_TYPES, DATA_TYPE_COLORS } from './constants';
+import { defineNode, t } from "@flow-designer/model";
+import { BuiltinSetters } from "@flow-designer/setters/constants";
+import { COMFYUI_CATEGORIES, COMFYUI_TYPE_NAMES, DATA_TYPES, DATA_TYPE_COLORS } from "./constants";
 
 export const saveImageDef = defineNode({
   meta: {
-    name: COMFYUI_TYPE_NAMES.SAVE_IMAGE,
+    name: t("comfyui.node.saveImage"),
     typeName: COMFYUI_TYPE_NAMES.SAVE_IMAGE,
     category: COMFYUI_CATEGORIES.IMAGE,
-    icon: '💾',
+    icon: "💾",
   },
   view: {
-    type: 'node',
-    shape: 'fd-rect',
+    type: "node",
+    shape: "fd-rect",
     defaultSize: { width: 240, height: 80 },
     ports: [
-      { id: 'images', group: 'in', position: 'left', dataType: DATA_TYPES.IMAGE, label: 'IMAGE', color: DATA_TYPE_COLORS[DATA_TYPES.IMAGE] },
+      {
+        id: "images",
+        group: "in",
+        position: "left",
+        dataType: DATA_TYPES.IMAGE,
+        label: t("comfyui.port.image"),
+        color: DATA_TYPE_COLORS[DATA_TYPES.IMAGE],
+      },
     ],
   },
-  schema: [
-    { name: 'filename_prefix', type: 'string', defaultValue: 'ComfyUI' },
-  ],
+  schema: [{ name: "filename_prefix", type: "string", defaultValue: "ComfyUI" }],
   editor: [
-    { target: 'filename_prefix', description: 'Filename Prefix', setter: BuiltinSetters.String },
+    {
+      target: "filename_prefix",
+      description: t("comfyui.property.filenamePrefix"),
+      setter: BuiltinSetters.String,
+    },
   ],
 });

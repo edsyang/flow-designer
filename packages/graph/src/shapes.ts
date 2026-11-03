@@ -1,7 +1,7 @@
-import { Graph } from '@antv/x6';
+import { Graph } from "@antv/x6";
 
 export interface ShapeDefinition {
-  inherit: 'rect' | 'circle' | 'polygon' | 'ellipse' | 'path';
+  inherit: "rect" | "circle" | "polygon" | "ellipse" | "path";
   width?: number;
   height?: number;
   attrs?: Record<string, unknown>;
@@ -14,80 +14,100 @@ export function registerShape(name: string, config: ShapeDefinition): void {
 }
 
 const PORT_MARKUP = [
-  { tagName: 'circle', selector: 'circle', attrs: { r: 5, magnet: true, stroke: '#5F95FF', fill: '#fff', strokeWidth: 1 } },
+  {
+    tagName: "circle",
+    selector: "circle",
+    attrs: { r: 5, magnet: true, stroke: "#5F95FF", fill: "#fff", strokeWidth: 1 },
+  },
 ];
 
 const PORT_GROUPS = {
-  top: { position: 'top', markup: PORT_MARKUP, attrs: { circle: { r: 5, magnet: true, stroke: '#5F95FF', fill: '#fff' } } },
-  right: { position: 'right', markup: PORT_MARKUP, attrs: { circle: { r: 5, magnet: true, stroke: '#5F95FF', fill: '#fff' } } },
-  bottom: { position: 'bottom', markup: PORT_MARKUP, attrs: { circle: { r: 5, magnet: true, stroke: '#5F95FF', fill: '#fff' } } },
-  left: { position: 'left', markup: PORT_MARKUP, attrs: { circle: { r: 5, magnet: true, stroke: '#5F95FF', fill: '#fff' } } },
+  top: {
+    position: "top",
+    markup: PORT_MARKUP,
+    attrs: { circle: { r: 5, magnet: true, stroke: "#5F95FF", fill: "#fff" } },
+  },
+  right: {
+    position: "right",
+    markup: PORT_MARKUP,
+    attrs: { circle: { r: 5, magnet: true, stroke: "#5F95FF", fill: "#fff" } },
+  },
+  bottom: {
+    position: "bottom",
+    markup: PORT_MARKUP,
+    attrs: { circle: { r: 5, magnet: true, stroke: "#5F95FF", fill: "#fff" } },
+  },
+  left: {
+    position: "left",
+    markup: PORT_MARKUP,
+    attrs: { circle: { r: 5, magnet: true, stroke: "#5F95FF", fill: "#fff" } },
+  },
 };
 
 export const DEFAULT_PORT_ITEMS = [
-  { id: 'top', group: 'top' },
-  { id: 'right', group: 'right' },
-  { id: 'bottom', group: 'bottom' },
-  { id: 'left', group: 'left' },
+  { id: "top", group: "top" },
+  { id: "right", group: "right" },
+  { id: "bottom", group: "bottom" },
+  { id: "left", group: "left" },
 ];
 
 export function registerBuiltinShapes(): void {
-  registerShape('fd-rect', {
-    inherit: 'rect',
+  registerShape("fd-rect", {
+    inherit: "rect",
     width: 140,
     height: 40,
     attrs: {
-      body: { stroke: '#d9d9d9', strokeWidth: 1, fill: '#ffffff', rx: 6, ry: 6 },
-      label: { fill: '#262626', fontSize: 13 },
+      body: { stroke: "#d9d9d9", strokeWidth: 1, fill: "#ffffff", rx: 6, ry: 6 },
+      label: { fill: "#262626", fontSize: 13 },
     },
     ports: { groups: PORT_GROUPS },
   });
 
-  registerShape('fd-diamond', {
-    inherit: 'polygon',
+  registerShape("fd-diamond", {
+    inherit: "polygon",
     width: 80,
     height: 52,
     attrs: {
       body: {
-        stroke: '#d9d9d9',
+        stroke: "#d9d9d9",
         strokeWidth: 1.5,
-        fill: '#ffffff',
-        refPoints: '0,10 10,0 20,10 10,20',
+        fill: "#ffffff",
+        refPoints: "0,10 10,0 20,10 10,20",
       },
-      label: { fill: '#262626', fontSize: 12 },
+      label: { fill: "#262626", fontSize: 12 },
     },
     ports: { groups: PORT_GROUPS },
   });
 
-  registerShape('fd-circle', {
-    inherit: 'circle',
+  registerShape("fd-circle", {
+    inherit: "circle",
     width: 50,
     height: 50,
     attrs: {
-      body: { stroke: '#d9d9d9', strokeWidth: 1.5, fill: '#ffffff' },
-      label: { fill: '#262626', fontSize: 12 },
+      body: { stroke: "#d9d9d9", strokeWidth: 1.5, fill: "#ffffff" },
+      label: { fill: "#262626", fontSize: 12 },
     },
     ports: { groups: PORT_GROUPS },
   });
 
-  registerShape('fd-circle-end', {
-    inherit: 'circle',
+  registerShape("fd-circle-end", {
+    inherit: "circle",
     width: 50,
     height: 50,
     attrs: {
-      body: { stroke: '#d9d9d9', strokeWidth: 3, fill: '#ffffff' },
-      label: { fill: '#262626', fontSize: 12 },
+      body: { stroke: "#d9d9d9", strokeWidth: 3, fill: "#ffffff" },
+      label: { fill: "#262626", fontSize: 12 },
     },
     ports: { groups: PORT_GROUPS },
   });
 
-  registerShape('fd-rect-event', {
-    inherit: 'rect',
+  registerShape("fd-rect-event", {
+    inherit: "rect",
     width: 100,
     height: 32,
     attrs: {
-      body: { stroke: '#d9d9d9', strokeWidth: 1, fill: '#fff7e6', rx: 16, ry: 16 },
-      label: { fill: '#262626', fontSize: 12 },
+      body: { stroke: "#d9d9d9", strokeWidth: 1, fill: "#fff7e6", rx: 16, ry: 16 },
+      label: { fill: "#262626", fontSize: 12 },
     },
     ports: { groups: PORT_GROUPS },
   });

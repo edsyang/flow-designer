@@ -1,10 +1,10 @@
-import Hotkey from './hotkey';
+import Hotkey from "./hotkey";
 
 export enum DataType {
-  Map = 'map',
-  List = 'list',
-  Scalar = 'scalar',
-  Null = 'null',
+  Map = "map",
+  List = "list",
+  Scalar = "scalar",
+  Null = "null",
 }
 
 export const hotkey = new Hotkey();
@@ -20,7 +20,7 @@ export function testType(data: any): DataType {
     return DataType.Null;
   } else if (Array.isArray(data)) {
     return DataType.List;
-  } else if (type === 'object' && isPlainObject(data)) {
+  } else if (type === "object" && isPlainObject(data)) {
     return DataType.Map;
   }
 
@@ -35,7 +35,7 @@ export function cloneDeep(src: any): any {
     data = src;
   } else if (Array.isArray(src)) {
     data = src.map((item) => cloneDeep(item));
-  } else if (type === 'object' && isPlainObject(src)) {
+  } else if (type === "object" && isPlainObject(src)) {
     data = {};
     for (const key in src) {
       if (src.hasOwnProperty(key)) {
@@ -105,7 +105,12 @@ export interface SetDataResult {
   modified: boolean;
 }
 
-export function setData(origin: any, source: any, merge: boolean = false, cloned: boolean = false): SetDataResult {
+export function setData(
+  origin: any,
+  source: any,
+  merge: boolean = false,
+  cloned: boolean = false,
+): SetDataResult {
   const oType = testType(origin);
   const sType = testType(source);
   const result: SetDataResult = {
@@ -198,13 +203,13 @@ export function splitPath(path: string) {
 }
 
 export function getKey(obj: any, defaultKey: any): string {
-  return String(obj && obj['.key'] || defaultKey);
+  return String((obj && obj[".key"]) || defaultKey);
 }
 
 let UID_BASE = Date.now();
-export function uniqueId(prefix: string = ''): string {
+export function uniqueId(prefix: string = ""): string {
   if (prefix) {
-    prefix += '_';
+    prefix += "_";
   }
   return `${prefix}${(UID_BASE++).toString(36).toLowerCase()}`;
 }
@@ -221,4 +226,4 @@ export function log(info: any): void {
   isDev() && console.log(info);
 }
 
-export * from './scheduler';
+export * from "./scheduler";

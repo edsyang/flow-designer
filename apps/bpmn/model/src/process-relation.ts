@@ -1,5 +1,5 @@
-import { GenericRelation, Content, ContentNode } from '@flow-designer/model';
-import type { SerializedRelation } from '@flow-designer/model';
+import { GenericRelation } from "@flow-designer/model";
+import type { SerializedRelation } from "@flow-designer/model";
 
 export class ProcessRelation extends GenericRelation {
   private flowins: string[] = [];
@@ -15,7 +15,7 @@ export class ProcessRelation extends GenericRelation {
   }
 
   override removeEdge(targetNodeId: string): void {
-    const removedEdges = this.getEdges().filter(e => e.targetNodeId === targetNodeId);
+    const removedEdges = this.getEdges().filter((e) => e.targetNodeId === targetNodeId);
     super.removeEdge(targetNodeId);
     const targetNode = this.getContent().getNode(targetNodeId);
     if (targetNode) {
@@ -40,7 +40,7 @@ export class ProcessRelation extends GenericRelation {
     const edge = this.getEdgeById(edgeId);
     if (!edge) return;
     super.removeEdgeById(edgeId);
-    if (!this.getEdges().some(item => item.targetNodeId === edge.targetNodeId)) {
+    if (!this.getEdges().some((item) => item.targetNodeId === edge.targetNodeId)) {
       const target = this.getContent().getNode(edge.targetNodeId);
       (target?.getRelation() as ProcessRelation | undefined)?.removeFlowin(this.getNode().getId());
     }
@@ -51,15 +51,19 @@ export class ProcessRelation extends GenericRelation {
     const previous = this.getEdges();
     super.setEdges(edges);
     for (const edge of previous) {
-      if (!edges.some(item => item.targetNodeId === edge.targetNodeId)) {
+      if (!edges.some((item) => item.targetNodeId === edge.targetNodeId)) {
         const target = this.getContent().getNode(edge.targetNodeId);
-        (target?.getRelation() as ProcessRelation | undefined)?.removeFlowin(this.getNode().getId());
+        (target?.getRelation() as ProcessRelation | undefined)?.removeFlowin(
+          this.getNode().getId(),
+        );
       }
     }
     this.didInit();
   }
 
-  resetFlowins(): void { this.flowins = []; }
+  resetFlowins(): void {
+    this.flowins = [];
+  }
 
   addFlowin(sourceNodeId: string): void {
     if (this.flowins.indexOf(sourceNodeId) < 0) {
@@ -89,17 +93,17 @@ export class ProcessRelation extends GenericRelation {
   }
 
   onFlowinChange(fn: () => void): () => void {
-    (this as any).emitter.on('flowinchange', fn);
+    (this as any).emitter.on("flowinchange", fn);
     return () => {
-      (this as any).emitter.removeListener('flowinchange', fn);
+      (this as any).emitter.removeListener("flowinchange", fn);
     };
   }
 
   private emitFlowinChange(): void {
-    (this as any).emitter.emit('flowinchange');
+    (this as any).emitter.emit("flowinchange");
   }
 
-  override didInit(isAdd: boolean = false): void {
+  override didInit(_isAdd: boolean = false): void {
     const edges = this.getEdges();
     for (const edge of edges) {
       const targetNode = this.getContent().getNode(edge.targetNodeId);

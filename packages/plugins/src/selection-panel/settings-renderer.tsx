@@ -1,26 +1,38 @@
-import { createElement, useState, useEffect, useCallback } from 'react';
-import { observer } from 'mobx-react-lite';
-import { SettingsPanel } from '@flow-designer/skeleton';
-import { useSelection, useNode, useGraph, useDocument, useSkeleton } from '@flow-designer/react';
-import type { GenericRelation, ContentNode, SerializedRelation, EdgeTypeConfig } from '@flow-designer/model';
-import { setterRegistry, prototypeRegistry } from '@flow-designer/model';
-import styles from './settings-renderer.module.css';
+import { createElement, useState, useEffect, useCallback } from "react";
+import { observer } from "mobx-react-lite";
+import { SettingsPanel } from "@flow-designer/skeleton";
+import { useSelection, useNode, useGraph, useDocument, useSkeleton } from "@flow-designer/react";
+import type {
+  GenericRelation,
+  ContentNode,
+  SerializedRelation,
+  EdgeTypeConfig,
+} from "@flow-designer/model";
+import type { Locale } from "@flow-designer/model";
+import { prototypeRegistry, setterRegistry, t } from "@flow-designer/model";
+import styles from "./settings-renderer.module.css";
 
-const NodeSettingsPanel = observer(function NodeSettingsPanel({ nodeId }: { nodeId: string }) {
+const NodeSettingsPanel = observer(function NodeSettingsPanel({
+  nodeId,
+  locale,
+}: {
+  nodeId: string;
+  locale: Locale;
+}) {
   const node = useNode(nodeId);
-  if (!node) return <div className={styles.empty}>节点不存在</div>;
+  if (!node) return <div className={styles.empty}>{t("plugin.settings.nodeMissing")}</div>;
   const typeName = node.getTypeName();
   const proto = prototypeRegistry.getPrototypeByType(typeName);
   const title = proto?.getName() ?? typeName;
   return (
-    <div className={styles.container}>
+    <div className={styles.container} lang={locale}>
       <div className={styles.edgeHeader}>{title}</div>
       <SettingsPanel node={node} />
     </div>
   );
 });
 
-function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
+function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale }) {
   const graph = useGraph();
   const doc = useDocument();
   const [edgeData, setEdgeData] = useState<{
@@ -39,7 +51,7 @@ function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
     const nodes = doc.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
     for (const node of nodes) {
       const relation = node.getRelation();
-      if (relation && typeof relation.getEdgeById === 'function') {
+      if (relation && typeof relation.getEdgeById === "function") {
         const edge = relation.getEdgeById(edgeId);
         if (edge) {
           return { edge, sourceNode: node, typeConfig };
@@ -54,7 +66,7 @@ function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
   }, [findEdge]);
 
   if (!edgeData) {
-    return <div className={styles.empty}>连线属性</div>;
+    return <div className={styles.empty}>{t("plugin.settings.edge")}</div>;
   }
 
   const { edge, sourceNode, typeConfig } = edgeData;
@@ -62,25 +74,25 @@ function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
 
   const handleChange = (fieldName: string, value: unknown) => {
     const relation = sourceNode.getRelation();
-    if (relation && typeof relation.updateEdgeProps === 'function') {
+    if (relation && typeof relation.updateEdgeProps === "function") {
       relation.updateEdgeProps(edgeId, { [fieldName]: value });
       setEdgeData(findEdge());
     }
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.edgeHeader}>连线属性</div>
+    <div className={styles.container} lang={locale}>
+      <div className={styles.edgeHeader}>{t("plugin.settings.edge")}</div>
       {typeConfig.editor!.map((field) => {
         const setterType = setterRegistry.getSetter(field.setter);
         if (!setterType) return null;
-        const value = props[field.target] ?? '';
+        const value = props[field.target] ?? "";
         return (
           <div key={field.target} className={styles.edgeField}>
             <label className={styles.edgeLabel}>{field.description}</label>
             {createElement(setterType, {
               value,
-              onChange: (v: unknown) => handleChange(field.target, v),
+              onChange: (v: unknown) => { handleChange(field.target, v); },
             })}
           </div>
         );
@@ -89,7 +101,7 @@ function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
   );
 }
 
-export const SettingsRenderer = observer(function SettingsRenderer() {
+export const SettingsRenderer = observer(function SettingsRenderer({ locale }: { locale: Locale }) {
   const { keys } = useSelection();
   const graph = useGraph();
   const doc = useDocument();
@@ -106,24 +118,27 @@ export const SettingsRenderer = observer(function SettingsRenderer() {
   if (!selectedKey) {
     if (hasDocSettings) {
       return (
-        <div className={styles.container}>
-          <div className={styles.edgeHeader}>流程属性</div>
-          <SettingsPanel settings={doc!.getSettings()} />
+        <div className={styles.container} lang={locale}>
+          <div className={styles.edgeHeader}>{t("plugin.settings.process")}</div>
+          <SettingsPanel settings={doc.getSettings()} />
         </div>
       );
     }
     return null;
   }
 
-  const isEdge = graph && typeof (graph as any).getEdgeTypeName === 'function'
-    && (graph as any).getEdgeTypeName(selectedKey) != null;
+  const isEdge =
+    graph &&
+    typeof (graph as any).getEdgeTypeName === "function" &&
+    (graph as any).getEdgeTypeName(selectedKey) != null;
 
   return (
     <div className={styles.container}>
-      {isEdge
-        ? <EdgeSettingsPanel edgeId={selectedKey} />
-        : <NodeSettingsPanel nodeId={selectedKey} />
-      }
+      {isEdge ? (
+        <EdgeSettingsPanel edgeId={selectedKey} locale={locale} />
+      ) : (
+        <NodeSettingsPanel nodeId={selectedKey} locale={locale} />
+      )}
     </div>
   );
 });

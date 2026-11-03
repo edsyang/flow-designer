@@ -1,10 +1,10 @@
-import { makeObservable, observable, runInAction } from 'mobx';
-import { EventEmitter } from 'eventemitter3';
-import Document from '../document';
-import { hasOwn } from '../utils/index';
-import ContentNode from './node';
-import type { NodeData } from './node';
-import Relation from './relation';
+import { makeObservable, observable, runInAction } from "mobx";
+import { EventEmitter } from "eventemitter3";
+import type Document from "../document";
+import { hasOwn } from "../utils/index";
+import ContentNode from "./node";
+import type { NodeData } from "./node";
+import type Relation from "./relation";
 
 export interface ContentData {
   [contentField: string]: any;
@@ -17,20 +17,20 @@ export interface ContentType {
 }
 
 export enum ContentSignal {
-  ADD_NODE = 'content.addnode',
-  REMOVE_NODE = 'content.removenode',
+  ADD_NODE = "content.addnode",
+  REMOVE_NODE = "content.removenode",
 }
 
 export enum ContentAop {
-  NODE_ADDING = 'contentaop.nodeadding',
-  NODE_REMOVING = 'contentaop.noderemoving',
+  NODE_ADDING = "contentaop.nodeadding",
+  NODE_REMOVING = "contentaop.noderemoving",
 }
 
 interface ContentNodeMap<T extends Relation> {
   [uid: string]: ContentNode<T> | null;
 }
 
-function isContentNode<T extends Relation>(node: any): node is ContentNode<T> {
+function isContentNode<T extends Relation>(_node: any): _node is ContentNode<T> {
   return true;
 }
 
@@ -41,13 +41,19 @@ export default abstract class Content<T extends Relation = Relation> {
   private uidBase: number = Date.now();
   private destroyed = false;
 
-  constructor(private owner: Document, data: ContentData) {
-    makeObservable<Content<T>, 'nodes' | 'nodesMap'>(this, {
+  constructor(
+    private owner: Document,
+    data: ContentData,
+  ) {
+    makeObservable<Content<T>, "nodes" | "nodesMap">(this, {
       nodes: observable,
       nodesMap: observable,
     });
-    this.nodes = this.nodesFromData(data, (nodeData: NodeData) => new ContentNode<T>(this, nodeData));
-    this.nodes.forEach((node) => node.didInit());
+    this.nodes = this.nodesFromData(
+      data,
+      (nodeData: NodeData) => new ContentNode<T>(this, nodeData),
+    );
+    this.nodes.forEach((node) => { node.didInit(); });
   }
 
   getDocument(): Document {
@@ -74,9 +80,9 @@ export default abstract class Content<T extends Relation = Relation> {
   }
 
   onContentChange(fn: () => void): () => void {
-    this.emitter.on('contentchange', fn);
+    this.emitter.on("contentchange", fn);
     return () => {
-      this.emitter.removeListener('contentchange', fn);
+      this.emitter.removeListener("contentchange", fn);
     };
   }
 
@@ -85,50 +91,63 @@ export default abstract class Content<T extends Relation = Relation> {
   }
 
   addNode(nodeData: NodeData): Promise<ContentNode<T> | null> {
-    if (this.destroyed) return Promise.reject(new Error('Content has been destroyed'));
+    if (this.destroyed) return Promise.reject(new Error("Content has been destroyed"));
     const node = new ContentNode<T>(this, nodeData);
     const doc = this.getDocument();
-    return doc.invoke(ContentAop.NODE_ADDING, node, this).then(() => {
-      if (this.destroyed) { node.didPurge(); return null; }
-      runInAction(() => {
-        this.nodes.push(node);
-      });
-      node.didAdd();
-      doc.sendSignal(ContentSignal.ADD_NODE, node, this);
-      doc.timelineLog(`Add ContentNode ${node.getTypeName()} #${node.getId()}`);
-      return node;
-    }, () => {
-      runInAction(() => {
-        if (this.nodesMap[node.getId()] === node) this.nodesMap[node.getId()] = null;
-      });
-      node.didPurge();
-      return null;
-    });
+    return doc.invoke(ContentAop.NODE_ADDING, node, this).then(
+      () => {
+        if (this.destroyed) {
+          node.didPurge();
+          return null;
+        }
+        runInAction(() => {
+          this.nodes.push(node);
+        });
+        node.didAdd();
+        doc.sendSignal(ContentSignal.ADD_NODE, node, this);
+        doc.timelineLog(`Add ContentNode ${node.getTypeName()} #${node.getId()}`);
+        return node;
+      },
+      () => {
+        runInAction(() => {
+          if (this.nodesMap[node.getId()] === node) this.nodesMap[node.getId()] = null;
+        });
+        node.didPurge();
+        return null;
+      },
+    );
   }
 
   removeNode(node: ContentNode<T> | string, sideEffects?: () => void) {
-    if (typeof node === 'string') {
+    if (typeof node === "string") {
       node = this.nodesMap[node]!;
     }
 
     if (node) {
       const doc = this.getDocument();
-      return doc.invoke(ContentAop.NODE_REMOVING, node, this).then(() => {
-        if (isContentNode<T>(node)) {
-          if (sideEffects) { sideEffects(); }
-          const i = this.nodes.indexOf(node);
-          if (i > -1) {
-            runInAction(() => {
-              this.nodesMap[node.getId()] = null;
-              this.nodes.splice(i, 1);
-            });
-            doc.sendSignal(ContentSignal.REMOVE_NODE, node, this);
-            node.didPurge();
-            doc.timelineLog(`Remove ContentNode ${node.getTypeName()} #${node.getId()}`);
-            return true;
+      return doc.invoke(ContentAop.NODE_REMOVING, node, this).then(
+        () => {
+          if (isContentNode<T>(node)) {
+            if (sideEffects) {
+              sideEffects();
+            }
+            const i = this.nodes.indexOf(node);
+            if (i > -1) {
+              runInAction(() => {
+                this.nodesMap[node.getId()] = null;
+                this.nodes.splice(i, 1);
+              });
+              doc.sendSignal(ContentSignal.REMOVE_NODE, node, this);
+              node.didPurge();
+              doc.timelineLog(`Remove ContentNode ${node.getTypeName()} #${node.getId()}`);
+              return true;
+            }
           }
-        }
-      }, (e: any) => { return false; });
+        },
+        (_e: unknown) => {
+          return false;
+        },
+      );
     }
   }
 
@@ -172,7 +191,7 @@ export default abstract class Content<T extends Relation = Relation> {
     }
   }
 
-  protected onNodeTimelineRestore(node: ContentNode<T>): void {
+  protected onNodeTimelineRestore(_node: ContentNode<T>): void {
     // Subclass hook: restore relation data for existing nodes during timeline navigation
   }
 
@@ -181,12 +200,18 @@ export default abstract class Content<T extends Relation = Relation> {
     this.destroyed = true;
     const nodes = this.nodes.slice();
     // Detach the graph before purging nodes: teardown must not act like N user deletions.
-    runInAction(() => { this.nodes = []; this.nodesMap = {}; });
-    nodes.forEach(node => node.didPurge());
+    runInAction(() => {
+      this.nodes = [];
+      this.nodesMap = {};
+    });
+    nodes.forEach((node) => { node.didPurge(); });
     this.emitter.removeAllListeners();
   }
 
-  abstract nodesFromData(data: ContentData, creator: (nodeData: NodeData) => ContentNode<T>): Array<ContentNode<T>>;
+  abstract nodesFromData(
+    data: ContentData,
+    creator: (nodeData: NodeData) => ContentNode<T>,
+  ): Array<ContentNode<T>>;
   abstract getData(): ContentData;
   abstract createRelation(node: ContentNode<T>): T;
 }

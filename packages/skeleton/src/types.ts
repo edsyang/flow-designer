@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import type { Setting, ContentNode, Settings } from '@flow-designer/model';
+import type { ReactNode } from "react";
+import type { Setting, ContentNode, Settings } from "@flow-designer/model";
 
 export interface FieldBehaviors {
   [key: string]: boolean;

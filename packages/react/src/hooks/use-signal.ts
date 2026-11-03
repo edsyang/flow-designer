@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { signal } from '@flow-designer/model';
+import { useEffect } from "react";
+import { signal } from "@flow-designer/model";
 
 export type SignalHandler = (...args: any[]) => void;
 

@@ -1,9 +1,9 @@
-import type { ISkeleton } from '@flow-designer/model';
-import type { IGraphManager } from '@flow-designer/model';
-import type { Document } from '@flow-designer/model';
-import type { PluginManager } from './plugins/plugin-manager';
-import { EventEmitter } from 'eventemitter3';
-import { makeObservable, observable, action } from 'mobx';
+import type { ISkeleton } from "@flow-designer/model";
+import type { IGraphManager } from "@flow-designer/model";
+import type { Document } from "@flow-designer/model";
+import type { PluginManager } from "./plugins/plugin-manager";
+import { EventEmitter } from "eventemitter3";
+import { makeObservable, observable, action } from "mobx";
 
 export class Editor extends EventEmitter {
   private skeleton!: ISkeleton;
@@ -15,7 +15,7 @@ export class Editor extends EventEmitter {
 
   constructor() {
     super();
-    makeObservable<Editor, 'graphView' | 'graph'>(this, {
+    makeObservable<Editor, "graphView" | "graph">(this, {
       graphView: observable,
       graph: observable.ref,
       setGraph: action,
@@ -72,7 +72,7 @@ export class GraphView {
   private editable: boolean = true;
 
   constructor() {
-    makeObservable<GraphView, 'zoom' | 'editable'>(this, {
+    makeObservable<GraphView, "zoom" | "editable">(this, {
       zoom: observable,
       editable: observable,
       setZoom: action,

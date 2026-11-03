@@ -1,7 +1,7 @@
-import type { FieldProps } from '../types';
-import { IconTip } from './tip';
-import { buildClassName, useBehaviors } from './index';
-import styles from './field.module.css';
+import type { FieldProps } from "../types";
+import { IconTip } from "./tip";
+import { buildClassName, useBehaviors } from "./index";
+import styles from "./field.module.css";
 
 export function AccordionField(props: FieldProps) {
   const { isGroup, className, behaviors, onBehaviorChange, title, tip, children } = props;
@@ -9,9 +9,9 @@ export function AccordionField(props: FieldProps) {
 
   const toggleExpand = () => {
     const next = !state.collapsed;
-    changeBehavior('collapsed', next);
+    changeBehavior("collapsed", next);
     if (onBehaviorChange) {
-      onBehaviorChange('collapsed', next);
+      onBehaviorChange("collapsed", next);
     }
   };
 

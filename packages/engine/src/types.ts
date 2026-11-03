@@ -1,7 +1,14 @@
-import type { ISkeleton, GraphOptions, ContentTransformer, IGraphManager, SettingConfig } from '@flow-designer/model';
-import type { PluginCreator, Editor, IPluginManager } from '@flow-designer/core';
-import type { Engine } from './engine';
-import type { Document } from '@flow-designer/model';
+import type {
+  GraphOptions,
+  ContentTransformer,
+  IGraphManager,
+  Locale,
+  Messages,
+  SettingConfig,
+} from "@flow-designer/model";
+import type { PluginCreator, Editor, IPluginManager } from "@flow-designer/core";
+import type { Engine } from "./engine";
+import type { Document } from "@flow-designer/model";
 
 export interface DesignerOptions {
   container?: HTMLElement;
@@ -15,6 +22,7 @@ export interface DesignerOptions {
   unsavedPrompt?: boolean;
   transformers?: ContentTransformer[];
   docSettings?: Array<SettingConfig<Document>>;
+  localeMessages?: Partial<Record<Locale, Messages>>;
 }
 
 export interface Designer {

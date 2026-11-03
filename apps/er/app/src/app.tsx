@@ -1,10 +1,19 @@
-import { createRoot } from 'react-dom/client';
-import { createDesigner, Workbench, ConnectionValidators, contentTypesRegistry, GenericContent, signal } from '@flow-designer/engine';
-import { registerERNodes, getRelationEdgeType } from '@flow-designer/er-nodes';
-import type { Designer, IGraphManager } from '@flow-designer/engine';
-import styles from './app.module.css';
+import { createRoot } from "react-dom/client";
+import {
+  createDesigner,
+  Workbench,
+  ConnectionValidators,
+  contentTypesRegistry,
+  GenericContent,
+  initializeI18n,
+  signal,
+  subscribeLocale,
+  t,
+} from "@flow-designer/engine";
+import { erMessages } from "@flow-designer/er-nodes/i18n";
+import type { Designer, IGraphManager } from "@flow-designer/engine";
+import styles from "./app.module.css";
 
-registerERNodes();
 contentTypesRegistry.register(GenericContent);
 
 declare global {
@@ -14,12 +23,24 @@ declare global {
 }
 
 async function init() {
-  const container = document.getElementById('root')!;
+  const container = document.getElementById("root");
+
+  if (!container) throw new Error("Root element #root not found");
+
+  await initializeI18n(erMessages);
+  const { registerERNodes, refreshERTranslations, getRelationEdgeType } =
+    await import("@flow-designer/er-nodes");
+  refreshERTranslations();
+  registerERNodes();
+  subscribeLocale(() => {
+    refreshERTranslations();
+  });
 
   const designer: Designer = await createDesigner({
     container,
-    documentType: '*',
-    documentVersion: '1.0.0',
+    documentType: "*",
+    documentVersion: "1.0.0",
+    localeMessages: erMessages,
     graphOptions: {
       connecting: {
         connectionValidator: ConnectionValidators.allowAll,
@@ -27,7 +48,7 @@ async function init() {
     },
   });
 
-  signal.onceSignal('graph:ready', (graphManager: IGraphManager) => {
+  signal.onceSignal("graph:ready", (graphManager: IGraphManager) => {
     const edgeType = getRelationEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });
@@ -35,15 +56,19 @@ async function init() {
   window.designer = designer;
 
   designer.engine.skeleton.header.add({
-    key: 'app-title',
-    area: 'header',
-    align: 'left',
-    content: () => <span style={{ fontWeight: 600, fontSize: 14, color: '#1a1a1a' }}>ER Designer</span>,
+    key: "app-title",
+    area: "header",
+    align: "left",
+    content: () => (
+      <span style={{ fontWeight: 600, fontSize: 14, color: "#1a1a1a" }}>{t("er.app.header")}</span>
+    ),
     contentProps: {},
   });
 
   const root = createRoot(container);
-  root.render(<Workbench engine={designer.engine} className={styles.app} />);
+  root.render(
+    <Workbench engine={designer.engine} className={styles.app} documentTitleKey="er.app.title" />,
+  );
 }
 
 init().catch(console.error);

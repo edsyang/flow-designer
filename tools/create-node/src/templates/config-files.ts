@@ -1,24 +1,24 @@
 export function generateTsconfig(): string {
   const config = {
     compilerOptions: {
-      target: 'ES2020',
-      module: 'ESNext',
-      moduleResolution: 'bundler',
+      target: "ES2020",
+      module: "ESNext",
+      moduleResolution: "bundler",
       strict: true,
       esModuleInterop: true,
       skipLibCheck: true,
       declaration: true,
       declarationMap: true,
       sourceMap: true,
-      jsx: 'react-jsx',
-      lib: ['ES2020', 'DOM', 'DOM.Iterable'],
-      rootDir: 'src',
-      outDir: 'dist',
+      jsx: "react-jsx",
+      lib: ["ES2020", "DOM", "DOM.Iterable"],
+      rootDir: "src",
+      outDir: "dist",
       isolatedModules: true,
     },
-    include: ['src'],
+    include: ["src"],
   };
-  return JSON.stringify(config, null, 2) + '\n';
+  return JSON.stringify(config, null, 2) + "\n";
 }
 
 export function generateViteConfig(): string {

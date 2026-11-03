@@ -39,6 +39,7 @@ Shared packages must not import scenario packages or encode scenario schemas/pol
 - Keep TypeScript strict. Use explicit public types and `unknown` with narrowing at untrusted boundaries; do not widen framework APIs with `any`.
 - Use typed React function components and existing extension points. Derive UI from model state through existing observers/signals rather than duplicating document data.
 - Prefer CSS modules and design tokens; preserve keyboard operation and accessible control names.
+- In CSS, keep one canonical base rule per selector. Group necessary state and responsive overrides in a nearby section; when editing a stylesheet, merge duplicate selector blocks and remove declarations that are dead or overridden, without reorganizing unrelated styles.
 - Check relevant loading, empty, invalid, failure, and teardown paths as well as the happy path.
 - Use pnpm workspaces; declare dependencies in the importing package. Keep scripts cross-platform and avoid machine-specific registry settings or generated reports in commits.
 

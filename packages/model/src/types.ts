@@ -36,11 +36,7 @@ export interface ContentTransformer<TExternal = unknown> {
 
 // --- Type aliases ---
 
-export type NodeCreator = (
-  typeName: string,
-  id: string,
-  props: Record<string, unknown>,
-) => any;
+export type NodeCreator = (typeName: string, id: string, props: Record<string, unknown>) => any;
 
 export type Command = (...params: unknown[]) => void | Promise<void>;
 

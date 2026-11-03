@@ -21,7 +21,9 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean",
-    "check:boundaries": "node scripts/check-boundaries.mjs"
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -30,10 +32,12 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^4",
     "eslint": "^9",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7",
     "eslint-plugin-react-hooks": "^5",
     "jsdom": "^25.0.0",
-    "turbo": "^2",
+    "prettier": "^3.9.10",
+    "turbo": "^2.9.14",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8",
     "vite": "^5.4.0",

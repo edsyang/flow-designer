@@ -1,43 +1,45 @@
-import { EventEmitter } from 'eventemitter3';
-import Props from '../props';
-import Prop from '../props/prop';
-import Formatter from './formatter';
-import type { FormatterConfig } from './formatter';
-import { hasOwn, uniqueId } from '../utils';
-import Document from '../document';
-import ContentNode from '../content/node';
-import Changeable from './changeable';
-import type { ChangeableConfig } from './changeable';
+import { EventEmitter } from "eventemitter3";
+import type Props from "../props";
+import type Prop from "../props/prop";
+import Formatter from "./formatter";
+import type { FormatterConfig } from "./formatter";
+import { hasOwn, uniqueId } from "../utils";
+import Changeable from "./changeable";
+import type { ChangeableConfig } from "./changeable";
 
 export type SetterComponentType = React.ComponentType<any>;
 
-export type SetterType<T = any> = string | {
-  type: string;
-  props?: object;
-  formatter?: FormatterConfig<T>;
-  [key: string]: any;
-} | SetterComponentType | React.ReactElement<any>;
+export type SetterType<T = any> =
+  | string
+  | {
+      type: string;
+      props?: object;
+      formatter?: FormatterConfig<T>;
+      [key: string]: any;
+    }
+  | SetterComponentType
+  | React.ReactElement;
 
-export type Tip = { type: string; content: any; } | React.ReactNode;
+export type Tip = { type: string; content: any } | React.ReactNode;
 
 export enum DisplayType {
-  None = 'none',
-  Block = 'block',
-  Plain = 'plain',
-  Inline = 'inline',
-  Accordion = 'accordion',
-  Popup = 'popup',
-  Caption = 'caption',
-  Entry = 'entry',
-  Tab = 'tab',
+  None = "none",
+  Block = "block",
+  Plain = "plain",
+  Inline = "inline",
+  Accordion = "accordion",
+  Popup = "popup",
+  Caption = "caption",
+  Entry = "entry",
+  Tab = "tab",
 }
 
 export enum SettingType {
-  Item = 'item',
-  Group = 'group',
+  Item = "item",
+  Group = "group",
 }
 
-export type ReturnBoolean<T> = (ctx: Setting<T>, value?: any) => boolean | boolean;
+export type ReturnBoolean<T> = (ctx: Setting<T>, value?: any) => boolean  ;
 
 export interface BehaviorsConfig<T> {
   [behavior: string]: ReturnBoolean<T>;
@@ -100,7 +102,7 @@ function createBehavior<T>(
       isettedValue = flag;
     },
   };
-  if (typeof config === 'function') {
+  if (typeof config === "function") {
     behavior.update = () => {
       const value = config(context, context.getValue());
       if (behavior.value !== value) {
@@ -118,7 +120,7 @@ function createBehavior<T>(
 }
 
 export default class Setting<T> {
-  private uid: string = uniqueId('setting');
+  private uid: string = uniqueId("setting");
   private emitter: EventEmitter = new EventEmitter();
   private internalValue: any;
   private targets!: Target[];
@@ -133,12 +135,26 @@ export default class Setting<T> {
   private setterChangeableProps!: ChangeableProps<T>;
   private formatter!: Formatter<T>;
   private behaviors: Behaviors = {};
+  private config: SettingConfig<T>;
 
-  constructor(private props: Props<T>, private scope: Prop, config: SettingConfig<T>) {
+  constructor(
+    private props: Props<T>,
+    private scope: Prop,
+    config: SettingConfig<T>,
+  ) {
+    this.config = config;
     const {
-      type, target, description, tab, className,
-      tip, display, setter, setterChangeableProps,
-      items, behaviors = {},
+      type,
+      target,
+      description,
+      tab,
+      className,
+      tip,
+      display,
+      setter,
+      setterChangeableProps,
+      items,
+      behaviors = {},
     } = config;
 
     this.type = type || (items && items.length > 0 ? SettingType.Group : SettingType.Item);
@@ -172,7 +188,7 @@ export default class Setting<T> {
         });
       }
     }
-    this.description = description || '';
+    this.description = description || "";
     this.tip = tip ?? null;
     this.tab = tab;
     this.className = className;
@@ -207,7 +223,7 @@ export default class Setting<T> {
   }
 
   getDescription(): string {
-    return this.description;
+    return this.config.description ?? this.description;
   }
 
   getClassName() {
@@ -261,7 +277,7 @@ export default class Setting<T> {
     }
 
     if (modified) {
-      this.emitter.emit('valuechange');
+      this.emitter.emit("valuechange");
     }
   }
 
@@ -274,7 +290,7 @@ export default class Setting<T> {
   }
 
   setHotValue(value: any): void {
-    return this.setValue(value);
+    this.setValue(value);
   }
 
   getBehaviorValue(key: string): boolean {
@@ -298,16 +314,16 @@ export default class Setting<T> {
 
   setBehavior(key: string, flag: boolean): void {
     this.getBehavior(key).setValue(flag);
-    this.emitter.emit('behaviorchange');
+    this.emitter.emit("behaviorchange");
   }
 
   toggleCollapsed(): void {
-    this.setBehavior('collapsed', !this.getBehaviorValue('collapsed'));
+    this.setBehavior("collapsed", !this.getBehaviorValue("collapsed"));
   }
 
   update(): void {
     if (this.isGroup()) {
-      this.items.forEach((item) => item.update());
+      this.items.forEach((item) => { item.update(); });
     } else {
       this.updateTargets();
     }
@@ -322,29 +338,29 @@ export default class Setting<T> {
     });
 
     if (modified) {
-      this.emitter.emit('behaviorchange');
+      this.emitter.emit("behaviorchange");
     }
   }
 
   didPurge(): void {
     this.emitter.removeAllListeners();
     if (this.isGroup()) {
-      this.items.forEach((item) => item.didPurge());
+      this.items.forEach((item) => { item.didPurge(); });
       this.items = [];
     }
   }
 
   onValueChange(fn: () => void): () => void {
-    this.emitter.on('valuechange', fn);
+    this.emitter.on("valuechange", fn);
     return () => {
-      this.emitter.removeListener('valuechange', fn);
+      this.emitter.removeListener("valuechange", fn);
     };
   }
 
   onBehaviorChange(fn: () => void): () => void {
-    this.emitter.on('behaviorchange', fn);
+    this.emitter.on("behaviorchange", fn);
     return () => {
-      this.emitter.removeListener('behaviorchange', fn);
+      this.emitter.removeListener("behaviorchange", fn);
     };
   }
 
@@ -372,7 +388,7 @@ export default class Setting<T> {
 
     this.internalValue = this.formatter.formatIn(targetsData);
 
-    this.emitter.emit('valuechange');
+    this.emitter.emit("valuechange");
     return true;
   }
 }

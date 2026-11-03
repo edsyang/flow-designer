@@ -1,24 +1,26 @@
-import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 
-vi.mock('antd', () => ({
-  Button: 'button',
-  Space: 'div',
+vi.mock("antd", () => ({
+  Button: "button",
+  Space: "div",
 }));
-vi.mock('@flow-designer/react', async (importOriginal) => {
-  const actual = await importOriginal() as any;
+vi.mock("@flow-designer/react", async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
   return {
     ...actual,
     getMessageApi: () => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn() }),
   };
 });
-vi.mock('@ant-design/icons', () => ({
-  MinusOutlined: 'span',
-  PlusOutlined: 'span',
-  ZoomInOutlined: 'span',
-  ZoomOutOutlined: 'span',
-  ExpandOutlined: 'span',
-  UndoOutlined: 'span',
-  RedoOutlined: 'span',
+vi.mock("@ant-design/icons", () => ({
+  CheckOutlined: "span",
+  GlobalOutlined: "span",
+  MinusOutlined: "span",
+  PlusOutlined: "span",
+  ZoomInOutlined: "span",
+  ZoomOutOutlined: "span",
+  ExpandOutlined: "span",
+  UndoOutlined: "span",
+  RedoOutlined: "span",
 }));
 
 beforeAll(() => {
@@ -28,7 +30,7 @@ beforeAll(() => {
     disconnect() {}
   } as any;
 });
-import { commandRegistry } from '@flow-designer/core';
+import { commandRegistry } from "@flow-designer/core";
 
 function createMockContext(overrides: Record<string, any> = {}) {
   return {
@@ -71,7 +73,7 @@ function createMockContext(overrides: Record<string, any> = {}) {
       })),
     },
     plugins: {},
-    container: document.createElement('div'),
+    container: document.createElement("div"),
     options: {},
     logger: {
       log: vi.fn(),
@@ -84,116 +86,121 @@ function createMockContext(overrides: Record<string, any> = {}) {
   };
 }
 
-describe('pluginZoom', () => {
+describe("pluginZoom", () => {
   beforeEach(() => {
-    commandRegistry.unregister('zoomIn');
-    commandRegistry.unregister('zoomOut');
-    commandRegistry.unregister('resetZoom');
+    commandRegistry.unregister("zoomIn");
+    commandRegistry.unregister("zoomOut");
+    commandRegistry.unregister("resetZoom");
   });
 
-  it('registers commands and canvas toolbar component', async () => {
-    const { pluginZoom } = await import('../src/zoom');
+  it("registers commands and canvas toolbar component", async () => {
+    const { pluginZoom } = await import("../src/zoom");
     const ctx = createMockContext();
     const config = pluginZoom(ctx as any);
-    expect(config.name).toBe('plugin-zoom');
-    expect(config.dep).toEqual(['plugin-x6-graph']);
+    expect(config.name).toBe("plugin-zoom");
+    expect(config.dep).toEqual(["plugin-x6-graph"]);
 
     config.init!();
-    expect(commandRegistry.hasCommand('zoomIn')).toBe(true);
-    expect(commandRegistry.hasCommand('zoomOut')).toBe(true);
-    expect(commandRegistry.hasCommand('resetZoom')).toBe(true);
+    expect(commandRegistry.hasCommand("zoomIn")).toBe(true);
+    expect(commandRegistry.hasCommand("zoomOut")).toBe(true);
+    expect(commandRegistry.hasCommand("resetZoom")).toBe(true);
     expect(ctx.skeleton.canvasToolbar.add).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 'zoom-control', area: 'canvasToolbar' }),
+      expect.objectContaining({ key: "zoom-control", area: "canvasToolbar" }),
     );
   }, 30000);
 
-  it('zoomIn increments zoom by 0.1', async () => {
-    const { pluginZoom } = await import('../src/zoom');
+  it("zoomIn increments zoom by 0.1", async () => {
+    const { pluginZoom } = await import("../src/zoom");
     const ctx = createMockContext();
     const config = pluginZoom(ctx as any);
     config.init!();
 
-    commandRegistry.executeCommand('zoomIn');
+    commandRegistry.executeCommand("zoomIn");
     expect(ctx.graph.zoomTo).toHaveBeenCalledWith(1.1);
   });
 
-  it('resetZoom fits all canvas content', async () => {
-    const { pluginZoom } = await import('../src/zoom');
+  it("resetZoom fits all canvas content", async () => {
+    const { pluginZoom } = await import("../src/zoom");
     const ctx = createMockContext();
     const config = pluginZoom(ctx as any);
     config.init!();
 
-    commandRegistry.executeCommand('resetZoom');
+    commandRegistry.executeCommand("resetZoom");
     expect(ctx.graph.zoomToFit).toHaveBeenCalled();
   });
 
-  it('destroy unregisters commands and removes from canvas toolbar', async () => {
-    const { pluginZoom } = await import('../src/zoom');
+  it("destroy unregisters commands and removes from canvas toolbar", async () => {
+    const { pluginZoom } = await import("../src/zoom");
     const ctx = createMockContext();
     const config = pluginZoom(ctx as any);
     config.init!();
     config.destroy!();
 
-    expect(commandRegistry.hasCommand('zoomIn')).toBe(false);
-    expect(ctx.skeleton.canvasToolbar.remove).toHaveBeenCalledWith('zoom-control');
+    expect(commandRegistry.hasCommand("zoomIn")).toBe(false);
+    expect(ctx.skeleton.canvasToolbar.remove).toHaveBeenCalledWith("zoom-control");
   });
 });
 
-describe('pluginUndoRedo', () => {
+describe("pluginUndoRedo", () => {
   beforeEach(() => {
-    commandRegistry.unregister('undo');
-    commandRegistry.unregister('redo');
+    commandRegistry.unregister("undo");
+    commandRegistry.unregister("redo");
   });
 
-  it('registers undo and redo commands', async () => {
-    const { pluginUndoRedo } = await import('../src/undo-redo');
+  it("registers undo and redo commands", async () => {
+    const { pluginUndoRedo } = await import("../src/undo-redo");
     const ctx = createMockContext();
     const config = pluginUndoRedo(ctx as any);
     config.init!();
 
-    expect(commandRegistry.hasCommand('undo')).toBe(true);
-    expect(commandRegistry.hasCommand('redo')).toBe(true);
+    expect(commandRegistry.hasCommand("undo")).toBe(true);
+    expect(commandRegistry.hasCommand("redo")).toBe(true);
     expect(ctx.skeleton.canvasToolbar.add).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 'undo-redo' }),
+      expect.objectContaining({ key: "undo-redo" }),
     );
   });
 
-  it('undo calls timeline.back()', async () => {
-    const { pluginUndoRedo } = await import('../src/undo-redo');
+  it("undo calls timeline.back()", async () => {
+    const { pluginUndoRedo } = await import("../src/undo-redo");
     const back = vi.fn();
     const ctx = createMockContext({
       editor: {
         getDocument: () => ({
-          getTimeline: () => ({ back, forward: vi.fn(), onStateChange: vi.fn(() => vi.fn()), getState: vi.fn(() => 7) }),
+          getTimeline: () => ({
+            back,
+            forward: vi.fn(),
+            onStateChange: vi.fn(() => vi.fn()),
+            getState: vi.fn(() => 7),
+          }),
         }),
       },
     });
     const config = pluginUndoRedo(ctx as any);
     config.init!();
-    commandRegistry.executeCommand('undo');
+    commandRegistry.executeCommand("undo");
     expect(back).toHaveBeenCalled();
   });
 });
 
-describe('pluginCopyPaste', () => {
+describe("pluginCopyPaste", () => {
   beforeEach(() => {
-    commandRegistry.unregister('copy');
-    commandRegistry.unregister('paste');
+    commandRegistry.unregister("copy");
+    commandRegistry.unregister("paste");
   });
 
-  it('registers copy and paste commands', async () => {
-    const { pluginCopyPaste } = await import('../src/copy-paste');
+  it("registers copy and paste commands", async () => {
+    const { pluginCopyPaste } = await import("../src/copy-paste");
     const ctx = createMockContext();
     const config = pluginCopyPaste(ctx as any);
     config.init!();
 
-    expect(commandRegistry.hasCommand('copy')).toBe(true);
-    expect(commandRegistry.hasCommand('paste')).toBe(true);
+    expect(commandRegistry.hasCommand("copy")).toBe(true);
+    expect(commandRegistry.hasCommand("paste")).toBe(true);
   });
 
-  it('copy copies selected cells via X6', async () => {
-    const { pluginCopyPaste } = await import('../src/copy-paste');
-    const cells = [{ id: 'n1' }];
+  it("copy copies selected cells via X6", async () => {
+    const { pluginCopyPaste } = await import("../src/copy-paste");
+    const cells = [{ id: "n1" }];
     const copyFn = vi.fn();
     const ctx = createMockContext({
       graph: {
@@ -207,38 +214,38 @@ describe('pluginCopyPaste', () => {
     });
     const config = pluginCopyPaste(ctx as any);
     config.init!();
-    commandRegistry.executeCommand('copy');
+    commandRegistry.executeCommand("copy");
     expect(copyFn).toHaveBeenCalledWith(cells);
   });
 });
 
-describe('pluginDelete', () => {
+describe("pluginDelete", () => {
   beforeEach(() => {
-    commandRegistry.unregister('delete');
+    commandRegistry.unregister("delete");
   });
 
-  it('registers delete command', async () => {
-    const { pluginDelete } = await import('../src/delete');
+  it("registers delete command", async () => {
+    const { pluginDelete } = await import("../src/delete");
     const ctx = createMockContext();
     const config = pluginDelete(ctx as any);
     config.init!();
-    expect(commandRegistry.hasCommand('delete')).toBe(true);
+    expect(commandRegistry.hasCommand("delete")).toBe(true);
   });
 
-  it('deletes selected nodes via content.removeNode', async () => {
-    const { pluginDelete } = await import('../src/delete');
+  it("deletes selected nodes via content.removeNode", async () => {
+    const { pluginDelete } = await import("../src/delete");
     const removeNode = vi.fn();
     const removeEdgeById = vi.fn();
-    const getNode = vi.fn((id: string) => (id === 'n1' ? { id: 'n1' } : null));
+    const getNode = vi.fn((id: string) => (id === "n1" ? { id: "n1" } : null));
     const mockRelation = {
-      getEdgeById: (id: string) => id === 'e1' ? { id: 'e1' } : null,
+      getEdgeById: (id: string) => (id === "e1" ? { id: "e1" } : null),
       removeEdgeById,
     };
     const mockNodes = [{ getRelation: () => mockRelation }];
     const ctx = createMockContext({
       graph: {
         ...createMockContext().graph,
-        getSelection: () => ['n1', 'e1'],
+        getSelection: () => ["n1", "e1"],
         removeCell: vi.fn(),
       },
       editor: {
@@ -250,20 +257,20 @@ describe('pluginDelete', () => {
     });
     const config = pluginDelete(ctx as any);
     config.init!();
-    await commandRegistry.executeCommand('delete');
-    expect(removeNode).toHaveBeenCalledWith('n1');
-    expect(removeEdgeById).toHaveBeenCalledWith('e1');
+    await commandRegistry.executeCommand("delete");
+    expect(removeNode).toHaveBeenCalledWith("n1");
+    expect(removeEdgeById).toHaveBeenCalledWith("e1");
   });
 });
 
-describe('pluginAutoSave', () => {
-  it('sets up and clears interval for IndexedDB saving', async () => {
+describe("pluginAutoSave", () => {
+  it("sets up and clears interval for IndexedDB saving", async () => {
     vi.useFakeTimers();
-    const { pluginAutoSave } = await import('../src/auto-save');
+    const { pluginAutoSave } = await import("../src/auto-save");
     const ctx = createMockContext();
     const config = pluginAutoSave(ctx as any, { interval: 1000 });
 
-    const clearSpy = vi.spyOn(globalThis, 'clearInterval');
+    const clearSpy = vi.spyOn(globalThis, "clearInterval");
     config.init!();
 
     vi.advanceTimersByTime(1000);
@@ -275,51 +282,51 @@ describe('pluginAutoSave', () => {
   });
 });
 
-describe('pluginUnsavedPrompt', () => {
-  it('adds and removes beforeunload listener', async () => {
-    const { pluginUnsavedPrompt } = await import('../src/unsaved-prompt');
-    const addSpy = vi.spyOn(window, 'addEventListener');
-    const removeSpy = vi.spyOn(window, 'removeEventListener');
+describe("pluginUnsavedPrompt", () => {
+  it("adds and removes beforeunload listener", async () => {
+    const { pluginUnsavedPrompt } = await import("../src/unsaved-prompt");
+    const addSpy = vi.spyOn(window, "addEventListener");
+    const removeSpy = vi.spyOn(window, "removeEventListener");
 
     const ctx = createMockContext();
     const config = pluginUnsavedPrompt(ctx as any);
     config.init!();
-    expect(addSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    expect(addSpy).toHaveBeenCalledWith("beforeunload", expect.any(Function));
 
     config.destroy!();
-    expect(removeSpy).toHaveBeenCalledWith('beforeunload', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith("beforeunload", expect.any(Function));
 
     addSpy.mockRestore();
     removeSpy.mockRestore();
   });
 });
 
-describe('pluginEdgeLabel', () => {
-  it('listens to edge:dblclick events', async () => {
-    const { pluginEdgeLabel } = await import('../src/edge-label');
+describe("pluginEdgeLabel", () => {
+  it("listens to edge:dblclick events", async () => {
+    const { pluginEdgeLabel } = await import("../src/edge-label");
     const ctx = createMockContext();
     const config = pluginEdgeLabel(ctx as any);
     config.init!();
-    expect(ctx.graph.on).toHaveBeenCalledWith('edge:dblclick', expect.any(Function));
+    expect(ctx.graph.on).toHaveBeenCalledWith("edge:dblclick", expect.any(Function));
   });
 
-  it('cleans up event listener on destroy', async () => {
-    const { pluginEdgeLabel } = await import('../src/edge-label');
+  it("cleans up event listener on destroy", async () => {
+    const { pluginEdgeLabel } = await import("../src/edge-label");
     const ctx = createMockContext();
     const config = pluginEdgeLabel(ctx as any);
     config.init!();
     config.destroy!();
-    expect(ctx.graph.off).toHaveBeenCalledWith('edge:dblclick', expect.any(Function));
+    expect(ctx.graph.off).toHaveBeenCalledWith("edge:dblclick", expect.any(Function));
   });
 });
 
-describe('pluginStencilPanel', () => {
-  it('adds stencil container to sidebar', async () => {
-    const { pluginStencilPanel } = await import('../src/stencil-panel');
+describe("pluginStencilPanel", () => {
+  it("adds stencil container to sidebar", async () => {
+    const { pluginStencilPanel } = await import("../src/stencil-panel");
     const getStencilNodeGroups = vi.fn(() => []);
     const startNodeDrag = vi.fn();
     const ctx = createMockContext({
-      plugins: { 'plugin-x6-graph': { graphManager: { getStencilNodeGroups, startNodeDrag } } },
+      plugins: { "plugin-x6-graph": { graphManager: { getStencilNodeGroups, startNodeDrag } } },
       editor: {
         ...createMockContext().editor,
         getGraph: vi.fn(() => ({})),
@@ -328,23 +335,65 @@ describe('pluginStencilPanel', () => {
     const config = pluginStencilPanel(ctx as any);
     config.init!();
     expect(ctx.skeleton.sidebar.add).toHaveBeenCalledWith(
-      expect.objectContaining({ key: 'stencil-panel', area: 'sidebar' }),
+      expect.objectContaining({ key: "stencil-panel", area: "sidebar" }),
     );
   });
 });
 
-describe('registerBuiltinPlugins', () => {
-  it('registers the ten builtin plugins', async () => {
-    const { registerBuiltinPlugins } = await import('../src/register-builtin-plugins');
+describe("pluginCanvasHelp", () => {
+  it("registers and removes only the help action", async () => {
+    const { pluginCanvasHelp } = await import("../src/canvas-help");
+    const ctx = createMockContext();
+    const config = pluginCanvasHelp(ctx as any);
+    config.init!();
+
+    expect(ctx.skeleton.header.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "workbench-help",
+        area: "header",
+        align: "right",
+      }),
+    );
+
+    config.destroy!();
+    expect(ctx.skeleton.header.remove).toHaveBeenCalledWith("workbench-help");
+    expect(ctx.skeleton.header.remove).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("pluginLanguageSwitcher", () => {
+  it("registers and removes only the language action", async () => {
+    const { pluginLanguageSwitcher } = await import("../src/language-switcher");
+    const ctx = createMockContext();
+    const config = pluginLanguageSwitcher(ctx as any);
+    config.init!();
+
+    expect(ctx.skeleton.header.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "workbench-language",
+        area: "header",
+        align: "right",
+      }),
+    );
+
+    config.destroy!();
+    expect(ctx.skeleton.header.remove).toHaveBeenCalledWith("workbench-language");
+    expect(ctx.skeleton.header.remove).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("registerBuiltinPlugins", () => {
+  it("registers the twelve builtin plugins", async () => {
+    const { registerBuiltinPlugins } = await import("../src/register-builtin-plugins");
     const pluginManager = { register: vi.fn() };
     await registerBuiltinPlugins(pluginManager as any);
-    expect(pluginManager.register).toHaveBeenCalledTimes(10);
+    expect(pluginManager.register).toHaveBeenCalledTimes(12);
   }, 30000);
 
-  it('respects disableList', async () => {
-    const { registerBuiltinPlugins } = await import('../src/register-builtin-plugins');
+  it("respects disableList", async () => {
+    const { registerBuiltinPlugins } = await import("../src/register-builtin-plugins");
     const pluginManager = { register: vi.fn() };
-    await registerBuiltinPlugins(pluginManager as any, ['plugin-zoom', 'plugin-delete']);
-    expect(pluginManager.register).toHaveBeenCalledTimes(8);
+    await registerBuiltinPlugins(pluginManager as any, ["plugin-zoom", "plugin-delete"]);
+    expect(pluginManager.register).toHaveBeenCalledTimes(10);
   });
 });

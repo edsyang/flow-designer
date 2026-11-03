@@ -5,7 +5,7 @@ This specification covers the BPMN example's bootstrap sequence, process documen
 ## Ownership
 
 | Concern | Owner | Contract |
-|---|---|---|
+| --- | --- | --- |
 | Process document and relation data | `apps/bpmn/model` | Process-specific persistence, flow-in tracking, and serial IDs |
 | BPMN node prototypes, port policy, and Sequence Flow appearance | `apps/bpmn/nodes` | Node schemas/views, directional connection validation, and edge type configuration |
 | Runtime setup and initial example document | `apps/bpmn/app` | Registers scenario types, seeds the document, and mounts the workbench |
@@ -59,7 +59,7 @@ These are current implementation/test observations, not endorsements of weak tes
 ## Verification map
 
 | Change area | Existing coverage |
-|---|---|
+| --- | --- |
 | Content registration, node creation, props, serial IDs, relation tracking, and relation serialization | `apps/bpmn/model/__tests__/bpmn-model.test.ts`, `apps/bpmn/model/__tests__/integration.test.ts` |
 | Timeline restoration of process edges | `apps/bpmn/model/__tests__/integration.test.ts` (`undo/redo restores edge data for existing nodes`) |
 | Node prototype registration and schemas | `apps/bpmn/nodes/__tests__/bpmn-nodes.test.ts` |

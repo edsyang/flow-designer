@@ -1,14 +1,13 @@
-import { EventEmitter } from 'eventemitter3';
-import { prototypeRegistry } from '../registries';
-import Prototype from '../prototype';
-import Props from '../props';
-import type { PropsData } from '../props';
-import Settings from '../settings';
-import { hasOwn } from '../utils';
-import Content from './index';
-import type { ContentData } from './index';
-import Relation from './relation/index';
-import type { ChangeKeys } from '../props/prop';
+import { EventEmitter } from "eventemitter3";
+import { prototypeRegistry } from "../registries";
+import type Prototype from "../prototype";
+import Props from "../props";
+import type { PropsData } from "../props";
+import Settings from "../settings";
+import { hasOwn } from "../utils";
+import type Content from "./index";
+import type Relation from "./relation/index";
+import type { ChangeKeys } from "../props/prop";
 
 export interface NodeData {
   id?: string;
@@ -18,7 +17,7 @@ export interface NodeData {
 }
 
 export enum NodeSignal {
-  PROPS_UPDATE = 'node.propsupdate',
+  PROPS_UPDATE = "node.propsupdate",
 }
 
 export default class ContentNode<T extends Relation = Relation> {
@@ -31,10 +30,13 @@ export default class ContentNode<T extends Relation = Relation> {
   private purged: boolean = false;
   private disableTimelineLogging: boolean = false;
 
-  constructor(private content: Content<T>, nodeData: NodeData) {
+  constructor(
+    private content: Content<T>,
+    nodeData: NodeData,
+  ) {
     let prototype = prototypeRegistry.getPrototypeByType(nodeData.type);
     if (!prototype) {
-      prototype = prototypeRegistry.getPrototypeByType('Unknown')!;
+      prototype = prototypeRegistry.getPrototypeByType("Unknown")!;
     }
     this.prototype = prototype;
 
@@ -115,7 +117,7 @@ export default class ContentNode<T extends Relation = Relation> {
     const propsData = this.props.getData();
     return this.relation.patchData({
       type: this.getTypeName(),
-      name: (propsData && propsData.name && propsData.name.rawValue) || '',
+      name: (propsData && propsData.name && propsData.name.rawValue) || "",
       props: propsData,
       id: this.getId(),
     });
@@ -173,11 +175,11 @@ export default class ContentNode<T extends Relation = Relation> {
   }
 
   getPosition(): { x: number; y: number } {
-    const pos = this.props.getPropData('__position');
+    const pos = this.props.getPropData("__position");
     return pos || { x: 0, y: 0 };
   }
 
   setPosition(x: number, y: number): void {
-    this.props.setPropData('__position', { x, y });
+    this.props.setPropData("__position", { x, y });
   }
 }

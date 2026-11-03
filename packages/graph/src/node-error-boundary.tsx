@@ -1,5 +1,6 @@
-import type { ComponentType, ReactNode } from 'react';
-import { Component } from 'react';
+import type { ComponentType, ReactNode } from "react";
+import { Component } from "react";
+import { subscribeLocale, t } from "@flow-designer/model";
 
 interface NodeErrorBoundaryProps {
   nodeName: string;
@@ -12,6 +13,15 @@ interface NodeErrorBoundaryState {
 
 export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErrorBoundaryState> {
   override state: NodeErrorBoundaryState = { hasError: false };
+  private unsubscribeLocale: (() => void) | null = null;
+
+  override componentDidMount() {
+    this.unsubscribeLocale = subscribeLocale(() => { this.forceUpdate(); });
+  }
+
+  override componentWillUnmount() {
+    this.unsubscribeLocale?.();
+  }
 
   static getDerivedStateFromError(): NodeErrorBoundaryState {
     return { hasError: true };
@@ -24,8 +34,8 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
   override render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 4, color: '#f5222d', fontSize: 12, border: '1px dashed #f5222d' }}>
-          {this.props.nodeName} 渲染异常
+        <div style={{ padding: 4, color: "#f5222d", fontSize: 12, border: "1px dashed #f5222d" }}>
+          {t("common.error.node", { name: this.props.nodeName })}
         </div>
       );
     }

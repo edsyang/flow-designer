@@ -1,25 +1,23 @@
-import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
+import { defineConfig } from "vite";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
-  plugins: [
-    dts({ rollupTypes: true }),
-  ],
+  plugins: [dts({ rollupTypes: true })],
   build: {
     lib: {
-      entry: 'src/index.ts',
-      formats: ['es', 'cjs'],
-      fileName: (format) => `index.${format === 'es' ? 'mjs' : 'cjs'}`,
+      entry: "src/index.ts",
+      formats: ["es", "cjs"],
+      fileName: (format) => `index.${format === "es" ? "mjs" : "cjs"}`,
     },
     rollupOptions: {
       external: [
-        'react',
-        'react-dom',
-        'react/jsx-runtime',
-        'mobx',
-        'mobx-react-lite',
-        'eventemitter3',
-        'semver',
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "mobx",
+        "mobx-react-lite",
+        "eventemitter3",
+        "semver",
         /^@flow-designer\//,
         /^@antv\//,
       ],
@@ -27,4 +25,4 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
   },
-})
+});

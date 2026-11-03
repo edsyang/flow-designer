@@ -1,6 +1,6 @@
-import type { ISkeleton, IGraphManager } from '@flow-designer/model';
-import type { Editor } from '../editor';
-import type { Logger } from '../utils';
+import type { ISkeleton, IGraphManager } from "@flow-designer/model";
+import type { Editor } from "../editor";
+import type { Logger } from "../utils";
 
 export interface IPluginContext {
   skeleton: ISkeleton;
@@ -13,11 +13,7 @@ export interface IPluginContext {
 }
 
 export interface IPluginManagerCore {
-  register(
-    pluginConfigCreator: PluginCreator,
-    pluginOptions?: any,
-    options?: any,
-  ): Promise<void>;
+  register(pluginConfigCreator: PluginCreator, pluginOptions?: any, options?: any): Promise<void>;
   get(pluginName: string): IPlugin | undefined;
   getAll(): IPlugin[];
   has(pluginName: string): boolean;

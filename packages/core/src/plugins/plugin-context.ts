@@ -1,8 +1,8 @@
-import type { IPluginContext, IPluginManager, IPluginConfig } from './types';
-import type { IGraphManager, ISkeleton } from '@flow-designer/model';
-import type { Editor } from '../editor';
-import type { Logger } from '../utils';
-import { getLogger } from '../utils';
+import type { IPluginContext, IPluginManager, IPluginConfig } from "./types";
+import type { IGraphManager, ISkeleton } from "@flow-designer/model";
+import type { Editor } from "../editor";
+import type { Logger } from "../utils";
+import { getLogger } from "../utils";
 
 export class PluginContext implements IPluginContext {
   logger!: Logger;
@@ -29,6 +29,6 @@ export class PluginContext implements IPluginContext {
   }
 
   setLogger(config: IPluginConfig): void {
-    this.logger = getLogger({ level: 'log', bizName: `editor:plugin:${config.name}` });
+    this.logger = getLogger({ level: "log", bizName: `editor:plugin:${config.name}` });
   }
 }
