@@ -7,7 +7,9 @@ export function StringSetter({ value, onChange, disabled }: SetterProps<string>)
       size="small"
       value={value ?? ""}
       disabled={disabled}
-      onChange={(e) => { onChange(e.target.value); }}
+      onChange={(e) => {
+        onChange(e.target.value);
+      }}
     />
   );
 }

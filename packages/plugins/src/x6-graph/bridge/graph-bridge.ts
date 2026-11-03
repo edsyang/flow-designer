@@ -83,14 +83,18 @@ export class GraphBridge {
   }
 
   setup(): void {
-    this.disposeAutorun = autorun(() => { this.syncModelToGraph(); });
+    this.disposeAutorun = autorun(() => {
+      this.syncModelToGraph();
+    });
     this.bindGraphEvents();
   }
 
   teardown(): void {
     this.disposeAutorun?.();
     this.disposeAutorun = null;
-    this.eventOffs.forEach((off) => { off(); });
+    this.eventOffs.forEach((off) => {
+      off();
+    });
     this.eventOffs = [];
     this.nodeBridges.forEach((entry) => {
       entry.node.dispose();
@@ -162,7 +166,9 @@ export class GraphBridge {
       });
       this.graphManager.batchUpdate(() => {
         added.forEach((node) => this.graphManager.addNode(this.toNodeConfig(node)));
-        added.forEach((node) => { this.attachBridges(node); });
+        added.forEach((node) => {
+          this.attachBridges(node);
+        });
       });
     } finally {
       this.syncDirection = "idle";
@@ -275,13 +281,17 @@ export class GraphBridge {
       }
     };
     this.graphManager.on("node:moved", onNodeMoved);
-    this.eventOffs.push(() => { this.graphManager.off("node:moved", onNodeMoved); });
+    this.eventOffs.push(() => {
+      this.graphManager.off("node:moved", onNodeMoved);
+    });
 
     const onSelectionChanged = () => {
       this.document.getSelection().setKeys(this.graphManager.getSelection());
     };
     this.graphManager.on("selection:changed", onSelectionChanged);
-    this.eventOffs.push(() => { this.graphManager.off("selection:changed", onSelectionChanged); });
+    this.eventOffs.push(() => {
+      this.graphManager.off("selection:changed", onSelectionChanged);
+    });
 
     const onEdgeClick = (...args: unknown[]) => {
       const payload = args[0] as { edge?: { id: string } } | undefined;
@@ -290,7 +300,9 @@ export class GraphBridge {
       this.graphManager.select([edge.id]);
     };
     this.graphManager.on("edge:click", onEdgeClick);
-    this.eventOffs.push(() => { this.graphManager.off("edge:click", onEdgeClick); });
+    this.eventOffs.push(() => {
+      this.graphManager.off("edge:click", onEdgeClick);
+    });
 
     const onEdgeConnected = (...args: unknown[]) => {
       const payload = args[0] as { edge?: X6EdgeHandle } | undefined;
@@ -373,10 +385,14 @@ export class GraphBridge {
       }
     };
     this.graphManager.on("edge:vertices:committed", onEdgeMouseUp);
-    this.eventOffs.push(() => { this.graphManager.off("edge:vertices:committed", onEdgeMouseUp); });
+    this.eventOffs.push(() => {
+      this.graphManager.off("edge:vertices:committed", onEdgeMouseUp);
+    });
 
     this.graphManager.on("edge:connected", onEdgeConnected);
-    this.eventOffs.push(() => { this.graphManager.off("edge:connected", onEdgeConnected); });
+    this.eventOffs.push(() => {
+      this.graphManager.off("edge:connected", onEdgeConnected);
+    });
 
     const onNodeAddedByStencil = (...args: unknown[]) => {
       const payload = args[0] as
@@ -402,6 +418,8 @@ export class GraphBridge {
       });
     };
     this.graphManager.on("node:added-by-stencil", onNodeAddedByStencil);
-    this.eventOffs.push(() => { this.graphManager.off("node:added-by-stencil", onNodeAddedByStencil); });
+    this.eventOffs.push(() => {
+      this.graphManager.off("node:added-by-stencil", onNodeAddedByStencil);
+    });
   }
 }

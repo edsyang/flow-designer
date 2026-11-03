@@ -5,7 +5,11 @@ export function useGraphView() {
   return {
     zoom: graphView.getZoom(),
     editable: graphView.getEditable(),
-    setZoom: (z: number) => { graphView.setZoom(z); },
-    setEditable: (e: boolean) => { graphView.setEditable(e); },
+    setZoom: (z: number) => {
+      graphView.setZoom(z);
+    },
+    setEditable: (e: boolean) => {
+      graphView.setEditable(e);
+    },
   };
 }

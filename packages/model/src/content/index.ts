@@ -53,7 +53,9 @@ export default abstract class Content<T extends Relation = Relation> {
       data,
       (nodeData: NodeData) => new ContentNode<T>(this, nodeData),
     );
-    this.nodes.forEach((node) => { node.didInit(); });
+    this.nodes.forEach((node) => {
+      node.didInit();
+    });
   }
 
   getDocument(): Document {
@@ -204,7 +206,9 @@ export default abstract class Content<T extends Relation = Relation> {
       this.nodes = [];
       this.nodesMap = {};
     });
-    nodes.forEach((node) => { node.didPurge(); });
+    nodes.forEach((node) => {
+      node.didPurge();
+    });
     this.emitter.removeAllListeners();
   }
 

@@ -199,18 +199,16 @@ describe("workbench panels", () => {
   });
 
   it("opens configured node properties on selection while retaining manual collapse for that selection", async () => {
-    const matchMedia = vi
-      .spyOn(window, "matchMedia")
-      .mockImplementation(
-        (query) =>
-          ({
-            matches: query.includes("1000px"),
-            addListener() {},
-            removeListener() {},
-            addEventListener() {},
-            removeEventListener() {},
-          }) as unknown as MediaQueryList,
-      );
+    const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation(
+      (query) =>
+        ({
+          matches: query.includes("1000px"),
+          addListener() {},
+          removeListener() {},
+          addEventListener() {},
+          removeEventListener() {},
+        }) as unknown as MediaQueryList,
+    );
     try {
       prototypeRegistry.register({
         name: "Configured",
@@ -244,18 +242,16 @@ describe("workbench panels", () => {
   });
 
   it("preserves the narrow inspector collapse choice through later selections", () => {
-    const matchMedia = vi
-      .spyOn(window, "matchMedia")
-      .mockImplementation(
-        (query) =>
-          ({
-            matches: query.includes("1000px"),
-            addListener() {},
-            removeListener() {},
-            addEventListener() {},
-            removeEventListener() {},
-          }) as unknown as MediaQueryList,
-      );
+    const matchMedia = vi.spyOn(window, "matchMedia").mockImplementation(
+      (query) =>
+        ({
+          matches: query.includes("1000px"),
+          addListener() {},
+          removeListener() {},
+          addEventListener() {},
+          removeEventListener() {},
+        }) as unknown as MediaQueryList,
+    );
     try {
       const engine = fixture();
       engine.skeleton.inspector.add({

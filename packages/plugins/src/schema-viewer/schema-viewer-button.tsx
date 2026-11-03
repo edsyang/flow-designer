@@ -25,7 +25,9 @@ export function SchemaViewerButton({ getSchema }: SchemaViewerButtonProps) {
       <Modal
         title={t("plugin.schema.title")}
         open={open}
-        onCancel={() => { setOpen(false); }}
+        onCancel={() => {
+          setOpen(false);
+        }}
         footer={null}
         width={640}
       >

@@ -7,7 +7,9 @@ export function BooleanSetter({ value, onChange, disabled }: SetterProps<boolean
       size="small"
       checked={value ?? false}
       disabled={disabled}
-      onChange={(checked) => { onChange(checked); }}
+      onChange={(checked) => {
+        onChange(checked);
+      }}
     />
   );
 }

@@ -7,7 +7,9 @@ export function TextAreaSetter({ value, onChange, disabled }: SetterProps<string
       value={value ?? ""}
       disabled={disabled}
       autoSize={{ minRows: 3 }}
-      onChange={(e) => { onChange(e.target.value); }}
+      onChange={(e) => {
+        onChange(e.target.value);
+      }}
     />
   );
 }

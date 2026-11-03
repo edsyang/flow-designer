@@ -7,7 +7,9 @@ export function ColorSetter({ value, onChange, disabled }: SetterProps<string>) 
       size="small"
       value={value ?? "#000000"}
       disabled={disabled}
-      onChange={(_, hex) => { onChange(hex); }}
+      onChange={(_, hex) => {
+        onChange(hex);
+      }}
     />
   );
 }

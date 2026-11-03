@@ -6,7 +6,11 @@ export function useSelection() {
 
   return {
     keys: selection.getKeys(),
-    setKeys: (keys: string[]) => { selection.setKeys(keys); },
-    clear: () => { selection.setKeys([]); },
+    setKeys: (keys: string[]) => {
+      selection.setKeys(keys);
+    },
+    clear: () => {
+      selection.setKeys([]);
+    },
   };
 }

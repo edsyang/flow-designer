@@ -51,7 +51,9 @@ export default class Settings<T> {
       this.willDetach();
     }
     this.emitter.removeAllListeners();
-    this.items.forEach((item) => { item.didPurge(); });
+    this.items.forEach((item) => {
+      item.didPurge();
+    });
     this.items = [];
   }
 

@@ -17,8 +17,12 @@ export class ProcessContent extends Content<ProcessRelation> {
 
   override applyTimelinePointData(data: IProcessContentData): void {
     super.applyTimelinePointData(data);
-    this.getNodes().forEach((node) => { node.getRelation().resetFlowins(); });
-    this.getNodes().forEach((node) => { node.getRelation().didInit(); });
+    this.getNodes().forEach((node) => {
+      node.getRelation().resetFlowins();
+    });
+    this.getNodes().forEach((node) => {
+      node.getRelation().didInit();
+    });
   }
 
   nodesFromData(

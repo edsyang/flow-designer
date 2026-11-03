@@ -53,7 +53,9 @@ export function pluginDelete(ctx: IPluginContext): IPluginConfig {
             key,
             (e) => {
               e.preventDefault();
-              void deleteSelected().catch((error) => { ctx.logger.error("Delete failed:", error); });
+              void deleteSelected().catch((error) => {
+                ctx.logger.error("Delete failed:", error);
+              });
             },
             () => ctx.container,
           ),
@@ -61,7 +63,9 @@ export function pluginDelete(ctx: IPluginContext): IPluginConfig {
       }
     },
     destroy() {
-      cleanups.splice(0).forEach((cleanup) => { cleanup(); });
+      cleanups.splice(0).forEach((cleanup) => {
+        cleanup();
+      });
       commandRegistry.unregister("delete");
     },
   };

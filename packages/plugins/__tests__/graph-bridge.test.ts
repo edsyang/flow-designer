@@ -92,16 +92,14 @@ describe("GraphBridge", () => {
       await document
         .getContent()
         .addNode({ id: "target", type: "rect", props: { __position: { x: 300, y: 200 } } });
-      source!
-        .getRelation()
-        .addEdge({
-          id: "typed-edge",
-          targetNodeId: "target",
-          type,
-          sourcePort: "out",
-          targetPort: "in",
-          vertices: [],
-        });
+      source!.getRelation().addEdge({
+        id: "typed-edge",
+        targetNodeId: "target",
+        type,
+        sourcePort: "out",
+        targetPort: "in",
+        vertices: [],
+      });
       document.getTimeline().reset();
       const graph = graphManager.getX6Graph() as {
         getCellById(id: string): any;

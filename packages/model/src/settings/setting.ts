@@ -39,7 +39,7 @@ export enum SettingType {
   Group = "group",
 }
 
-export type ReturnBoolean<T> = (ctx: Setting<T>, value?: any) => boolean  ;
+export type ReturnBoolean<T> = (ctx: Setting<T>, value?: any) => boolean;
 
 export interface BehaviorsConfig<T> {
   [behavior: string]: ReturnBoolean<T>;
@@ -323,7 +323,9 @@ export default class Setting<T> {
 
   update(): void {
     if (this.isGroup()) {
-      this.items.forEach((item) => { item.update(); });
+      this.items.forEach((item) => {
+        item.update();
+      });
     } else {
       this.updateTargets();
     }
@@ -345,7 +347,9 @@ export default class Setting<T> {
   didPurge(): void {
     this.emitter.removeAllListeners();
     if (this.isGroup()) {
-      this.items.forEach((item) => { item.didPurge(); });
+      this.items.forEach((item) => {
+        item.didPurge();
+      });
       this.items = [];
     }
   }

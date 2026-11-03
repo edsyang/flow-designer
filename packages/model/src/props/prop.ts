@@ -170,7 +170,9 @@ export default class Prop {
       }
     } else if (type === DataType.Scalar || type === DataType.Null) {
       if (this.entries.length > 0) {
-        this.entries.forEach((key) => { this.stashKey(key); });
+        this.entries.forEach((key) => {
+          this.stashKey(key);
+        });
         this.entries = [];
       }
       this.items = [];
@@ -209,7 +211,9 @@ export default class Prop {
       } else {
         this.entries = nEntries;
         if (oEntries.length > 0) {
-          oEntries.forEach((key) => { this.stashKey(key); });
+          oEntries.forEach((key) => {
+            this.stashKey(key);
+          });
           modified = true;
         }
       }
@@ -241,7 +245,9 @@ export default class Prop {
       this.entries = entries;
       if (oEntries.length > 0) {
         modified = true;
-        oEntries.forEach((key) => { this.stashKey(key); });
+        oEntries.forEach((key) => {
+          this.stashKey(key);
+        });
       }
     }
 
@@ -357,7 +363,9 @@ export default class Prop {
       this.type = DataType.List;
       if (this.inited) {
         if (this.entries.length > 0) {
-          this.entries.forEach((k) => { this.stashKey(k); });
+          this.entries.forEach((k) => {
+            this.stashKey(k);
+          });
         }
         this.maps[key] = new Prop(this, key, data, true);
         this.entries = [key];

@@ -25,7 +25,9 @@ export function PopupField(props: FieldProps) {
       }
     };
     document.addEventListener("mousedown", handleClick);
-    return () => { document.removeEventListener("mousedown", handleClick); };
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+    };
   }, [open]);
 
   const cls = buildClassName(
@@ -39,7 +41,12 @@ export function PopupField(props: FieldProps) {
 
   return (
     <div className={cls}>
-      <div ref={triggerRef} onClick={() => { setOpen(!open); }}>
+      <div
+        ref={triggerRef}
+        onClick={() => {
+          setOpen(!open);
+        }}
+      >
         <span className={styles.fieldTitle}>{title}</span>
         <IconTip tip={tip} />
       </div>

@@ -321,7 +321,9 @@ export class GraphManager implements IGraphManager {
     }
 
     if (typeof window !== "undefined") {
-      this.viewportResizeHandler = () => { resize(); };
+      this.viewportResizeHandler = () => {
+        resize();
+      };
       window.addEventListener("resize", this.viewportResizeHandler);
     }
   }
@@ -381,7 +383,9 @@ export class GraphManager implements IGraphManager {
     this.nodeTypeByCellId.clear();
     this.contentNodeByCellId.clear();
     this.edgeTypeByCellId.clear();
-    this.edgeReactRoots.forEach((root) => { root.unmount(); });
+    this.edgeReactRoots.forEach((root) => {
+      root.unmount();
+    });
     this.edgeReactRoots.clear();
     this.stencil?.dispose();
     this.stencil = null;
@@ -406,7 +410,7 @@ export class GraphManager implements IGraphManager {
     if (view.component) {
       const ErrorBoundaryWrapped = wrapWithErrorBoundary(view.component, meta.name);
       const adapter = ({ node }: { node: X6Node; graph: Graph }) => {
-        const raw = (node.getData<Record<string, unknown>>() ?? {});
+        const raw = node.getData<Record<string, unknown>>() ?? {};
         const { __modelVersion: _version, ...data } = raw;
         const selected = this.getSelection().includes(node.id);
         return createElement(ErrorBoundaryWrapped, {
@@ -958,7 +962,9 @@ export class GraphManager implements IGraphManager {
     const graph = this.assertGraph();
     let isDragging = false;
     let deferredLeaveEdge: any = null;
-    const colorEdge = (edge: Cell, hover: boolean) => { this.paintEdgeHighlight(edge, hover); };
+    const colorEdge = (edge: Cell, hover: boolean) => {
+      this.paintEdgeHighlight(edge, hover);
+    };
 
     // NOTE: any correction that mutates edge.setVertices() must NOT run
     // synchronously inside a document/graph 'mouseup' or 'mouseleave'

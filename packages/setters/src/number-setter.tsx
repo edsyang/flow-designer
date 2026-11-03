@@ -11,7 +11,9 @@ export function NumberSetter({ value, onChange, disabled, min, max, step }: Numb
       min={min}
       max={max}
       step={step}
-      onChange={(v) => { onChange(v ?? 0); }}
+      onChange={(v) => {
+        onChange(v ?? 0);
+      }}
     />
   );
 }

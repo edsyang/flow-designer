@@ -91,12 +91,10 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
       await doc.transaction("Paste nodes", async () => {
         for (const item of clipboard) {
           const props = structuredClone(item.props);
-          const node = await doc
-            .getContent()
-            .addNode({
-              type: item.type,
-              props: { ...props, __position: { x: item.pos.x + 30, y: item.pos.y + 30 } },
-            });
+          const node = await doc.getContent().addNode({
+            type: item.type,
+            props: { ...props, __position: { x: item.pos.x + 30, y: item.pos.y + 30 } },
+          });
           if (node) ids.push(node.getId());
         }
       });
@@ -127,14 +125,18 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
           "mod+v",
           (e) => {
             e.preventDefault();
-            void paste().catch((error) => { ctx.logger.error("Paste failed:", error); });
+            void paste().catch((error) => {
+              ctx.logger.error("Paste failed:", error);
+            });
           },
           () => ctx.container,
         ),
       );
     },
     destroy() {
-      cleanups.splice(0).forEach((cleanup) => { cleanup(); });
+      cleanups.splice(0).forEach((cleanup) => {
+        cleanup();
+      });
       commandRegistry.unregister("copy");
       commandRegistry.unregister("paste");
     },

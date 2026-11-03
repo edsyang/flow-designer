@@ -28,7 +28,9 @@ export function SettingField(props: SettingFieldProps) {
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    const detach = setting.onBehaviorChange(() => { forceUpdate(); });
+    const detach = setting.onBehaviorChange(() => {
+      forceUpdate();
+    });
     setting.updateBehavior();
     return detach;
   }, [setting]);
@@ -83,14 +85,22 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
-    const detachValue = setting.onValueChange(() => { forceUpdate(); });
+    const detachValue = setting.onValueChange(() => {
+      forceUpdate();
+    });
     const changeableProps = setting.getSetterChangeableProps();
     const detachFns = changeableProps
-      ? changeableProps.map((changeable: any) => changeable.listen(() => { forceUpdate(); }))
+      ? changeableProps.map((changeable: any) =>
+          changeable.listen(() => {
+            forceUpdate();
+          }),
+        )
       : [];
     return () => {
       detachValue();
-      detachFns.forEach((off: () => void) => { off(); });
+      detachFns.forEach((off: () => void) => {
+        off();
+      });
     };
   }, [setting]);
 
@@ -110,7 +120,9 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   computedProps.prop = setting;
   computedProps.field = setting;
   computedProps.value = setting.getValue();
-  computedProps.onChange = (newValue: any) => { setting.setValue(newValue); };
+  computedProps.onChange = (newValue: any) => {
+    setting.setValue(newValue);
+  };
 
   if (isValidElement(setter) || isReactComponent(setter))
     return createContent(setter, computedProps);

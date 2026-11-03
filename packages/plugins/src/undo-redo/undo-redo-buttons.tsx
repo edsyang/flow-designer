@@ -28,7 +28,9 @@ export function UndoRedoButtons({ getTimeline }: UndoRedoButtonsProps) {
         type="text"
         icon={<UndoOutlined />}
         disabled={!canUndo}
-        onClick={() => { getTimeline().back(); }}
+        onClick={() => {
+          getTimeline().back();
+        }}
         title={t("common.action.undo")}
         aria-label={t("common.action.undo")}
       />
@@ -36,7 +38,9 @@ export function UndoRedoButtons({ getTimeline }: UndoRedoButtonsProps) {
         type="text"
         icon={<RedoOutlined />}
         disabled={!canRedo}
-        onClick={() => { getTimeline().forward(); }}
+        onClick={() => {
+          getTimeline().forward();
+        }}
         title={t("common.action.redo")}
         aria-label={t("common.action.redo")}
       />

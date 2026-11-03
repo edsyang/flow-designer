@@ -174,8 +174,13 @@ export default class Document {
   }
 
   applyTimelinePointData(data: DocumentData): void {
-    const { id: _id, documentType: _documentType, documentVersion: _documentVersion, props, ...contents } =
-      data;
+    const {
+      id: _id,
+      documentType: _documentType,
+      documentVersion: _documentVersion,
+      props,
+      ...contents
+    } = data;
     this.disableTimelineLogging = true;
     try {
       this.props.setData(props);

@@ -48,7 +48,9 @@ export class NodeBridge {
         this.graphManager.updateNodeData(node.getId(), { contentNode: node });
       }
     });
-    this.unsubscribeLocale = subscribeLocale(() => { this.refresh(); });
+    this.unsubscribeLocale = subscribeLocale(() => {
+      this.refresh();
+    });
   }
 
   refresh(): void {

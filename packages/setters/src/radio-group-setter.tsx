@@ -13,7 +13,9 @@ export function RadioGroupSetter({
       size="small"
       value={value}
       disabled={disabled}
-      onChange={(e) => { onChange(e.target.value as string); }}
+      onChange={(e) => {
+        onChange(e.target.value as string);
+      }}
       style={
         direction === "vertical" ? { display: "flex", flexDirection: "column", gap: 4 } : undefined
       }

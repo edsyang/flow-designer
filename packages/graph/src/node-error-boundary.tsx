@@ -16,7 +16,9 @@ export class NodeErrorBoundary extends Component<NodeErrorBoundaryProps, NodeErr
   private unsubscribeLocale: (() => void) | null = null;
 
   override componentDidMount() {
-    this.unsubscribeLocale = subscribeLocale(() => { this.forceUpdate(); });
+    this.unsubscribeLocale = subscribeLocale(() => {
+      this.forceUpdate();
+    });
   }
 
   override componentWillUnmount() {

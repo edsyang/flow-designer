@@ -92,7 +92,9 @@ function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale 
             <label className={styles.edgeLabel}>{field.description}</label>
             {createElement(setterType, {
               value,
-              onChange: (v: unknown) => { handleChange(field.target, v); },
+              onChange: (v: unknown) => {
+                handleChange(field.target, v);
+              },
             })}
           </div>
         );

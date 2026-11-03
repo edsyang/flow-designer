@@ -14,8 +14,9 @@ export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
         .graphManager;
 
       const getNodeGroups = () => graphManager.getStencilNodeGroups();
-      const startDrag = (nodeType: string, event: MouseEvent) =>
-        { graphManager.startNodeDrag(nodeType, event); };
+      const startDrag = (nodeType: string, event: MouseEvent) => {
+        graphManager.startNodeDrag(nodeType, event);
+      };
 
       const addPanel = () => {
         ctx.skeleton.sidebar.add({
