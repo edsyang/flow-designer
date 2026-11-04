@@ -91,7 +91,7 @@ describe("workbench panels", () => {
       content: () => <input aria-label="library state" defaultValue="retained" />,
     });
     render(<Workbench engine={engine as unknown as WorkbenchProps["engine"]} />);
-    fireEvent.click(screen.getByRole("button", { name: "收起节点库" }));
+    fireEvent.click(screen.getByRole("button", { name: "节点库" }));
     expect(screen.getByRole("button", { name: "展开节点库" }).getAttribute("aria-expanded")).toBe(
       "false",
     );
