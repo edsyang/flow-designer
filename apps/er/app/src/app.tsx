@@ -12,7 +12,8 @@ import {
 } from "@flow-designer/engine";
 import { erMessages } from "@flow-designer/er-nodes/i18n";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
-import styles from "./app.module.css";
+import { getTheme } from "@flow-designer/engine";
+import styles from "./app.module.less";
 
 contentTypesRegistry.register(GenericContent);
 
@@ -30,8 +31,11 @@ async function init() {
   await initializeI18n(erMessages);
   const { registerERNodes, refreshERTranslations, getRelationEdgeType } =
     await import("@flow-designer/er-nodes");
-  refreshERTranslations();
+  const theme = getTheme();
+  const isDarkTheme = theme === "dark";
+
   registerERNodes();
+  refreshERTranslations();
   subscribeLocale(() => {
     refreshERTranslations();
   });
@@ -60,7 +64,16 @@ async function init() {
     area: "header",
     align: "left",
     content: () => (
-      <span style={{ fontWeight: 600, fontSize: 14, color: "#1a1a1a" }}>{t("er.app.header")}</span>
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: 14,
+          color: isDarkTheme ? "#202a3e" : "e7ebf3",
+          cursor: "pointer",
+        }}
+      >
+        {t("er.app.header")}
+      </span>
     ),
     contentProps: {},
   });

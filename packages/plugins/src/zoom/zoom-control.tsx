@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, type CSSProperties } from "react";
 import { Button } from "antd";
 import { t } from "@flow-designer/model";
 import { MinusOutlined, PlusOutlined, ExpandOutlined } from "@ant-design/icons";
-import styles from "./zoom-control.module.css";
+import styles from "./zoom-control.module.less";
 
 interface ZoomControlProps {
   getZoom: () => number;

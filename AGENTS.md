@@ -37,9 +37,10 @@ Shared packages must not import scenario packages or encode scenario schemas/pol
 ## Implementation conventions
 
 - Keep TypeScript strict. Use explicit public types and `unknown` with narrowing at untrusted boundaries; do not widen framework APIs with `any`.
+- Package lint warning budgets (`eslint src/ --max-warnings <n>`) are regression ceilings, not targets: lower a package's budget when you remove warnings, and never raise one just to land a change without explicit approval.
 - Use typed React function components and existing extension points. Derive UI from model state through existing observers/signals rather than duplicating document data.
-- Prefer CSS modules and design tokens; preserve keyboard operation and accessible control names.
-- In CSS, keep one canonical base rule per selector. Group necessary state and responsive overrides in a nearby section; when editing a stylesheet, merge duplicate selector blocks and remove declarations that are dead or overridden, without reorganizing unrelated styles.
+- Prefer Less modules and design tokens; preserve keyboard operation and accessible control names. Library styles ship as compiled `style.css`; authoring files are `.module.less` / `.less`.
+- In styles, keep one canonical base rule per selector. Group necessary state and responsive overrides in a nearby section; when editing a stylesheet, merge duplicate selector blocks and remove declarations that are dead or overridden, without reorganizing unrelated styles.
 - Check relevant loading, empty, invalid, failure, and teardown paths as well as the happy path.
 - Use pnpm workspaces; declare dependencies in the importing package. Keep scripts cross-platform and avoid machine-specific registry settings or generated reports in commits.
 
@@ -47,7 +48,7 @@ Shared packages must not import scenario packages or encode scenario schemas/pol
 
 - Follow the change-based matrix in [docs/verification.md](docs/verification.md). Add or update meaningful behavior tests when behavior changes; documentation-only edits do not require new runtime tests.
 - Vitest tests belong beside their owner; Playwright tests and manual browser diagnostics belong in `e2e/`. Fixture setup must explicitly establish the state being asserted.
-- CI currently runs `pnpm build` and `pnpm -r --workspace-concurrency=1 test`. Full typecheck, lint, and E2E are not current CI gates; do not imply otherwise.
+- CI runs the format check, lint, import-boundary assertions (`pnpm check:boundaries`), typecheck, workspace build, and package tests. Package lint only scans `src/`, so test-file lint debt is not a CI gate, and the Playwright E2E suite is not a CI gate; do not imply otherwise.
 - Run full E2E only with the documented apps on ports 5179, 5180, and 5181. See [e2e/README.md](e2e/README.md) for suite classification and known static concerns.
 - Never suppress failures to obtain a green result. Report commands, results, skipped checks, and whether failures are introduced, reproduced baseline failures, or unclassified. Historical pass counts are not current evidence.
 - Update the English and Chinese READMEs together when public setup or contribution guidance changes. Leave the placeholder changelog untouched until maintenance is adopted or the user requests it.

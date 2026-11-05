@@ -1,0 +1,45 @@
+.schemaViewerButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fd-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.schemaViewerButton:hover {
+  background: var(--fd-surface-tertiary);
+}
+
+.schemaViewerButton:active {
+  background: var(--fd-accent-light);
+}
+
+.schemaViewerButton:focus-visible {
+  outline: 2px solid var(--fd-accent);
+  outline-offset: 2px;
+}
+
+.schemaContent {
+  max-height: 480px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: var(--fd-radius-xs);
+  font-size: 12px;
+  line-height: 1.6;
+  background: var(--ant-modal-content-bg);
+
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--fd-border-strong, #d9d9d9);
+    border-radius: 2px;
+  }
+}

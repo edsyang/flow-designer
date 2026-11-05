@@ -1,16 +1,16 @@
-import { createElement, useState, useEffect, useCallback } from "react";
+import { createElement, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { SettingsPanel } from "@flow-designer/skeleton";
-import { useSelection, useNode, useGraph, useDocument, useSkeleton } from "@flow-designer/react";
+import { useSelection, useNode, useGraph, useDocument } from "@flow-designer/react";
 import type {
+  Document as EditorDocument,
   GenericRelation,
   ContentNode,
-  SerializedRelation,
   EdgeTypeConfig,
 } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
 import { prototypeRegistry, setterRegistry, t } from "@flow-designer/model";
-import styles from "./settings-renderer.module.css";
+import styles from "./settings-renderer.module.less";
 
 const NodeSettingsPanel = observer(function NodeSettingsPanel({
   nodeId,
@@ -32,73 +32,65 @@ const NodeSettingsPanel = observer(function NodeSettingsPanel({
   );
 });
 
+function findEdge(doc: EditorDocument, edgeId: string) {
+  const nodes = doc.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
+  for (const node of nodes) {
+    const relation = node.getRelation();
+    if (relation && typeof relation.getEdgeById === "function") {
+      const edge = relation.getEdgeById(edgeId);
+      if (edge) return { edge, sourceNode: node };
+    }
+  }
+  return null;
+}
+
 function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale }) {
   const graph = useGraph();
   const doc = useDocument();
-  const [edgeData, setEdgeData] = useState<{
-    edge: SerializedRelation;
-    sourceNode: ContentNode<GenericRelation>;
-    typeConfig: EdgeTypeConfig;
-  } | null>(null);
+  const [, forceUpdate] = useState(0);
+  const typeName = graph ? graph.getEdgeTypeName(edgeId) : null;
+  const typeConfig: EdgeTypeConfig | null =
+    graph && typeName ? graph.getEdgeTypeConfig(typeName) : null;
+  const found = doc ? findEdge(doc, edgeId) : null;
 
-  const findEdge = useCallback(() => {
-    if (!graph || !doc) return null;
-    const typeName = (graph as any).getEdgeTypeName?.(edgeId) as string | null;
-    if (!typeName) return null;
-    const typeConfig = (graph as any).getEdgeTypeConfig?.(typeName) as EdgeTypeConfig | null;
-    if (!typeConfig?.editor?.length) return null;
-
-    const nodes = doc.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
-    for (const node of nodes) {
-      const relation = node.getRelation();
-      if (relation && typeof relation.getEdgeById === "function") {
-        const edge = relation.getEdgeById(edgeId);
-        if (edge) {
-          return { edge, sourceNode: node, typeConfig };
-        }
-      }
-    }
-    return null;
-  }, [edgeId, graph, doc]);
-
-  useEffect(() => {
-    setEdgeData(findEdge());
-  }, [findEdge]);
-
-  if (!edgeData) {
+  if (!found) {
     return <div className={styles.empty}>{t("plugin.settings.edge")}</div>;
   }
 
-  const { edge, sourceNode, typeConfig } = edgeData;
+  const { edge, sourceNode } = found;
   const props = edge.props ?? {};
 
   const handleChange = (fieldName: string, value: unknown) => {
     const relation = sourceNode.getRelation();
     if (relation && typeof relation.updateEdgeProps === "function") {
       relation.updateEdgeProps(edgeId, { [fieldName]: value });
-      setEdgeData(findEdge());
+      forceUpdate((count) => count + 1);
     }
   };
 
   return (
     <div className={styles.container} lang={locale}>
       <div className={styles.edgeHeader}>{t("plugin.settings.edge")}</div>
-      {typeConfig.editor!.map((field) => {
-        const setterType = setterRegistry.getSetter(field.setter);
-        if (!setterType) return null;
-        const value = props[field.target] ?? "";
-        return (
-          <div key={field.target} className={styles.edgeField}>
-            <label className={styles.edgeLabel}>{field.description}</label>
-            {createElement(setterType, {
-              value,
-              onChange: (v: unknown) => {
-                handleChange(field.target, v);
-              },
-            })}
-          </div>
-        );
-      })}
+      {typeConfig?.editor?.length ? (
+        typeConfig.editor.map((field) => {
+          const setterType = setterRegistry.getSetter(field.setter);
+          if (!setterType) return null;
+          const value = props[field.target] ?? "";
+          return (
+            <div key={field.target} className={styles.edgeField}>
+              <label className={styles.edgeLabel}>{field.description}</label>
+              {createElement(setterType, {
+                value,
+                onChange: (v: unknown) => {
+                  handleChange(field.target, v);
+                },
+              })}
+            </div>
+          );
+        })
+      ) : (
+        <div className={styles.empty}>{t("plugin.settings.edgeNoEditor")}</div>
+      )}
     </div>
   );
 }
@@ -107,15 +99,9 @@ export const SettingsRenderer = observer(function SettingsRenderer({ locale }: {
   const { keys } = useSelection();
   const graph = useGraph();
   const doc = useDocument();
-  const skeleton = useSkeleton();
   const selectedKey = keys.length === 1 ? keys[0] : null;
 
   const hasDocSettings = doc ? doc.getSettings().getItems().length > 0 : false;
-  const hasContent = !!selectedKey || hasDocSettings;
-
-  useEffect(() => {
-    skeleton.inspector.setVisible(hasContent);
-  }, [hasContent, skeleton]);
 
   if (!selectedKey) {
     if (hasDocSettings) {
@@ -129,10 +115,7 @@ export const SettingsRenderer = observer(function SettingsRenderer({ locale }: {
     return null;
   }
 
-  const isEdge =
-    graph &&
-    typeof (graph as any).getEdgeTypeName === "function" &&
-    (graph as any).getEdgeTypeName(selectedKey) != null;
+  const isEdge = graph !== null && graph.getEdgeTypeName(selectedKey) !== null;
 
   return (
     <div className={styles.container}>

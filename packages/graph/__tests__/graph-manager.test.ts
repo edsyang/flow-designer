@@ -920,4 +920,143 @@ describe("GraphManager", () => {
       scroller!.container.getBoundingClientRect = originalScrollerRect;
     });
   });
+
+  describe("blank connection drops", () => {
+    beforeEach(() => {
+      manager.init(container);
+      manager.addNode({ id: "n1", type: "fd-rect", x: 0, y: 0 });
+      manager.addNode({ id: "n2", type: "fd-rect", x: 300, y: 0 });
+      manager.addEdge({ id: "e1", source: "n1", target: "n2" });
+    });
+
+    const dropOnBlank = (edge: Edge) => {
+      const graph = manager.getX6Graph() as Graph;
+      graph.trigger("edge:mouseup", { edge });
+    };
+
+    it("emits connection:blank and keeps the temporary edge for the picker", () => {
+      const handler = vi.fn();
+      const graph = manager.getX6Graph() as Graph;
+      graph.on("connection:blank", handler);
+
+      const edge = graph.addEdge({
+        source: { cell: "n1", port: "out-right" },
+        target: { x: 120, y: 40 },
+      }) as Edge;
+      dropOnBlank(edge);
+
+      // The temporary edge stays on screen so the picker can show where the
+      // connection would land; the caller removes it once the drop resolves.
+      expect(graph.getCellById(edge.id)).toBeTruthy();
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler).toHaveBeenCalledWith({
+        sourceCellId: "n1",
+        sourcePortId: "out-right",
+        edgeId: edge.id,
+        x: 120,
+        y: 40,
+      });
+      manager.removeCell(edge.id);
+      expect(graph.getCellById(edge.id)).toBeNull();
+    });
+
+    it("keeps connections that end on a node", () => {
+      const handler = vi.fn();
+      const graph = manager.getX6Graph() as Graph;
+      graph.on("connection:blank", handler);
+
+      const edge = graph.addEdge({
+        source: { cell: "n1", port: "out-right" },
+        target: { cell: "n2", port: "in-left" },
+      }) as Edge;
+      dropOnBlank(edge);
+
+      expect(graph.getCellById(edge.id)).toBeTruthy();
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("ignores pointer releases on existing edges", () => {
+      const handler = vi.fn();
+      const graph = manager.getX6Graph() as Graph;
+      graph.on("connection:blank", handler);
+      const edge = graph.getCellById("e1") as Edge;
+
+      dropOnBlank(edge);
+
+      expect(graph.getCellById("e1")).toBeTruthy();
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("falls back to X6 allowBlank when onBlankDrop is ignore", () => {
+      const isolated = new GraphManager();
+      isolated.init(container, { connecting: { onBlankDrop: "ignore" } });
+      const graph = isolated.getX6Graph() as Graph;
+      expect(graph.options.connecting?.allowBlank).toBe(false);
+      isolated.dispose();
+    });
+
+    it("keeps blank drops reachable when the validator rejects port pairs", () => {
+      const isolated = new GraphManager();
+      isolated.init(container, { connecting: { connectionValidator: () => false } });
+      try {
+        const graph = isolated.getX6Graph() as Graph;
+        isolated.addNode({ id: "s1", type: "fd-rect", x: 0, y: 0 });
+        const handler = vi.fn();
+        graph.on("connection:blank", handler);
+        const edge = graph.addEdge({
+          source: { cell: "s1", port: "out-right" },
+          target: { x: 10, y: 20 },
+        }) as Edge;
+
+        graph.trigger("edge:mouseup", { edge });
+
+        expect(handler).toHaveBeenCalledTimes(1);
+        expect(graph.getCellById(edge.id)).toBeTruthy();
+      } finally {
+        isolated.dispose();
+      }
+    });
+
+    it("judges a pending drop through checkConnection", () => {
+      const isolated = new GraphManager();
+      isolated.init(container, {
+        connecting: { connectionValidator: (context) => context.targetPort?.group === "in" },
+      });
+      try {
+        isolated.registerNodeType(
+          { name: "judged", typeName: "judged" },
+          {
+            type: "node",
+            shape: "fd-rect",
+            ports: [
+              { group: "out", position: "right" },
+              { group: "in", position: "left" },
+            ],
+          },
+        );
+        isolated.addNode({ id: "j1", type: "judged", x: 0, y: 0 });
+        const sourcePort = isolated.getPortDefinition("j1", "out-right");
+        const inPort = isolated.getPortDefinition("j1", "in-left");
+
+        expect(
+          isolated.checkConnection({
+            sourceNode: "j1",
+            sourcePort,
+            targetNode: "",
+            targetPort: inPort,
+          }),
+        ).toBe(true);
+        expect(
+          isolated.checkConnection({
+            sourceNode: "j1",
+            sourcePort,
+            targetNode: "",
+            targetPort: sourcePort,
+          }),
+        ).toBe(false);
+      } finally {
+        isolated.dispose();
+      }
+    });
+  });
 });

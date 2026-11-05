@@ -12,7 +12,8 @@ import {
 import { comfyuiMessages } from "@flow-designer/comfyui-nodes/i18n";
 import { comfyuiTransformer } from "@flow-designer/comfyui-utils";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
-import styles from "./app.module.css";
+import { getTheme } from "@flow-designer/engine";
+import styles from "./app.module.less";
 
 contentTypesRegistry.register(GenericContent);
 contentTypesRegistry.registerTransformer(comfyuiTransformer);
@@ -32,8 +33,11 @@ async function init() {
 
   const { registerComfyUINodes, refreshComfyUITranslations, getDataLinkEdgeType } =
     await import("@flow-designer/comfyui-nodes");
-  refreshComfyUITranslations();
+  const theme = getTheme();
+  const isDarkTheme = theme === "dark";
+
   registerComfyUINodes();
+  refreshComfyUITranslations();
   subscribeLocale(() => {
     refreshComfyUITranslations();
   });
@@ -57,7 +61,14 @@ async function init() {
     area: "header",
     align: "left",
     content: () => (
-      <span style={{ fontWeight: 600, fontSize: 14, color: "#1a1a1a" }}>
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: 14,
+          color: isDarkTheme ? "#202a3e" : "e7ebf3",
+          cursor: "pointer",
+        }}
+      >
         {t("comfyui.app.header")}
       </span>
     ),

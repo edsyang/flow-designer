@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getInitialLocale, getLocale, initializeI18n, setLocale, t } from "../src/i18n";
+import {
+  addMessages,
+  getInitialLocale,
+  getLocale,
+  initializeI18n,
+  registerMessages,
+  setLocale,
+  t,
+} from "../src/i18n";
 import Prototype from "../src/prototype";
 
 const initialLocale = getInitialLocale();
@@ -44,5 +52,34 @@ describe("locale messages", () => {
 
     await setLocale("en-US");
     expect(prototype.getName()).toBe("Test node");
+  });
+
+  it("merges messages injected after initialization", async () => {
+    await setLocale("en-US");
+    expect(t("test.lateMessage")).toBe("test.lateMessage");
+
+    addMessages("en-US", { "test.lateMessage": "Injected at runtime" });
+    expect(t("test.lateMessage")).toBe("Injected at runtime");
+
+    await setLocale("zh-CN");
+    expect(t("test.lateMessage")).toBe("test.lateMessage");
+  });
+
+  it("registers a whole application catalogue", async () => {
+    registerMessages({
+      "zh-CN": { "test.scenario.title": "场景标题" },
+      "en-US": { "test.scenario.title": "Scenario title" },
+    });
+
+    await setLocale("en-US");
+    expect(t("test.scenario.title")).toBe("Scenario title");
+    await setLocale("zh-CN");
+    expect(t("test.scenario.title")).toBe("场景标题");
+  });
+
+  it("keeps the core catalogue available after injection", async () => {
+    await setLocale("en-US");
+    expect(t("workbench.language.english")).toBe("English");
+    expect(getLocale()).toBe("en-US");
   });
 });

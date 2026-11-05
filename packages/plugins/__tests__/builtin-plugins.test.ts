@@ -382,18 +382,39 @@ describe("pluginLanguageSwitcher", () => {
   });
 });
 
+describe("pluginTheme", () => {
+  it("registers and removes only the theme action", async () => {
+    const { pluginTheme } = await import("../src/theme");
+    const ctx = createMockContext();
+    const config = pluginTheme(ctx as any);
+    config.init!();
+
+    expect(ctx.skeleton.header.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        key: "workbench-theme",
+        area: "header",
+        align: "right",
+      }),
+    );
+
+    config.destroy!();
+    expect(ctx.skeleton.header.remove).toHaveBeenCalledWith("workbench-theme");
+    expect(ctx.skeleton.header.remove).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("registerBuiltinPlugins", () => {
-  it("registers the twelve builtin plugins", async () => {
+  it("registers the thirteen builtin plugins", async () => {
     const { registerBuiltinPlugins } = await import("../src/register-builtin-plugins");
     const pluginManager = { register: vi.fn() };
     await registerBuiltinPlugins(pluginManager as any);
-    expect(pluginManager.register).toHaveBeenCalledTimes(12);
+    expect(pluginManager.register).toHaveBeenCalledTimes(13);
   }, 30000);
 
   it("respects disableList", async () => {
     const { registerBuiltinPlugins } = await import("../src/register-builtin-plugins");
     const pluginManager = { register: vi.fn() };
     await registerBuiltinPlugins(pluginManager as any, ["plugin-zoom", "plugin-delete"]);
-    expect(pluginManager.register).toHaveBeenCalledTimes(10);
+    expect(pluginManager.register).toHaveBeenCalledTimes(11);
   });
 });

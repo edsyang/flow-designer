@@ -1,3 +1,9 @@
+// Panel geometry shared by the header, sidebar, inspector and canvas chrome.
+@panel-inset: 12px;
+@panel-radius: 16px;
+@control-radius: 8px;
+@transition: 160ms ease;
+
 .workbench {
   display: flex;
   flex-direction: column;
@@ -29,7 +35,7 @@
 .headerSection {
   display: flex;
   align-items: center;
-  gap: var(--fd-space-md);
+  gap: var(--fd-space-xs);
 }
 
 .editorContent {
@@ -41,25 +47,29 @@
 }
 
 .sidebar {
+  position: absolute;
+  z-index: 30;
+  top: @panel-inset;
+  bottom: @panel-inset;
+  left: @panel-inset;
   display: flex;
-  flex-shrink: 0;
   flex-direction: column;
   box-sizing: border-box;
   width: var(--fd-sidebar-width);
-  margin: 12px 0 12px 12px;
+  margin: 0;
   overflow: hidden;
   background: var(--fd-surface-primary);
   border: 1px solid var(--fd-border);
-  border-radius: 16px;
+  border-radius: @panel-radius;
   box-shadow: var(--fd-shadow-sm);
 }
 
 .sidebarCollapsed {
   position: absolute;
   z-index: 30;
-  top: 12px;
-  left: 12px;
-  align-self: flex-start;
+  top: @panel-inset;
+  left: @panel-inset;
+  bottom: auto;
   width: 44px;
   margin: 0;
   border-radius: 14px;
@@ -71,7 +81,7 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  height: 50px;
+  height: 48px;
   padding: 0 16px;
   background: transparent;
   border: 0;
@@ -126,12 +136,10 @@
   max-width: calc(100% - 24px);
   padding: 6px;
   background: var(--fd-surface-primary);
-  border: 1px solid #e7e9f0;
+  border: 1px solid var(--fd-border);
   border-radius: 18px;
-  box-shadow:
-    0 10px 36px rgba(32, 45, 80, 0.1),
-    0 1px 3px rgba(32, 45, 80, 0.04);
-  color: #737d92;
+  box-shadow: var(--fd-shadow-md), var(--fd-shadow-sm);
+  color: var(--fd-text-secondary);
   font-size: 12px;
   line-height: 1;
   white-space: nowrap;
@@ -148,7 +156,7 @@
 .canvasToolbarItem + .canvasToolbarItem {
   margin-left: 3px;
   padding-left: 7px;
-  border-left: 1px solid #e7e9f0;
+  border-left: 1px solid var(--fd-border);
 }
 
 .canvasToolbar :global(.ant-space) {
@@ -162,12 +170,12 @@
   height: 36px;
   padding: 0;
   border-radius: 10px;
-  color: #737d92;
+  color: var(--fd-text-secondary);
 }
 
 .canvasToolbar :global(.ant-btn:hover) {
-  background: #f0f1f7;
-  color: #39425c;
+  background: var(--fd-surface-tertiary);
+  color: var(--fd-text-primary);
 }
 
 .canvasToolbar :global(.ant-btn .anticon) {
@@ -214,7 +222,7 @@
   padding: 10px;
   background: var(--fd-surface-primary);
   border: 1px solid var(--fd-border);
-  border-radius: 16px;
+  border-radius: @panel-radius;
   box-shadow: var(--fd-shadow-lg);
 }
 
@@ -261,7 +269,7 @@
   min-height: 42px;
   padding: 6px 8px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: @control-radius;
   background: transparent;
   color: var(--fd-text-primary);
   text-align: left;
@@ -304,8 +312,8 @@
 .canvasQuickAddShapeRectEvent {
   width: 23px;
   height: 16px;
-  border-radius: 8px;
-  background: #fff7e6;
+  border-radius: @control-radius;
+  background: var(--fd-warning-surface);
 }
 
 .canvasQuickAddShapeRect {
@@ -337,7 +345,7 @@
 .canvasQuickAdd :global(.ant-input) {
   height: 28px;
   border-color: transparent;
-  border-radius: 8px;
+  border-radius: @control-radius;
   background: var(--fd-surface-secondary);
   font-size: 12px;
 }
@@ -354,12 +362,12 @@
   box-sizing: border-box;
   width: var(--fd-inspector-width);
   max-height: calc(100% - var(--fd-space-xl));
-  padding: 14px;
+  padding: 12px 14px;
   overflow-y: auto;
   background: var(--fd-surface-primary);
   border: 1px solid var(--fd-border);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(32, 45, 80, 0.08);
+  border-radius: @panel-radius;
+  box-shadow: var(--fd-shadow-md);
 }
 
 .inspector::-webkit-scrollbar {
@@ -377,15 +385,16 @@
 
 .inspectorCollapsed {
   width: 44px;
-  height: 46px;
+  height: 44px;
   padding: 4px;
   overflow: visible;
+  border-radius: 14px;
 }
 
 .inspectorToggle {
   position: absolute;
-  top: 12px;
-  right: 14px;
+  top: 10px;
+  right: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -417,7 +426,7 @@
 .inspector :global(.ant-input-number),
 .inspector :global(.ant-select-selector) {
   border-color: var(--fd-border);
-  border-radius: 8px;
+  border-radius: @control-radius;
   background: var(--fd-surface-secondary);
 }
 

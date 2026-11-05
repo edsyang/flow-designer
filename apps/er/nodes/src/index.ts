@@ -13,12 +13,25 @@ export { relationConfig, RELATION_TYPE, getRelationEdgeType } from "./relation";
 
 const allDefs: NodeDefinition[] = [tableDef, viewDef, enumDef];
 
+/**
+ * Registers the ER node definitions in the global prototype registry.
+ *
+ * Idempotent: already-registered types are left to `refreshERTranslations()`,
+ * which owns locale updates. Registering an absent type is this function's job.
+ */
 export function registerERNodes(): void {
   for (const def of allDefs) {
-    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) prototypeRegistry.register(def);
+    if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
+      prototypeRegistry.register(def);
+    }
   }
 }
 
+/**
+ * Rewrites the shared ER definitions with the active locale and re-registers
+ * the types that are already present. It never registers a new type: a
+ * translation refresh must not create nodes as a side effect.
+ */
 export function refreshERTranslations(): void {
   const names: Record<string, string> = {
     Table: "er.node.table",
@@ -49,6 +62,8 @@ export function refreshERTranslations(): void {
         field.description = t(descriptions[field.target]!);
       }
     }
-    prototypeRegistry.register(def);
+    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
+      prototypeRegistry.register(def);
+    }
   }
 }

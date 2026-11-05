@@ -12,6 +12,7 @@ import { pluginDebugLoader } from "./debug-loader";
 import { pluginSchemaViewer } from "./schema-viewer";
 import { pluginCanvasHelp } from "./canvas-help";
 import { pluginLanguageSwitcher } from "./language-switcher";
+import { pluginTheme } from "./theme";
 
 const BUILTIN_PLUGINS: Array<{ name: string; creator: PluginCreator }> = [
   { name: "plugin-x6-graph", creator: pluginX6Graph },
@@ -26,6 +27,7 @@ const BUILTIN_PLUGINS: Array<{ name: string; creator: PluginCreator }> = [
   { name: "plugin-schema-viewer", creator: pluginSchemaViewer },
   { name: "plugin-canvas-help", creator: pluginCanvasHelp },
   { name: "plugin-language-switcher", creator: pluginLanguageSwitcher },
+  { name: "plugin-theme", creator: pluginTheme },
 ];
 
 export async function registerBuiltinPlugins(

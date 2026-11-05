@@ -1,7 +1,7 @@
 import { useMemo, useCallback, useState } from "react";
 import { t } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
-import styles from "./stencil-container.module.css";
+import styles from "./stencil-container.module.less";
 
 interface NodeItem {
   type: string;

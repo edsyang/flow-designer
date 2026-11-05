@@ -16,15 +16,27 @@ import Prop from "./props/prop";
 import Settings from "./settings";
 import Setting, { DisplayType, SettingType } from "./settings/setting";
 export {
+  addMessages,
   getInitialLocale,
   getLocale,
+  getLocaleSnapshot,
   initializeI18n,
+  registerMessages,
   setLocale,
   subscribeLocale,
   i18n,
   t,
 } from "./i18n";
 export type { Locale, Messages } from "./i18n";
+export {
+  applyTheme,
+  getInitialTheme,
+  getTheme,
+  getThemeSnapshot,
+  setTheme,
+  subscribeTheme,
+} from "./theme";
+export type { Theme } from "./theme";
 export { coreMessages } from "./i18n-messages";
 
 const workspace = new Workspace();
@@ -68,6 +80,7 @@ export type { NodeData } from "./content/node";
 export type { SettingConfig } from "./settings/setting";
 
 export * from "./prototype";
+export type { DocumentData } from "./document";
 export type {
   SerializedNode,
   SerializedRelation,
@@ -95,4 +108,5 @@ export type {
   EdgeComponentProps,
   GraphData,
   GraphEventHandler,
+  BlankConnectionEvent,
 } from "./interfaces";

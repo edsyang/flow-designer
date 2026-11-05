@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { Button, Modal } from "antd";
 import { CodeOutlined } from "@ant-design/icons";
 import { t } from "@flow-designer/model";
+import styles from "./schema-viewer.module.less";
 
 interface SchemaViewerButtonProps {
   getSchema: () => object;
@@ -19,9 +20,15 @@ export function SchemaViewerButton({ getSchema }: SchemaViewerButtonProps) {
 
   return (
     <>
-      <Button type="text" size="small" icon={<CodeOutlined />} onClick={handleOpen}>
-        {t("plugin.schema.button")}
-      </Button>
+      <Button
+        type="text"
+        className={styles.schemaViewerButton}
+        icon={<CodeOutlined />}
+        onClick={handleOpen}
+        aria-label={t("plugin.schema.view")}
+        title={t("plugin.schema.view")}
+      />
+
       <Modal
         title={t("plugin.schema.title")}
         open={open}
@@ -31,19 +38,7 @@ export function SchemaViewerButton({ getSchema }: SchemaViewerButtonProps) {
         footer={null}
         width={640}
       >
-        <pre
-          style={{
-            maxHeight: 480,
-            overflow: "auto",
-            background: "#f5f5f5",
-            padding: 12,
-            borderRadius: 4,
-            fontSize: 12,
-            lineHeight: 1.6,
-          }}
-        >
-          {schema}
-        </pre>
+        <pre className={styles.schemaContent}>{schema}</pre>
       </Modal>
     </>
   );

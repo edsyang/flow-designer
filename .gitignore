@@ -7,4 +7,5 @@ node_modules/
 dist/
 .turbo/
 .pnpm-store/
+.pnpm-lock.yaml
 *.tsbuildinfo

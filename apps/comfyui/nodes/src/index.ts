@@ -23,12 +23,25 @@ const allDefs: NodeDefinition[] = [
   saveImageDef,
 ];
 
+/**
+ * Registers the ComfyUI node definitions in the global prototype registry.
+ *
+ * Idempotent: already-registered types are left to `refreshComfyUITranslations()`,
+ * which owns locale updates. Registering an absent type is this function's job.
+ */
 export function registerComfyUINodes(): void {
   for (const def of allDefs) {
-    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) prototypeRegistry.register(def);
+    if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
+      prototypeRegistry.register(def);
+    }
   }
 }
 
+/**
+ * Rewrites the shared ComfyUI definitions with the active locale and
+ * re-registers the types that are already present. It never registers a new
+ * type: a translation refresh must not create nodes as a side effect.
+ */
 export function refreshComfyUITranslations(): void {
   const names: Record<string, string> = {
     CheckpointLoaderSimple: "comfyui.node.checkpointLoader",
@@ -77,6 +90,8 @@ export function refreshComfyUITranslations(): void {
     for (const port of def.view.ports ?? []) {
       if (port.id && portLabels[port.id]) port.label = t(portLabels[port.id]!);
     }
-    prototypeRegistry.register(def);
+    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
+      prototypeRegistry.register(def);
+    }
   }
 }

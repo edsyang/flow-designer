@@ -49,7 +49,15 @@ export interface IGraphManager {
   off(event: GraphEvent, handler: GraphEventHandler): void;
   getPortDefinition(nodeId: string, portId: string): PortDefinition | null;
   getEdgeTypeName(cellId: string): string | null;
+  /** First registered edge type, used when creating connections without an explicit type. */
+  getDefaultEdgeType(): string | null;
   getEdgeTypeConfig(name: string): EdgeTypeConfig | null;
+  /**
+   * Evaluates the configured connection validator, if any. Returns `true` when
+   * no validator is configured. Use it to judge a candidate connection before
+   * an edge exists, for example while completing a pending blank drop.
+   */
+  checkConnection(context: ConnectionContext): boolean;
   toJSON(): GraphData;
   fromJSON(data: GraphData): void;
   getX6Graph(): unknown;
@@ -85,6 +93,16 @@ export interface GraphOptions {
   snapline?: boolean;
   connecting?: {
     allowBlank?: boolean;
+    /**
+     * What happens when a connection drag ends over empty canvas.
+     *
+     * - `"choose-node"` (default): the editor drops the temporary edge and emits
+     *   `connection:blank` so the workbench can offer a node picker, creating the
+     *   node and the relation in one step.
+     * - `"ignore"`: the X6 `allowBlank` behaviour applies (the edge is discarded
+     *   unless `allowBlank` is `true`).
+     */
+    onBlankDrop?: "choose-node" | "ignore";
     allowMulti?: boolean;
     allowLoop?: boolean;
     highlight?: boolean;
@@ -122,12 +140,29 @@ export type GraphEvent =
   | "edge:mouseenter"
   | "edge:mouseleave"
   | "edge:connected"
+  | "connection:blank"
   | "edge:vertices:committed"
   | "blank:click"
   | "blank:dblclick"
   | "selection:changed"
   | "scale"
   | "interaction:change";
+
+/** Payload of the `connection:blank` event. */
+export interface BlankConnectionEvent {
+  /** Node the drag started from. */
+  sourceCellId: string;
+  /** Port the drag started from, when the source node exposes ports. */
+  sourcePortId: string | null;
+  /**
+   * Temporary edge X6 drew for the drag. It stays visible until the caller
+   * picks a node or dismisses the picker, then the caller removes it.
+   */
+  edgeId: string;
+  /** Drop point in graph coordinates. */
+  x: number;
+  y: number;
+}
 
 export interface NodeConfig {
   id: string;

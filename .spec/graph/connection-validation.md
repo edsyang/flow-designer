@@ -8,9 +8,23 @@ The context always has `sourceNode` and `targetNode` strings. If X6 supplies no 
 
 If no semantic validator is configured, the graph adapter returns `true`. This means only that the application adds no extra semantic rejection; X6's other connection rules remain active.
 
+A connection drag that currently has no target cell (a blank drop) is not judged by the semantic validator: `validateConnection` returns `true` for it so the temporary edge can be intercepted, because the validator cannot inspect a target port that does not exist yet. The validator runs when that pending drop is completed, either through `IGraphManager.checkConnection` while offering candidate nodes or through X6 once a real target exists.
+
 ## Independent X6 rules
 
-`allowBlank`, `allowLoop`, and `allowMulti` are separate X6 connection options. Their defaults in `GraphManager.init` are respectively `false`, `false`, and `true`. A custom validator or `allowAll` does not override those options, endpoint shape constraints, or other X6 checks. `highlight` affects connection presentation, not compatibility.
+`allowBlank`, `allowLoop`, and `allowMulti` are separate X6 connection options. `allowLoop` and `allowMulti` default to `false` and `true`. `allowBlank` interacts with `connecting.onBlankDrop` (see below): with the default `"choose-node"` policy the graph adapter enables X6 `allowBlank` internally so the drop can be intercepted, and with `"ignore"` the option's own default (`false`) applies. A custom validator or `allowAll` does not override those options, endpoint shape constraints, or other X6 checks. `highlight` affects connection presentation, not compatibility.
+
+## Blank drops
+
+Dropping a connection drag over empty canvas is not a persistence action. The graph adapter accepts the X6 blank terminal, removes the temporary edge immediately, and emits `connection:blank` with:
+
+- `sourceCellId`: the node the drag started from;
+- `sourcePortId`: the source port, or `null` when the node exposes no ports;
+- `x` / `y`: the drop point in graph coordinates.
+
+No model relation and no X6 cell survives the drop. The workbench (`packages/react/src/panels/canvas.tsx`) opens the node picker at that point and, once a prototype is chosen, creates the node and a `SerializedRelation` from the source port to the new node's default `in` port inside one `Document.transaction`, so a single undo removes both. Candidate prototypes are filtered through `IGraphManager.checkConnection` using their default `in` port, so a node the scenario validator would refuse is not offered as a target. `GraphBridge` ignores blank connections, so a dangling edge can never become a relation.
+
+Set `connecting.onBlankDrop: "ignore"` to keep plain X6 behavior instead.
 
 ## Built-in semantic policies
 
@@ -36,9 +50,10 @@ The scenario app is responsible for selecting a validator that matches its domai
 
 ## Implementation and verification
 
-- Context assembly and X6 option wiring: `packages/graph/src/graph-manager.ts` (`init`, `validateConnection`, `getPortDefinition`).
+- Context assembly and X6 option wiring: `packages/graph/src/graph-manager.ts` (`init`, `validateConnection`, `checkConnection`, `getPortDefinition`, `setupBlankConnection`).
 - Built-ins: `packages/graph/src/validators.ts`.
 - Validator unit cases: `packages/graph/__tests__/validators.test.ts` (equal and unequal types, missing ports/types, direction, and permissive policy).
+- Blank-drop interception: `packages/graph/__tests__/graph-manager.test.ts` ("blank connection drops": emits the payload, keeps connections that end on a node, ignores terminal changes of existing edges, honors `onBlankDrop: "ignore"`, keeps blanks reachable when the validator refuses ports, and judges candidates through `checkConnection`).
 - Graph registration/port lookup: `packages/graph/__tests__/graph-manager.test.ts`.
 - Scenario selection: `apps/comfyui/app/src/app.tsx` and `apps/er/app/src/app.tsx`.
 

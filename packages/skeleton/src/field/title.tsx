@@ -1,4 +1,4 @@
-import styles from "./field.module.css";
+import styles from "./field.module.less";
 
 export interface FieldTitleProps {
   tip?: any;

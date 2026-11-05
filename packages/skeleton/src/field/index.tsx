@@ -7,7 +7,7 @@ import { AccordionField } from "./accordion";
 import { CaptionField } from "./caption";
 import { PlainField } from "./plain";
 import { PopupField } from "./popup";
-import styles from "./field.module.css";
+import styles from "./field.module.less";
 
 export { styles as fieldStyles };
 

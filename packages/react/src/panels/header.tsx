@@ -5,7 +5,7 @@ import { createContent } from "@flow-designer/skeleton";
 import type { Document } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
 import { mountArea } from "./mount-area";
-import styles from "../workbench.module.css";
+import styles from "../workbench.module.less";
 
 interface HeaderProps {
   doc: Document;

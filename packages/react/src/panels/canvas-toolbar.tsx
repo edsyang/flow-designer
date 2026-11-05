@@ -7,7 +7,7 @@ import type { Document } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
 import { useEditor } from "../hooks";
 import { mountArea } from "./mount-area";
-import styles from "../workbench.module.css";
+import styles from "../workbench.module.less";
 
 interface CanvasToolbarProps {
   doc: Document;

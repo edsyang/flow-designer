@@ -308,6 +308,9 @@ export class GraphBridge {
       const payload = args[0] as { edge?: X6EdgeHandle } | undefined;
       const edge = payload?.edge;
       if (!edge) return;
+      // Drops over empty canvas never carry a target cell; the workbench turns
+      // them into `connection:blank` instead of persisting a dangling relation.
+      if (!edge.getTargetCellId()) return;
       this.syncDirection = "graph-to-model";
       try {
         const sourceNode = this.document

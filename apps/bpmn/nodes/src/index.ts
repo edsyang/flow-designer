@@ -39,9 +39,17 @@ const allDefs: NodeDefinition[] = [
   processGlobalDef,
 ];
 
+/**
+ * Registers the BPMN node definitions in the global prototype registry.
+ *
+ * Idempotent: already-registered types are left to `refreshBpmnTranslations()`,
+ * which owns locale updates. Registering an absent type is this function's job.
+ */
 export function registerBpmnNodes(): void {
   for (const def of allDefs) {
-    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) prototypeRegistry.register(def);
+    if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
+      prototypeRegistry.register(def);
+    }
   }
 }
 
@@ -51,6 +59,13 @@ export interface DefaultNameChange {
   next: string;
 }
 
+/**
+ * Rewrites the shared BPMN definitions with the active locale and re-registers
+ * the types that are already present.
+ *
+ * It never registers a new type: a translation refresh must not create nodes as
+ * a side effect. Call `registerBpmnNodes()` first (or after) to define nodes.
+ */
 export function refreshBpmnTranslations(): DefaultNameChange[] {
   const defaultNameKeys: Record<string, string> = {
     StartEvent: "bpmn.node.startEvent.label",
@@ -121,7 +136,9 @@ export function refreshBpmnTranslations(): DefaultNameChange[] {
       }
     };
     refreshFields(def.editor);
-    prototypeRegistry.register(def);
+    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
+      prototypeRegistry.register(def);
+    }
   }
 
   const sequenceFlowFields = sequenceFlowConfig.editor ?? [];

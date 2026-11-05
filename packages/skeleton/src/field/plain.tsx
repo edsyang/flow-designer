@@ -1,6 +1,6 @@
 import type { FieldProps } from "../types";
 import { buildClassName, useBehaviors } from "./index";
-import styles from "./field.module.css";
+import styles from "./field.module.less";
 
 export function PlainField(props: FieldProps) {
   const { isGroup, className, behaviors, children } = props;

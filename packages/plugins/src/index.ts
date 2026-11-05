@@ -10,6 +10,8 @@ export { pluginDebugLoader } from "./debug-loader";
 export { pluginSchemaViewer } from "./schema-viewer";
 export { pluginCanvasHelp } from "./canvas-help";
 export { pluginLanguageSwitcher } from "./language-switcher";
+export { pluginTheme } from "./theme";
 export { pluginAutoSave } from "./auto-save";
+export type { AutoSaveExports } from "./auto-save";
 export { pluginUnsavedPrompt } from "./unsaved-prompt";
 export { registerBuiltinPlugins } from "./register-builtin-plugins";

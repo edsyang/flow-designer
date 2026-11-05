@@ -10,7 +10,8 @@ import {
 import { registerProcessContentType } from "@flow-designer/bpmn-model";
 import { bpmnMessages } from "@flow-designer/bpmn-nodes/i18n";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
-import styles from "./app.module.css";
+import { getTheme } from "@flow-designer/engine";
+import styles from "./app.module.less";
 
 declare global {
   interface Window {
@@ -26,6 +27,7 @@ async function init() {
   if (!container) throw new Error("Root element #root not found");
 
   await initializeI18n(bpmnMessages);
+
   const {
     registerBpmnNodes,
     refreshBpmnTranslations,
@@ -33,8 +35,11 @@ async function init() {
     getProcessGlobalSettings,
     isValidBpmnConnection,
   } = await import("@flow-designer/bpmn-nodes");
-  refreshBpmnTranslations();
+  const theme = getTheme();
+  const isDarkTheme = theme === "dark";
+
   registerBpmnNodes();
+  refreshBpmnTranslations();
 
   let designer: Designer | null = null;
   subscribeLocale(() => {
@@ -69,7 +74,14 @@ async function init() {
     area: "header",
     align: "left",
     content: () => (
-      <span style={{ fontWeight: 600, fontSize: 14, color: "#1a1a1a" }}>
+      <span
+        style={{
+          fontWeight: 600,
+          fontSize: 14,
+          color: isDarkTheme ? "#202a3e" : "e7ebf3",
+          cursor: "pointer",
+        }}
+      >
         {t("bpmn.app.header")}
       </span>
     ),
@@ -86,11 +98,11 @@ async function init() {
   timeline.pause();
   await content.addNode({
     type: "StartEvent",
-    props: { __position: { x: 200, y: 200 } },
+    props: { __position: { x: 560, y: 120 } },
   });
   await content.addNode({
     type: "EndEvent",
-    props: { __position: { x: 600, y: 200 } },
+    props: { __position: { x: 560, y: 520 } },
   });
   timeline.resume();
   timeline.reset();

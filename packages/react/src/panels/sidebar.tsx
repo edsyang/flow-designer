@@ -5,7 +5,7 @@ import type { IArea, PaneConfig } from "@flow-designer/model";
 import { t } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
 import { mountArea } from "./mount-area";
-import styles from "../workbench.module.css";
+import styles from "../workbench.module.less";
 
 interface SidebarProps {
   area: IArea;
@@ -63,8 +63,42 @@ export const Sidebar = observer(function Sidebar(props: SidebarProps) {
           setCollapsed(!collapsed);
         }}
       >
-        {collapsed ? "›" : t("workbench.sidebar.collapse")}
-        <span aria-hidden="true">{collapsed ? "" : "‹"}</span>
+        {collapsed ? (
+          <svg
+            aria-hidden="true"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        ) : (
+          t("workbench.sidebar.collapse")
+        )}
+        <span aria-hidden="true">
+          {collapsed ? (
+            ""
+          ) : (
+            <svg
+              aria-hidden="true"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          )}
+        </span>
       </button>
       <div id={contentId} className={styles.sidebarBody} hidden={collapsed}>
         {area.getItems().map(renderItem)}

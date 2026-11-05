@@ -41,6 +41,49 @@ await setLocale("en-US");
 
 Use semantic, namespaced keys with `t('custom.node.title')` directly in node metadata and field labels. User-entered node labels remain unchanged. Switching languages does not change document data.
 
+Messages can also be registered after initialization — for example when a plugin or lazy chunk loads. `registerMessages` merges a whole catalog, `addMessages` merges one locale, and both re-render subscribed workbench components:
+
+```ts
+import { registerMessages } from "@flow-designer/model";
+
+registerMessages({ "en-US": { "custom.node.title": "My node" } });
+```
+
+React components read translations through `useTranslate`, which subscribes to locale and catalog changes:
+
+```tsx
+import { useTranslate } from "@flow-designer/react";
+
+function Toolbar() {
+  const { t, locale, setLocale } = useTranslate();
+  return (
+    <button onClick={() => void setLocale(locale === "en-US" ? "zh-CN" : "en-US")}>
+      {t("workbench.language.label")}
+    </button>
+  );
+}
+```
+
+## Theme
+
+The workbench ships light and dark appearances. The `plugin-theme` built-in adds a header toggle, persists the choice in browser storage, and switches the design tokens plus the antd algorithm without a reload. The theme is transient UI state: it never enters `Document.getData()` or the undo timeline.
+
+Applications can read or change the theme from the model layer, or through the React hook:
+
+```tsx
+import { setTheme } from "@flow-designer/model";
+import { useTheme } from "@flow-designer/react";
+
+function ThemeButton() {
+  const { theme, toggleTheme } = useTheme();
+  return <button onClick={toggleTheme}>{theme}</button>;
+}
+
+setTheme("dark");
+```
+
+Component styles must consume the `--fd-*` tokens from `@flow-designer/react/style.css`; the dark palette is defined on `:root[data-fd-theme="dark"]`. An explicit `graphOptions.background` still wins over the theme for the canvas color.
+
 ## Example scenarios
 
 | Scenario | Example capabilities                                    | Start command      |
@@ -160,10 +203,12 @@ e2e/            Playwright end-to-end tests and manual diagnostics
 
 ```bash
 pnpm install
+pnpm format:check
+pnpm lint
+pnpm check:boundaries
+pnpm typecheck
 pnpm build
 pnpm test
-pnpm typecheck
-pnpm lint
 ```
 
 For focused package checks:
@@ -191,7 +236,7 @@ Some `e2e/*.mjs` files are manual diagnostic scripts and are not part of the Pla
 
 ## Contributing
 
-Issues and pull requests are welcome. Before submitting a change, run tests and type checks for affected packages. Changes to cross-package APIs or serialized formats should also be checked against relevant scenario apps and specifications. GitHub Actions runs the workspace build and Vitest unit tests on pushes and pull requests.
+Issues and pull requests are welcome. Before submitting a change, run tests and type checks for affected packages. Changes to cross-package APIs or serialized formats should also be checked against relevant scenario apps and specifications. GitHub Actions runs the format check, lint, import-boundary assertions, typecheck, workspace build, and Vitest unit tests on pushes and pull requests; the Playwright E2E suite is not a CI gate.
 
 ## Engineering guidance
 

@@ -1,7 +1,7 @@
 import type { FieldProps } from "../types";
 import { IconTip } from "./tip";
 import { buildClassName, useBehaviors } from "./index";
-import styles from "./field.module.css";
+import styles from "./field.module.less";
 
 export function AccordionField(props: FieldProps) {
   const { isGroup, className, behaviors, onBehaviorChange, title, tip, children } = props;

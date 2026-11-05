@@ -41,6 +41,49 @@ await setLocale("en-US");
 
 节点元数据和属性标签直接调用带语义 key 的 `t('custom.node.title')`。用户输入的节点标签保持原样。切换语言不会改写文档数据。
 
+词条也可以在初始化之后注册（例如插件或懒加载模块就绪时）。`registerMessages` 合并整份目录，`addMessages` 合并单个语言，两者都会触发已订阅的工作台组件重新渲染：
+
+```ts
+import { registerMessages } from "@flow-designer/model";
+
+registerMessages({ "en-US": { "custom.node.title": "My node" } });
+```
+
+React 组件通过 `useTranslate` 读取翻译，它同时订阅语言与词条目录的变化：
+
+```tsx
+import { useTranslate } from "@flow-designer/react";
+
+function Toolbar() {
+  const { t, locale, setLocale } = useTranslate();
+  return (
+    <button onClick={() => void setLocale(locale === "en-US" ? "zh-CN" : "en-US")}>
+      {t("workbench.language.label")}
+    </button>
+  );
+}
+```
+
+## 主题
+
+工作台内置明暗两套外观。内置的 `plugin-theme` 插件会在头部加一个切换按钮，选择结果保存在浏览器存储中，切换时同时更新设计 token 与 antd 算法，无需刷新页面。主题属于临时 UI 状态：不会写入 `Document.getData()`，也不进入撤销历史。
+
+应用既可以直接从 model 层读写主题，也可以使用 React hook：
+
+```tsx
+import { setTheme } from "@flow-designer/model";
+import { useTheme } from "@flow-designer/react";
+
+function ThemeButton() {
+  const { theme, toggleTheme } = useTheme();
+  return <button onClick={toggleTheme}>{theme}</button>;
+}
+
+setTheme("dark");
+```
+
+组件样式应使用 `@flow-designer/react/style.css` 中的 `--fd-*` token；深色配色定义在 `:root[data-fd-theme="dark"]` 上。若显式传入 `graphOptions.background`，画布颜色仍以该配置为准。
+
 ## 场景示例
 
 | 场景    | 示例内容                                    | 启动命令           |
@@ -160,10 +203,12 @@ e2e/            Playwright 端到端测试和手动诊断脚本
 
 ```bash
 pnpm install
+pnpm format:check
+pnpm lint
+pnpm check:boundaries
+pnpm typecheck
 pnpm build
 pnpm test
-pnpm typecheck
-pnpm lint
 ```
 
 单包验证可使用：
@@ -191,7 +236,7 @@ pnpm test:e2e
 
 ## 参与贡献
 
-欢迎提交 issue 和 pull request。提交改动前，请优先运行受影响包的测试与类型检查；跨包 API 或序列化格式变更也应覆盖相关示例应用和规格文档。GitHub Actions 会在每次 push 和 pull request 时执行工作区构建与 Vitest 单元测试。
+欢迎提交 issue 和 pull request。提交改动前，请优先运行受影响包的测试与类型检查；跨包 API 或序列化格式变更也应覆盖相关示例应用和规格文档。GitHub Actions 会在每次 push 和 pull request 时执行格式检查、lint、导入边界断言、类型检查、工作区构建与 Vitest 单元测试；Playwright E2E 套件不属于 CI 门禁。
 
 ## 工程规范
 

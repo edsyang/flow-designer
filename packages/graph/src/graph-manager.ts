@@ -1,4 +1,4 @@
-import { Graph, Markup, type Cell, type Node as X6Node } from "@antv/x6";
+import { Graph, Markup, type Cell, type Edge, type Node as X6Node } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Scroller } from "@antv/x6-plugin-scroller";
 import { Snapline } from "@antv/x6-plugin-snapline";
@@ -10,7 +10,7 @@ import "@antv/x6-plugin-stencil/dist/index.css";
 import { register } from "@antv/x6-react-shape";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { t } from "@flow-designer/model";
+import { getTheme, subscribeTheme, t } from "@flow-designer/model";
 import type {
   IGraphManager,
   GraphOptions,
@@ -27,6 +27,7 @@ import type {
   NodeView,
   PortDefinition,
   ContentNode,
+  BlankConnectionEvent,
 } from "@flow-designer/model";
 import { wrapWithErrorBoundary } from "./node-error-boundary";
 import { installViewportCulling } from "./viewport-culling";
@@ -104,6 +105,8 @@ export class GraphManager implements IGraphManager {
   private viewportResizeObserver: ResizeObserver | null = null;
   private viewportResizeHandler: (() => void) | null = null;
   private domEventCleanups: Array<() => void> = [];
+  private backgroundOption: string | undefined;
+  private gridOption: boolean | GridConfig | undefined;
 
   init(container: HTMLElement, options: GraphOptions = {}): void {
     registerBuiltinShapes();
@@ -114,6 +117,8 @@ export class GraphManager implements IGraphManager {
     const height = viewport.clientHeight || container.clientHeight;
     const connectionValidator = options.connecting?.connectionValidator;
     this.connectionValidator = connectionValidator;
+    this.backgroundOption = options.background;
+    this.gridOption = options.grid;
     const self = this;
     const graph: Graph = new Graph({
       container,
@@ -122,7 +127,7 @@ export class GraphManager implements IGraphManager {
       width: width || undefined,
       height: height || undefined,
       grid: this.translateGrid(options.grid),
-      background: { color: options.background ?? "#f7f8fa" },
+      background: { color: this.resolveBackgroundColor(options.background) },
       mousewheel: {
         enabled: true,
         global: true,
@@ -155,7 +160,12 @@ export class GraphManager implements IGraphManager {
       },
       connecting: {
         snap: { radius: 80 },
-        allowBlank: options.connecting?.allowBlank ?? false,
+        // Blank drops are handled below (`connection:blank`) so the workbench can
+        // offer a node picker; when that is disabled, fall back to X6 behaviour.
+        allowBlank:
+          (options.connecting?.onBlankDrop ?? "choose-node") === "choose-node"
+            ? true
+            : (options.connecting?.allowBlank ?? false),
         allowLoop: options.connecting?.allowLoop ?? false,
         allowMulti: options.connecting?.allowMulti ?? true,
         allowNode: false,
@@ -182,6 +192,20 @@ export class GraphManager implements IGraphManager {
     });
     this.graph = graph;
     this.domEventCleanups.push(installEdgeRouting(graph));
+    this.domEventCleanups.push(
+      subscribeTheme(() => {
+        this.applyCanvasTheme();
+      }),
+    );
+    graph.on("cell:added", ({ cell }: { cell: Cell }) => {
+      // Colours live in the graph, not in CSS, so every new cell has to pick up
+      // the active palette explicitly.
+      if (cell.isNode()) {
+        this.applyNodeTheme(cell);
+      } else if (cell.isEdge()) {
+        this.applyEdgeTheme(cell);
+      }
+    });
     graph.on("cell:removed", ({ cell }) => {
       this.nodeTypeByCellId.delete(cell.id);
       this.contentNodeByCellId.delete(cell.id);
@@ -226,6 +250,7 @@ export class GraphManager implements IGraphManager {
     this.setupSelectionHighlight();
     this.setupEdgeToolsOnHover();
     this.setupPortAutoSwitch();
+    this.setupBlankConnection();
     this.setupEdgeZOrder();
     this.setupTemporaryPan(container, scroller);
     if (options.viewportCulling !== false)
@@ -1118,10 +1143,55 @@ export class GraphManager implements IGraphManager {
     graph.on("node:mousedown", clearHoveredEdge);
   }
 
+  private setupBlankConnection(): void {
+    const graph = this.assertGraph();
+    // X6 compares terminal objects by their `cell`/`port` fields only, so a
+    // free-point target is "equal" to another free-point target and
+    // `edge:connected` never fires for a drop on blank canvas. Track the
+    // temporary edge that a magnet drag creates and finish the drop when the
+    // pointer is released instead.
+    const pendingEdges = new Set<Edge>();
+
+    graph.on("edge:added", ({ cell }: { cell: Cell }) => {
+      if (!cell.isEdge()) return;
+      if (cell.getSourceCellId() && !cell.getTargetCellId()) {
+        pendingEdges.add(cell);
+      }
+    });
+
+    graph.on("edge:removed", ({ cell }: { cell: Cell }) => {
+      if (!cell.isEdge()) return;
+      pendingEdges.delete(cell);
+    });
+
+    graph.on("edge:mouseup", ({ edge }: { edge: Edge }) => {
+      if (!pendingEdges.delete(edge)) return;
+      const targetCellId = edge.getTargetCellId();
+      if (targetCellId) return;
+      const sourceCellId = edge.getSourceCellId();
+      const sourcePortId = edge.getSourcePortId() ?? null;
+      const point = edge.getTarget() as { x?: number; y?: number };
+      // Keep the temporary edge on screen: the workbench shows a node picker and
+      // only removes this edge once the drop is resolved or cancelled.
+      if (!sourceCellId) {
+        edge.remove();
+        return;
+      }
+      void graph.trigger("connection:blank", {
+        sourceCellId,
+        sourcePortId,
+        edgeId: edge.id,
+        x: point.x ?? 0,
+        y: point.y ?? 0,
+      } satisfies BlankConnectionEvent);
+    });
+  }
+
   private setupPortAutoSwitch(): void {
     const graph = this.assertGraph();
 
     graph.on("edge:connected", ({ edge }: { edge: any }) => {
+      if (!edge.getTargetCell()) return;
       if (!this.edgeTypeByCellId.has(edge.id)) {
         const defaultType = this.getDefaultEdgeType();
         if (defaultType) this.edgeTypeByCellId.set(edge.id, defaultType);
@@ -1408,16 +1478,100 @@ export class GraphManager implements IGraphManager {
     };
   }
 
+  private resolveBackgroundColor(explicit: string | undefined = this.backgroundOption): string {
+    if (explicit) return explicit;
+    return getTheme() === "dark" ? "#121722" : "#fffefd";
+  }
+
+  private resolveGridColor(): string {
+    return getTheme() === "dark" ? "#242c3c" : "#e8ebf0";
+  }
+
   private translateGrid(grid?: boolean | GridConfig): boolean | Record<string, unknown> {
     if (grid === false) return false;
+    const color = this.resolveGridColor();
     if (grid === true || grid === undefined) {
-      return { size: 10, visible: true, type: "dot", args: [{ color: "#dcdee0", thickness: 1 }] };
+      return { size: 10, visible: true, type: "mesh", args: [{ color, thickness: 1 }] };
     }
     return {
       size: grid.size ?? 10,
       visible: grid.visible ?? true,
-      type: grid.type ?? "dot",
+      type: grid.type ?? "mesh",
+      args: [{ color, thickness: 1 }],
     };
+  }
+
+  private resolveCanvasPalette(): {
+    bodyFill: string;
+    eventFill: string;
+    bodyStroke: string;
+    label: string;
+    portFill: string;
+    edgeStroke: string;
+  } {
+    return getTheme() === "dark"
+      ? {
+          bodyFill: "#1d2432",
+          eventFill: "rgba(250, 173, 20, 0.18)",
+          bodyStroke: "#3b4860",
+          label: "#e7ebf3",
+          portFill: "#161b26",
+          edgeStroke: "#7d8aa0",
+        }
+      : {
+          bodyFill: "#ffffff",
+          eventFill: "#fff7e6",
+          bodyStroke: "#d9d9d9",
+          label: "#262626",
+          portFill: "#ffffff",
+          edgeStroke: "#4C6079",
+        };
+  }
+
+  private applyNodeTheme(node: X6Node): void {
+    if (typeof node.shape !== "string" || !node.shape.startsWith("fd-")) return;
+    const palette = this.resolveCanvasPalette();
+    node.attr({
+      body: {
+        fill: node.shape === "fd-rect-event" ? palette.eventFill : palette.bodyFill,
+        stroke: palette.bodyStroke,
+      },
+      label: { fill: palette.label },
+    });
+    for (const port of node.getPorts()) {
+      if (!port.id) continue;
+      node.setPortProp(port.id, "attrs/circle/fill", palette.portFill);
+    }
+  }
+
+  private applyEdgeTheme(edge: Edge): void {
+    edge.attr("line/stroke", this.resolveCanvasPalette().edgeStroke);
+  }
+
+  /** Repaint everything that X6 draws itself, keeping canvas and chrome in step. */
+  private applyCanvasTheme(): void {
+    const graph = this.graph;
+    if (!graph) return;
+    graph.drawBackground({ color: this.resolveBackgroundColor() });
+    const grid = this.translateGrid(this.gridOption);
+    if (grid !== false) {
+      graph.drawGrid(grid as Parameters<Graph["drawGrid"]>[0]);
+    }
+    graph.getNodes().forEach((node) => {
+      this.applyNodeTheme(node);
+    });
+    graph.getEdges().forEach((edge) => {
+      this.applyEdgeTheme(edge);
+    });
+  }
+
+  /**
+   * Runs the configured connection validator, if any. Exposed so callers can
+   * judge a candidate connection before an edge exists, which is what a pending
+   * blank drop needs when the user picks the node that should receive it.
+   */
+  checkConnection(context: ConnectionContext): boolean {
+    return this.connectionValidator ? this.connectionValidator(context) : true;
   }
 
   private validateConnection(
@@ -1430,8 +1584,13 @@ export class GraphManager implements IGraphManager {
     validator?: (context: ConnectionContext) => boolean,
   ): boolean {
     if (!validator) return true;
+    // A blank drop has no target yet. Approve the temporary edge so the drop
+    // can be intercepted, and let the validator judge the real connection when
+    // the user picks a node for it.
+    const targetCell = args.targetCell ?? null;
+    if (!targetCell) return true;
     const sourceNode = args.sourceCell?.id ?? "";
-    const targetNode = args.targetCell?.id ?? "";
+    const targetNode = targetCell.id;
     const sourcePort = args.sourcePort ? this.getPortDefinition(sourceNode, args.sourcePort) : null;
     const targetPort = args.targetPort ? this.getPortDefinition(targetNode, args.targetPort) : null;
     return validator({ sourceNode, sourcePort, targetNode, targetPort });

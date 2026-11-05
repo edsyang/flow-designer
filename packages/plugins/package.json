@@ -23,7 +23,7 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "eslint src/",
+    "lint": "eslint src/ --max-warnings 114",
     "typecheck": "tsc --noEmit",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\""
   },
@@ -46,6 +46,7 @@
     "@antv/x6": "^2.18.0",
     "@types/react": "catalog:",
     "antd": "^6.5.2",
+    "less": "4.2.0",
     "mobx": "^6.13.7"
   }
 }

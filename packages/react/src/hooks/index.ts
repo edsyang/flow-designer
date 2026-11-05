@@ -8,3 +8,7 @@ export { useGraphView } from "./use-graph-view";
 export { useSkeleton } from "./use-skeleton";
 export { usePlugins } from "./use-plugins";
 export { useSignal } from "./use-signal";
+export { useTranslate } from "./use-translate";
+export type { ITranslate } from "./use-translate";
+export { useTheme } from "./use-theme";
+export type { Theme } from "./use-theme";

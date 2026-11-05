@@ -4,7 +4,7 @@ import type { Setting } from "@flow-designer/model";
 import type { SettingsPanelProps, SettingFieldProps } from "./types";
 import { Field } from "./field";
 import { createContent, isReactComponent } from "./create-content";
-import styles from "./settings.module.css";
+import styles from "./settings.module.less";
 
 export function SettingsPanel(props: SettingsPanelProps) {
   const settings = props.settings ?? props.node?.getSettings();

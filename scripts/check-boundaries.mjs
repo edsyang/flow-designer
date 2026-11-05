@@ -47,15 +47,25 @@ for (const pkg of ["core", "model", "graph", "plugins", "react", "skeleton", "se
     true,
   ]);
 }
+// Boundaries are expressed with the TypeScript-aware variant of the rule; the
+// core `no-restricted-imports` name is kept as a fallback for configs that opt out
+// of the plugin.
+const RESTRICTED_IMPORT_RULES = [
+  "@typescript-eslint/no-restricted-imports",
+  "no-restricted-imports",
+];
 for (const [file, code, rejected] of cases) {
   const config = await eslint.calculateConfigForFile(root + "/" + file);
   assert(config, `No config for ${file}`);
+  const ruleName = RESTRICTED_IMPORT_RULES.find((name) => config.rules[name] !== undefined);
+  const rules = ruleName ? { [ruleName]: config.rules[ruleName] } : {};
   const messages = linter.verify(code, {
     languageOptions: {
       parser: config.languageOptions.parser,
       parserOptions: { ecmaVersion: "latest", sourceType: "module" },
     },
-    rules: { "no-restricted-imports": config.rules["no-restricted-imports"] },
+    plugins: config.plugins,
+    rules,
   });
   assert(!messages.some((m) => m.fatal), JSON.stringify(messages));
   assert.equal(messages.length > 0, rejected, `${file}: ${code}: ${JSON.stringify(messages)}`);

@@ -1,10 +1,16 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Input } from "antd";
 import { prototypeRegistry, t } from "@flow-designer/model";
-import type { IArea, IGraphManager, Prototype } from "@flow-designer/model";
+import type {
+  GenericRelation,
+  IArea,
+  IGraphManager,
+  PortDefinition,
+  Prototype,
+} from "@flow-designer/model";
 import { useEditor } from "../hooks";
 import { mountArea } from "./mount-area";
-import styles from "../workbench.module.css";
+import styles from "../workbench.module.less";
 
 interface CanvasProps {
   area: IArea;
@@ -17,6 +23,25 @@ interface QuickAddMenu {
   top: number;
   graphX: number;
   graphY: number;
+  /** Set when the picker was opened by dropping a connection drag on blank canvas. */
+  pendingSource?: { cellId: string; portId: string | null };
+  /** Temporary X6 edge kept on screen until the drop is resolved or cancelled. */
+  pendingEdgeId?: string;
+}
+
+let edgeSequence = 0;
+
+function createEdgeId(): string {
+  edgeSequence += 1;
+  return `edge-${Date.now().toString(36)}-${edgeSequence.toString(36)}`;
+}
+
+function getDefaultTargetPort(prototype: Prototype): PortDefinition | null {
+  return (prototype.getView().ports ?? []).find((port) => port.group === "in") ?? null;
+}
+
+function getPortId(port: PortDefinition | null): string | undefined {
+  return port ? (port.id ?? `${port.group}-${port.position}`) : undefined;
 }
 
 function getQuickAddShapeClass(shape: string): string {
@@ -50,9 +75,13 @@ export function Canvas(props: CanvasProps) {
   const [error, setError] = useState<string | null>(null);
   const menuOpen = menu !== null;
 
-  const closeQuickAdd = () => {
+  const closeQuickAdd = useCallback(() => {
+    if (menu?.pendingEdgeId) graph?.removeCell(menu.pendingEdgeId);
     setMenu(null);
-  };
+    // The panel stays mounted between selections; the inspector itself decides
+    // whether it shows a body or the collapsed strip.
+    editor.getSkeleton().inspector.setVisible(true);
+  }, [editor, graph, menu?.pendingEdgeId]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -86,7 +115,10 @@ export function Canvas(props: CanvasProps) {
       };
     setGraph(graphManager);
 
-    const openQuickAdd = (clientPoint: { x: number; y: number }) => {
+    const openQuickAdd = (
+      clientPoint: { x: number; y: number },
+      pendingSource?: { cellId: string; portId: string | null; edgeId?: string },
+    ) => {
       const canvasArea = canvasAreaRef.current;
       if (!canvasArea) return;
       const rect = canvasArea.getBoundingClientRect();
@@ -94,6 +126,9 @@ export function Canvas(props: CanvasProps) {
       returnFocusRef.current = container;
       setQuery("");
       setError(null);
+      // The pending-connection picker takes over the canvas: the inspector would
+      // otherwise keep describing the node the drag started from.
+      if (pendingSource) editor.getSkeleton().inspector.setVisible(false);
       setMenu({
         anchorLeft: clientPoint.x - rect.left,
         anchorTop: clientPoint.y - rect.top,
@@ -101,6 +136,31 @@ export function Canvas(props: CanvasProps) {
         top: clientPoint.y - rect.top + 12,
         graphX: graphPoint.x,
         graphY: graphPoint.y,
+        ...(pendingSource
+          ? {
+              pendingSource: { cellId: pendingSource.cellId, portId: pendingSource.portId },
+              ...(pendingSource.edgeId ? { pendingEdgeId: pendingSource.edgeId } : {}),
+            }
+          : {}),
+      });
+    };
+
+    const handleBlankConnection = (...args: unknown[]) => {
+      const payload = args[0] as
+        | {
+            sourceCellId?: string;
+            sourcePortId?: string | null;
+            edgeId?: string;
+            x?: number;
+            y?: number;
+          }
+        | undefined;
+      if (!payload?.sourceCellId) return;
+      const clientPoint = graphManager.localToClient(payload.x ?? 0, payload.y ?? 0);
+      openQuickAdd(clientPoint, {
+        cellId: payload.sourceCellId,
+        portId: payload.sourcePortId ?? null,
+        ...(payload.edgeId ? { edgeId: payload.edgeId } : {}),
       });
     };
 
@@ -148,8 +208,10 @@ export function Canvas(props: CanvasProps) {
     container.addEventListener("keydown", handleCanvasKeyDown);
 
     graphManager.on("blank:dblclick", handleBlankDoubleClick);
+    graphManager.on("connection:blank", handleBlankConnection);
     return () => {
       graphManager.off("blank:dblclick", handleBlankDoubleClick);
+      graphManager.off("connection:blank", handleBlankConnection);
       container.removeEventListener("keydown", handleCanvasKeyDown);
       try {
         disposeArea();
@@ -225,7 +287,7 @@ export function Canvas(props: CanvasProps) {
       if (panel?.contains(document.activeElement) || document.activeElement === document.body)
         previousFocus?.focus({ preventScroll: true });
     };
-  }, [menuOpen]);
+  }, [menuOpen, closeQuickAdd]);
 
   useLayoutEffect(() => {
     if (!menu) return;
@@ -265,11 +327,12 @@ export function Canvas(props: CanvasProps) {
     setAdding(true);
 
     const size = prototype.getView().defaultSize ?? { width: 140, height: 40 };
+    const pending = menu.pendingSource;
+    const pendingEdgeId = menu.pendingEdgeId;
+    const document = editor.getDocument();
     try {
-      const node = await editor
-        .getDocument()
-        .getContent()
-        .addNode({
+      const node = await document.transaction(t("workbench.canvas.connectNode"), async () => {
+        const created = await document.getContent().addNode({
           type: prototype.getTypeName(),
           props: {
             __position: {
@@ -278,11 +341,26 @@ export function Canvas(props: CanvasProps) {
             },
           },
         });
+        if (created && pending) {
+          const source = document.getContent().getNode(pending.cellId);
+          if (source) {
+            (source.getRelation() as GenericRelation).addEdge({
+              id: createEdgeId(),
+              targetNodeId: created.getId(),
+              sourcePort: pending.portId ?? undefined,
+              targetPort: getPortId(getDefaultTargetPort(prototype)),
+              type: graph.getDefaultEdgeType() ?? undefined,
+            });
+          }
+        }
+        return created;
+      });
       if (!node) {
         setError(t("workbench.canvas.addFailed", { name: prototype.getName() }));
         return;
       }
 
+      if (pendingEdgeId) graph.removeCell(pendingEdgeId);
       graph.select([node.getId()]);
       editor.getDocument().getSelection().setKeys([node.getId()]);
       closeQuickAdd();
@@ -294,9 +372,24 @@ export function Canvas(props: CanvasProps) {
     }
   };
 
+  // A pending blank drop only becomes a real connection once a node is picked,
+  // so judge each candidate's default in-port before offering it.
+  const canReceivePendingConnection = (prototype: Prototype): boolean => {
+    if (!menu?.pendingSource || !graph) return true;
+    const { cellId, portId } = menu.pendingSource;
+    return graph.checkConnection({
+      sourceNode: cellId,
+      sourcePort: portId ? graph.getPortDefinition(cellId, portId) : null,
+      targetNode: "",
+      targetPort: getDefaultTargetPort(prototype),
+    });
+  };
+
   const visiblePrototypes = prototypes.filter((prototype) => {
     const value = `${prototype.getName()} ${prototype.getCategory()}`.toLocaleLowerCase();
-    return value.includes(query.trim().toLocaleLowerCase());
+    return (
+      value.includes(query.trim().toLocaleLowerCase()) && canReceivePendingConnection(prototype)
+    );
   });
 
   return (
@@ -316,11 +409,17 @@ export function Canvas(props: CanvasProps) {
           className={styles.canvasQuickAdd}
           data-fd-area="canvasQuickAdd"
           role="dialog"
-          aria-label={t("workbench.canvas.quickAdd")}
+          aria-label={
+            menu.pendingSource ? t("workbench.canvas.connectNode") : t("workbench.canvas.quickAdd")
+          }
           style={{ left: menu.left, top: menu.top }}
         >
           <div className={styles.canvasQuickAddHeader}>
-            <span>{t("workbench.canvas.quickAdd")}</span>
+            <span>
+              {menu.pendingSource
+                ? t("workbench.canvas.connectNode")
+                : t("workbench.canvas.quickAdd")}
+            </span>
             <button type="button" onClick={closeQuickAdd} aria-label={t("workbench.canvas.close")}>
               ×
             </button>

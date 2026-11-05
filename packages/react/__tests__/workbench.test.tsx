@@ -141,6 +141,7 @@ describe("workbench panels", () => {
     const handlers = new Map<string, Set<(...args: unknown[]) => void>>();
     const graph = {
       getInteractionMode: () => "pan",
+      getEdgeTypeName: () => null,
       clientToLocal: vi.fn((x: number, y: number) => ({ x, y })),
       localToClient: vi.fn((x: number, y: number) => ({ x, y })),
       select: vi.fn(),
@@ -275,5 +276,38 @@ describe("workbench panels", () => {
     } finally {
       matchMedia.mockRestore();
     }
+  });
+
+  it("opens the inspector for edge selections and leaves node double clicks alone", () => {
+    const handlers = new Map<string, Set<(...args: unknown[]) => void>>();
+    const graph = {
+      getInteractionMode: () => "pan",
+      getEdgeTypeName: (id: string) => (id === "edge-1" ? "sequence-flow" : null),
+      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+        const listeners = handlers.get(event) ?? new Set();
+        listeners.add(handler);
+        handlers.set(event, listeners);
+      }),
+      off: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
+        handlers.get(event)?.delete(handler);
+      }),
+    };
+    const engine = fixture();
+    engine.skeleton.inspector.add({
+      key: "settings",
+      area: "inspector",
+      content: () => <input aria-label="edge property" />,
+    });
+    act(() =>
+      engine.editor.setGraph(graph as unknown as NonNullable<ReturnType<Editor["getGraph"]>>),
+    );
+    render(<Workbench engine={engine as unknown as WorkbenchProps["engine"]} />);
+    expect(screen.getByRole("button", { name: "展开属性" })).toBeTruthy();
+
+    act(() => engine.doc.getSelection().setKeys(["edge-1"]));
+    expect(screen.getByRole("textbox", { name: "edge property" })).toBeTruthy();
+    expect(graph.on).not.toHaveBeenCalledWith("node:dblclick", expect.any(Function));
+    expect(graph.on).not.toHaveBeenCalledWith("edge:dblclick", expect.any(Function));
+    expect(graph.off).not.toHaveBeenCalledWith("node:dblclick", expect.any(Function));
   });
 });

@@ -27,6 +27,7 @@ Separate current implementation facts from required contracts. If implementation
 - [Graph/model synchronization](./graph/model-graph-synchronization.md)
 - [Connection validation](./graph/connection-validation.md)
 - [Workbench composition](./workbench/panel-composition.md)
+- [Color theme](./workbench/color-theme.md)
 - Scenario specifications: [BPMN](./scenarios/bpmn.md), [ComfyUI](./scenarios/comfyui.md), [ER](./scenarios/er.md)
 - [Node package scaffolding](./tooling/create-node.md)
 

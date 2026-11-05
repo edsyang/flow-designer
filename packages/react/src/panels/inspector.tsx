@@ -6,7 +6,7 @@ import { t } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
 import { useDocument, useEditor, useSelection } from "../hooks";
 import { mountArea } from "./mount-area";
-import styles from "../workbench.module.css";
+import styles from "../workbench.module.less";
 
 interface InspectorProps {
   area: IArea;
@@ -24,27 +24,39 @@ export const Inspector = observer(function Inspector(props: InspectorProps) {
   const selectedKey = keys.length === 1 ? keys[0] : undefined;
   const selectedNode = selectedKey ? doc.getContent().getNode(selectedKey) : null;
   const hasNodeSettings = (selectedNode?.getSettings().getItems().length ?? 0) > 0;
+  const selectedEdgeType = selectedKey && graph ? graph.getEdgeTypeName(selectedKey) : null;
+  const docHasSettings = doc.getSettings().getItems().length > 0;
   const contentId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (selectedKey && hasNodeSettings) {
+    if (!selectedKey) {
+      // Nothing selected: fall back to the collapsed strip so the canvas keeps
+      // the space, unless the document itself is what the panel describes.
+      if (!docHasSettings) setCollapsed(true);
+      return;
+    }
+    if (hasNodeSettings || selectedEdgeType) {
       setCollapsed(false);
     }
-  }, [selectedKey, hasNodeSettings]);
+  }, [selectedKey, hasNodeSettings, selectedEdgeType, docHasSettings]);
   useEffect(() => {
     if (!graph) return;
+    // Only a double click on empty canvas collapses the inspector: clicking a
+    // node or an edge is reserved for selection, and double clicking them must
+    // not hide the panel the user is reading.
     const collapse = () => {
       setCollapsed(true);
     };
-    graph.on("node:dblclick", collapse);
-    graph.on("edge:dblclick", collapse);
+    const expandForBlank = () => {
+      if (docHasSettings) setCollapsed(true);
+    };
     graph.on("blank:dblclick", collapse);
+    graph.on("blank:click", expandForBlank);
     return () => {
       graph.off("blank:dblclick", collapse);
-      graph.off("node:dblclick", collapse);
-      graph.off("edge:dblclick", collapse);
+      graph.off("blank:click", expandForBlank);
     };
-  }, [graph]);
+  }, [graph, docHasSettings]);
   useEffect(() => {
     if (!containerRef.current) return;
     return mountArea(area, containerRef.current);

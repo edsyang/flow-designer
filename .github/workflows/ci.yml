@@ -52,6 +52,8 @@ jobs:
       - name: Lint
         run: pnpm turbo run lint
 
+      - name: Import boundaries
+        run: pnpm check:boundaries
+
       - name: Typecheck, Build and Test
         run: pnpm turbo run typecheck build test
-        

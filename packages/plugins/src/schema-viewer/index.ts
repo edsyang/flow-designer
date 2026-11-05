@@ -14,8 +14,8 @@ export function pluginSchemaViewer(ctx: IPluginContext): IPluginConfig {
         contentProps: {
           getSchema: () => {
             const doc = ctx.editor.getDocument();
-            const content = doc.getContent();
-            return content.getData();
+            const content = doc.getData();
+            return content;
           },
         },
       });

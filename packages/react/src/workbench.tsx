@@ -1,6 +1,6 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { observer } from "mobx-react-lite";
-import { ConfigProvider, App } from "antd";
+import { ConfigProvider, App, theme as antdTheme } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import enUS from "antd/locale/en_US";
 import { FlowDesignerProvider } from "./provider";
@@ -11,27 +11,45 @@ import { Sidebar } from "./panels/sidebar";
 import { Inspector } from "./panels/inspector";
 import { Canvas } from "./panels/canvas";
 import { setMessageApi } from "./message-holder";
-import { getLocale, subscribeLocale, t } from "@flow-designer/model";
-import type { Locale } from "@flow-designer/model";
+import {
+  applyTheme,
+  getLocaleSnapshot,
+  getThemeSnapshot,
+  subscribeLocale,
+  subscribeTheme,
+  t,
+} from "@flow-designer/model";
+import type { Locale, Theme } from "@flow-designer/model";
 import type { WorkbenchProps } from "./types";
-import styles from "./workbench.module.css";
-import "./design-tokens.css";
+import styles from "./workbench.module.less";
+import "./design-tokens.less";
 
-const antdTheme = {
-  token: {
-    colorPrimary: "#4d7cfe",
-    borderRadius: 8,
-    fontSize: 13,
-    colorBorder: "#e4e8ef",
-    colorBgContainer: "#ffffff",
-  },
-  components: {
-    Button: { controlHeight: 32 },
-    Input: { controlHeight: 32 },
-    Select: { controlHeight: 32 },
-    InputNumber: { controlHeight: 32 },
-  },
-};
+function readLocale(snapshot: string): Locale {
+  return snapshot.slice(0, snapshot.indexOf("#")) as Locale;
+}
+
+function readTheme(snapshot: string): Theme {
+  return snapshot.slice(0, snapshot.indexOf("#")) as Theme;
+}
+
+function buildTheme(dark: boolean) {
+  return {
+    algorithm: dark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+    token: {
+      colorPrimary: dark ? "#5f95ff" : "#006aff",
+      borderRadius: 8,
+      fontSize: 13,
+      colorBorder: dark ? "#2b3547" : "#e4e8ef",
+      colorBgContainer: dark ? "#161b26" : "#ffffff",
+    },
+    components: {
+      Button: { controlHeight: 32 },
+      Input: { controlHeight: 32 },
+      Select: { controlHeight: 32 },
+      InputNumber: { controlHeight: 32 },
+    },
+  };
+}
 
 function MessageBridge() {
   const { message } = App.useApp();
@@ -51,21 +69,29 @@ function LocaleBridge({ locale, documentTitleKey }: { locale: Locale; documentTi
 }
 
 export const Workbench = observer(function Workbench(props: WorkbenchProps) {
-  const locale = useSyncExternalStore(subscribeLocale, getLocale, getLocale);
+  const locale = readLocale(
+    useSyncExternalStore(subscribeLocale, getLocaleSnapshot, getLocaleSnapshot),
+  );
+  const theme = readTheme(useSyncExternalStore(subscribeTheme, getThemeSnapshot, getThemeSnapshot));
   const { engine, className, documentTitleKey } = props;
   const { editor, skeleton } = engine;
   const doc = editor.getDocument();
+  const themeConfig = useMemo(() => buildTheme(theme === "dark"), [theme]);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   const rootClass = className ? `${styles.workbench} ${className}` : styles.workbench;
 
   return (
     <FlowDesignerProvider engine={engine}>
-      <ConfigProvider theme={antdTheme} locale={locale === "zh-CN" ? zhCN : enUS}>
+      <ConfigProvider theme={themeConfig} locale={locale === "zh-CN" ? zhCN : enUS}>
         <App>
           <MessageBridge />
           <LocaleBridge locale={locale} documentTitleKey={documentTitleKey} />
           <ErrorBoundary>
-            <div className={rootClass} data-fd-area="workbench">
+            <div className={rootClass} data-fd-area="workbench" data-fd-theme={theme}>
               {skeleton.header.getVisible() && (
                 <Header doc={doc} area={skeleton.header} locale={locale} />
               )}

@@ -1,7 +1,7 @@
 import type { FieldProps } from "../types";
 import { FieldTitle } from "./title";
 import { buildClassName, useBehaviors } from "./index";
-import styles from "./field.module.css";
+import styles from "./field.module.less";
 
 export function InlineField(props: FieldProps) {
   const { isGroup, className, behaviors, title, tip, compact, children } = props;
