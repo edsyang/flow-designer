@@ -11,4 +11,5 @@ export { useSignal } from "./use-signal";
 export { useTranslate } from "./use-translate";
 export type { ITranslate } from "./use-translate";
 export { useTheme } from "./use-theme";
-export type { Theme } from "./use-theme";
+export type { ITheme } from "./use-theme";
+export type { Theme } from "@flow-designer/model";

@@ -33,6 +33,8 @@ export interface NodeComponentProps {
 }
 
 export interface PortDefinition {
+  /** Semantic connection capability; position and persisted group/ID remain independent. */
+  connectionDirection?: "in" | "out" | "both";
   id?: string;
   group: string;
   position: "top" | "bottom" | "left" | "right";

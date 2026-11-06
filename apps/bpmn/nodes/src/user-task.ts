@@ -14,10 +14,10 @@ export const userTaskDef = defineNode({
     shape: "fd-rect",
     defaultSize: { width: 120, height: 40 },
     ports: [
-      { group: "in", position: "top" },
-      { group: "in", position: "left" },
-      { group: "out", position: "bottom" },
-      { group: "out", position: "right" },
+      { group: "in", position: "top", connectionDirection: "both" },
+      { group: "in", position: "left", connectionDirection: "both" },
+      { group: "out", position: "bottom", connectionDirection: "both" },
+      { group: "out", position: "right", connectionDirection: "both" },
     ],
   },
   schema: [

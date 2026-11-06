@@ -14,10 +14,10 @@ export const messageEventDef = defineNode({
     shape: "fd-rect-event",
     defaultSize: { width: 100, height: 32 },
     ports: [
-      { group: "in", position: "top" },
-      { group: "in", position: "left" },
-      { group: "out", position: "bottom" },
-      { group: "out", position: "right" },
+      { group: "in", position: "top", connectionDirection: "both" },
+      { group: "in", position: "left", connectionDirection: "both" },
+      { group: "out", position: "bottom", connectionDirection: "both" },
+      { group: "out", position: "right", connectionDirection: "both" },
     ],
   },
   schema: [

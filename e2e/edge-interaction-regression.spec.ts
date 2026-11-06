@@ -91,7 +91,14 @@ test("hover and segment dragging never recolor the wide hit path", async ({ page
   });
   await page.mouse.move(midpoint.x, midpoint.y);
   await page.evaluate(() => (window as any).designer.graph.select([]));
+  await expect
+    .poll(() => page.evaluate(() => (window as any).designer.graph.getSelection()))
+    .toEqual([]);
+  await expect
+    .poll(() => page.evaluate(() => (window as any).designer.document.getSelection().getKeys()))
+    .toEqual([]);
   await page.mouse.move(10, 10);
+
   await expect
     .poll(async () => (await attrs()).find((path) => path.pointer === "none")?.visualStroke)
     .toBe(before.find((path) => path.pointer === "none")?.visualStroke);

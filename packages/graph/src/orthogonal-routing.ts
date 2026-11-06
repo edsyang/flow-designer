@@ -268,3 +268,199 @@ export function routeWithPortStubs(
     return null;
   return route;
 }
+
+/** Finite, signed-port routes with at most three bends. Null means the constraints conflict. */
+export function findShortPortRoute(
+  source: EdgePoint,
+  target: EdgePoint,
+  sourceSide: PortSide,
+  targetSide: PortSide,
+  obstacles: readonly RoutingObstacle[],
+  vertices: readonly EdgePoint[] = [],
+  stats?: {
+    candidates: number;
+    obstacleChecks: number;
+    bestCost?: number;
+    blockingCosts?: Map<RoutingObstacle, number>;
+  },
+): EdgePoint[] | null {
+  const sv = PORT_VECTORS[sourceSide];
+  const tv = PORT_VECTORS[targetSide];
+  const horizontal = sv.x !== 0;
+  const targetHorizontal = tv.x !== 0;
+  const xs = new Set([source.x, target.x, (source.x + target.x) / 2]);
+  const ys = new Set([source.y, target.y, (source.y + target.y) / 2]);
+  for (const p of [source, target, ...vertices]) {
+    xs.add(p.x);
+    ys.add(p.y);
+    for (const gap of [4, 12, 24]) {
+      xs.add(p.x - gap);
+      xs.add(p.x + gap);
+      ys.add(p.y - gap);
+      ys.add(p.y + gap);
+    }
+  }
+  for (const r of obstacles) {
+    for (const gap of [0, 12]) {
+      xs.add(r.x - gap);
+      xs.add(r.x + r.width + gap);
+      ys.add(r.y - gap);
+      ys.add(r.y + r.height + gap);
+    }
+  }
+  const minimumStub = (
+    point: EdgePoint,
+    other: EdgePoint,
+    vector: EdgePoint,
+    otherVector: EdgePoint,
+  ) => {
+    let available = Infinity;
+    if (vector.x * otherVector.x + vector.y * otherVector.y < 0) {
+      const projection = (other.x - point.x) * vector.x + (other.y - point.y) * vector.y;
+      if (projection > 0) available = projection / 2;
+    }
+    for (const box of obstacles) {
+      if (
+        point.x >= box.x - EPS &&
+        point.x <= box.x + box.width + EPS &&
+        point.y >= box.y - EPS &&
+        point.y <= box.y + box.height + EPS
+      )
+        continue;
+      const transverse = vector.x
+        ? point.y > box.y && point.y < box.y + box.height
+        : point.x > box.x && point.x < box.x + box.width;
+      if (!transverse) continue;
+      const gap =
+        vector.x > 0
+          ? box.x - point.x
+          : vector.x < 0
+            ? point.x - box.x - box.width
+            : vector.y > 0
+              ? box.y - point.y
+              : point.y - box.y - box.height;
+      if (gap > 0) available = Math.min(available, gap / 2);
+    }
+    return Math.max(4, Math.min(12, available));
+  };
+  const sourceMinimum = minimumStub(source, target, sv, tv),
+    targetMinimum = minimumStub(target, source, tv, sv);
+  const onSegment = (p: EdgePoint, a: EdgePoint, b: EdgePoint) =>
+    Math.abs(distance(a, p) + distance(p, b) - distance(a, b)) < EPS &&
+    (Math.abs(a.x - b.x) < EPS ? Math.abs(p.x - a.x) < EPS : Math.abs(p.y - a.y) < EPS);
+  const best: { route: EdgePoint[] | null; cost: number } = { route: null, cost: Infinity };
+  const consider = (input: EdgePoint[]) => {
+    if (stats) stats.candidates++;
+    const route = simplify(input);
+    if (route.length < 2 || route.length > 5) return;
+    const first = route[1];
+    const last = route[route.length - 2];
+    if (!first || !last) return;
+    if (
+      (first.x - source.x) * sv.x + (first.y - source.y) * sv.y <= EPS ||
+      (last.x - target.x) * tv.x + (last.y - target.y) * tv.y <= EPS
+    )
+      return;
+    if (
+      (sv.x ? Math.abs(first.y - source.y) : Math.abs(first.x - source.x)) > EPS ||
+      (tv.x ? Math.abs(last.y - target.y) : Math.abs(last.x - target.x)) > EPS
+    )
+      return;
+    if (
+      route.length > 2 &&
+      (distance(source, first) < sourceMinimum - EPS ||
+        distance(target, last) < targetMinimum - EPS)
+    )
+      return;
+    const lastSegmentStart = route[route.length - 2];
+    const candidateCost =
+      cost(route) +
+      (Math.max(0, 12 - distance(source, first)) +
+        Math.max(0, 12 - distance(target, lastSegmentStart ?? target))) *
+        0.1;
+    if (candidateCost > best.cost) return;
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1];
+      const b = route[i];
+      if (!a || !b) return;
+      if (
+        obstacles.some((r) => {
+          if (stats) stats.obstacleChecks++;
+          const blocked = segmentHitsObstacle(a, b, r);
+          if (blocked && stats?.blockingCosts)
+            stats.blockingCosts.set(
+              r,
+              Math.min(stats.blockingCosts.get(r) ?? Infinity, candidateCost),
+            );
+          return blocked;
+        })
+      )
+        return;
+      // A collinear reversal or an intersection with an earlier segment is a back-fold.
+      for (let j = 1; j < i; j++) {
+        const c = route[j - 1];
+        const d = route[j];
+        if (!c || !d) return;
+        if (j === i - 1) {
+          if ((b.x - a.x) * (d.x - c.x) + (b.y - a.y) * (d.y - c.y) < -EPS) return;
+        } else if (
+          onSegment(a, c, d) ||
+          onSegment(b, c, d) ||
+          onSegment(c, a, b) ||
+          onSegment(d, a, b) ||
+          (Math.min(a.x, b.x) < c.x &&
+            c.x < Math.max(a.x, b.x) &&
+            Math.min(c.y, d.y) < a.y &&
+            a.y < Math.max(c.y, d.y)) ||
+          (Math.min(c.x, d.x) < a.x &&
+            a.x < Math.max(c.x, d.x) &&
+            Math.min(a.y, b.y) < c.y &&
+            c.y < Math.max(a.y, b.y))
+        )
+          return;
+      }
+    }
+    if (
+      !vertices.every((p) => route.slice(1).some((b, i) => !!route[i] && onSegment(p, route[i], b)))
+    )
+      return;
+    const score = candidateCost;
+    if (score < best.cost) {
+      best.route = route;
+      best.cost = score;
+      if (stats) stats.bestCost = score;
+    }
+  };
+  const result = () => best.route;
+  consider([source, target]);
+  if (result()) return result();
+  const nearby = (values: Set<number>, a: number, b: number) =>
+    [...values]
+      .sort((x, y) => Math.abs(x - a) + Math.abs(x - b) - Math.abs(y - a) - Math.abs(y - b))
+      .slice(0, 48);
+  const xLanes = nearby(xs, source.x, target.x);
+  const yLanes = nearby(ys, source.y, target.y);
+  if (horizontal === targetHorizontal) {
+    for (const lane of horizontal ? xLanes : yLanes)
+      consider(
+        horizontal
+          ? [source, { x: lane, y: source.y }, { x: lane, y: target.y }, target]
+          : [source, { x: source.x, y: lane }, { x: target.x, y: lane }, target],
+      );
+  } else {
+    consider(
+      horizontal
+        ? [source, { x: target.x, y: source.y }, target]
+        : [source, { x: source.x, y: target.y }, target],
+    );
+    if (result()) return result();
+    for (const x of xLanes)
+      for (const y of yLanes)
+        consider(
+          horizontal
+            ? [source, { x, y: source.y }, { x, y }, { x: target.x, y }, target]
+            : [source, { x: source.x, y }, { x, y }, { x, y: target.y }, target],
+        );
+  }
+  return best.route;
+}

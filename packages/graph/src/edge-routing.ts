@@ -1,4 +1,5 @@
-import { Graph, Registry, type EdgeView, type Node } from "@antv/x6";
+import { Graph, Registry, type Edge, type EdgeView, type Node } from "@antv/x6";
+import { installAdaptiveTargetMarkers, queueAdaptiveTargetMarker } from "./adaptive-marker";
 import type { EdgePoint } from "./edge-geometry";
 import {
   createRouteFootprint,
@@ -7,6 +8,7 @@ import {
 } from "./route-invalidation";
 import {
   PORT_VECTORS,
+  findShortPortRoute,
   routeWithPortStubs,
   type PortSide,
   type RoutingObstacle,
@@ -17,6 +19,7 @@ interface ObstacleCache {
   snapshot: RoutingObstacle[] | null;
   routes: Map<string, RouteFootprint>;
   pending: Set<string>;
+  blockers: Map<string, Set<string>>;
 }
 const obstacleCaches = new WeakMap<Graph, ObstacleCache>();
 const intersects = (a: RoutingObstacle, b: RoutingObstacle) =>
@@ -27,8 +30,14 @@ export function installEdgeRouting(graph: Graph): () => void {
     snapshot: null,
     routes: new Map(),
     pending: new Set(),
+    blockers: new Map(),
   };
   obstacleCaches.set(graph, cache);
+  const disposeMarkers = installAdaptiveTargetMarkers(graph);
+  const diagnosticStyle = document.createElement("style");
+  diagnosticStyle.textContent =
+    '[data-routing-diagnostic="true"]{stroke:#d92d20!important;stroke-dasharray:6 4!important;}';
+  graph.container.append(diagnosticStyle);
   let frame: number | null = null;
   const dirty = cache.pending;
   const update = ({ node }: { node: Node }) => {
@@ -39,7 +48,11 @@ export function installEdgeRouting(graph: Graph): () => void {
     cache.snapshot = null;
     for (const [id, route] of cache.routes) {
       if (node.id === route.sourceId || node.id === route.targetId) dirty.delete(id);
-      else if (routeAffectedByNode(route, node.id, next, old)) dirty.add(id);
+      else if (
+        cache.blockers.get(id)?.has(node.id) ||
+        routeAffectedByNode(route, node.id, next, old)
+      )
+        dirty.add(id);
     }
     if (dirty.size && frame === null)
       frame = requestAnimationFrame(() => {
@@ -59,7 +72,10 @@ export function installEdgeRouting(graph: Graph): () => void {
     cache.boxes.delete(node.id);
     cache.snapshot = null;
   };
-  const removeEdge = ({ edge }: { edge: { id: string } }) => cache.routes.delete(edge.id);
+  const removeEdge = ({ edge }: { edge: { id: string } }) => {
+    cache.routes.delete(edge.id);
+    cache.blockers.delete(edge.id);
+  };
   graph.on("node:added", update);
   graph.on("node:change:position", update);
   graph.on("node:change:size", update);
@@ -72,6 +88,11 @@ export function installEdgeRouting(graph: Graph): () => void {
     graph.off("node:change:size", update);
     graph.off("node:removed", remove);
     graph.off("edge:removed", removeEdge);
+    const degraded = degradedBatches.get(graph);
+    if (degraded) cancelAnimationFrame(degraded.frame);
+    degradedBatches.delete(graph);
+    disposeMarkers();
+    diagnosticStyle.remove();
     obstacleCaches.delete(graph);
     dirty.clear();
   };
@@ -85,21 +106,75 @@ function obstaclesFor(graph: Graph): RoutingObstacle[] {
     });
   return cache.snapshot ?? (cache.snapshot = [...cache.boxes.values()]);
 }
-function rememberRoute(view: EdgeView, points: EdgePoint[]): void {
+function rememberRoute(
+  view: EdgeView,
+  points: EdgePoint[],
+  blockingCosts?: Map<RoutingObstacle, number>,
+  routeCost = Infinity,
+): void {
   const cache = obstacleCaches.get(view.graph);
   if (cache) {
     // A native update may already have rendered this edge after obstacle invalidation.
     cache.pending.delete(view.cell.id);
+    if (blockingCosts)
+      cache.blockers.set(
+        view.cell.id,
+        new Set(
+          [...cache.boxes]
+            .filter(
+              ([, box]) =>
+                (blockingCosts.get(box) ?? Infinity) <= routeCost && blockingCosts.has(box),
+            )
+            .map(([id]) => id),
+        ),
+      );
     cache.routes.set(
       view.cell.id,
       createRouteFootprint(points, view.cell.getSourceCellId(), view.cell.getTargetCellId()),
     );
   }
+  queueAdaptiveTargetMarker(view);
   void view.graph.trigger("edge:geometry:changed" as never, { edge: view.cell } as never);
 }
 
+const persistedRoutingEdges = new WeakSet<Edge>();
+export function markRoutingPersisted(edge: Edge): void {
+  persistedRoutingEdges.add(edge);
+}
 const failedRoutes = new WeakSet<EdgeView>();
 const reportedFailures = new WeakSet<EdgeView>();
+const degradedViews = new WeakSet<EdgeView>();
+const degradedBatches = new WeakMap<Graph, { ids: Set<string>; frame: number }>();
+function routingDegraded(view: EdgeView): void {
+  if (!persistedRoutingEdges.has(view.cell)) return;
+  if (degradedViews.has(view)) return;
+  degradedViews.add(view);
+  view.container.setAttribute("data-routing-warning", "legacy-route");
+  const existing = degradedBatches.get(view.graph);
+  if (existing) {
+    existing.ids.add(view.cell.id);
+    return;
+  }
+  const batch = { ids: new Set([view.cell.id]), frame: 0 };
+  batch.frame = requestAnimationFrame(() => {
+    degradedBatches.delete(view.graph);
+    void view.graph.trigger(
+      "edge:routing:degraded" as never,
+      { edgeIds: [...batch.ids], reason: "workbench.connection.legacyRouteWarning" } as never,
+    );
+  });
+  degradedBatches.set(view.graph, batch);
+}
+function clearDegraded(view: EdgeView): void {
+  degradedViews.delete(view);
+  view.container.removeAttribute("data-routing-warning");
+  const batch = degradedBatches.get(view.graph);
+  batch?.ids.delete(view.cell.id);
+  if (batch && batch.ids.size === 0) {
+    cancelAnimationFrame(batch.frame);
+    degradedBatches.delete(view.graph);
+  }
+}
 function routingFailure(view: EdgeView): void {
   if (!reportedFailures.has(view)) {
     reportedFailures.add(view);
@@ -109,10 +184,13 @@ function routingFailure(view: EdgeView): void {
     );
   }
   failedRoutes.add(view);
+  view.findOne("line")?.setAttribute("data-routing-diagnostic", "true");
+  routingDegraded(view);
   view.container.setAttribute("data-routing-error", "routing-budget-or-blocked-anchor");
 }
 function routingRecovered(view: EdgeView): void {
   failedRoutes.delete(view);
+  view.findOne("line")?.removeAttribute("data-routing-diagnostic");
   view.container.removeAttribute("data-routing-error");
 }
 function lineIntersectsRect(a: EdgePoint, b: EdgePoint, r: RoutingObstacle): boolean {
@@ -136,13 +214,6 @@ function lineIntersectsRect(a: EdgePoint, b: EdgePoint, r: RoutingObstacle): boo
   }
   return low <= high;
 }
-const inflated = (boxes: RoutingObstacle[], padding = 12) =>
-  boxes.map((r) => ({
-    x: r.x - padding,
-    y: r.y - padding,
-    width: r.width + padding * 2,
-    height: r.height + padding * 2,
-  }));
 const side = (value: unknown, fallback: PortSide): PortSide =>
   typeof value === "string" && value in PORT_VECTORS ? (value as PortSide) : fallback;
 
@@ -162,7 +233,7 @@ export function strictOrthogonalFallback(
     target,
     sourceSide,
     targetSide,
-    inflated(obstaclesFor(view.graph)),
+    obstaclesFor(view.graph),
     vertices,
   );
   if (!route) {
@@ -202,9 +273,37 @@ export function registerPortCurveConnector(): void {
     "flow-orthogonal",
     function (vertices, options, view) {
       routingRecovered(view);
-      const route = Registry.Router.presets.manhattan.call(this, vertices, options, view);
+      const directions = options as { startDirections?: string[]; endDirections?: string[] };
+      const sourceSide = side(directions.startDirections?.[0], "right");
+      const targetSide = side(directions.endDirections?.[0], "left");
+      const stats = {
+        candidates: 0,
+        obstacleChecks: 0,
+        bestCost: Infinity,
+        blockingCosts: new Map<RoutingObstacle, number>(),
+      };
+      const short = findShortPortRoute(
+        view.sourceAnchor,
+        view.targetAnchor,
+        sourceSide,
+        targetSide,
+        obstaclesFor(view.graph),
+        vertices,
+        stats,
+      );
+      // Loaded documents retain their legal longer routes; interaction admission is stricter.
+      const route = short
+        ? short.slice(1, -1)
+        : Registry.Router.presets.manhattan.call(this, vertices, options, view);
+      if (!short) routingDegraded(view);
+      else clearDegraded(view);
       if (!failedRoutes.has(view)) reportedFailures.delete(view);
-      rememberRoute(view, [view.sourceAnchor, ...route, view.targetAnchor]);
+      rememberRoute(
+        view,
+        [view.sourceAnchor, ...route, view.targetAnchor],
+        stats.blockingCosts,
+        stats.bestCost,
+      );
       return route;
     },
     true,
@@ -213,7 +312,7 @@ export function registerPortCurveConnector(): void {
     "flow-normal",
     function (source, target, route, options) {
       if (failedRoutes.has(this))
-        return `M ${String(source.x)} ${String(source.y)} M ${String(target.x)} ${String(target.y)}`;
+        return `M ${String(source.x)} ${String(source.y)} L ${String(target.x)} ${String(target.y)}`;
       return Registry.Connector.presets.normal.call(this, source, target, route, options, this);
     },
     true,
@@ -261,27 +360,43 @@ export function registerPortCurveConnector(): void {
       }
       if (!blocked) {
         routingRecovered(this);
+        clearDegraded(this);
         reportedFailures.delete(this);
         rememberRoute(this, [...trace, target]);
         return `M ${String(source.x)} ${String(source.y)} C ${String(c1.x)} ${String(c1.y)} ${String(c2.x)} ${String(c2.y)} ${String(target.x)} ${String(target.y)}`;
       }
-      const route = routeWithPortStubs(
-        source,
-        target,
-        sourceSide,
-        targetSide,
-        inflated(boxes),
-        routePoints,
-      );
+      const route = routeWithPortStubs(source, target, sourceSide, targetSide, boxes, routePoints);
       rememberRoute(this, route ?? [source, c1, c2, target]);
       if (!route) {
         routingFailure(this);
-        return `M ${String(source.x)} ${String(source.y)} M ${String(target.x)} ${String(target.y)}`;
+        return `M ${String(source.x)} ${String(source.y)} L ${String(target.x)} ${String(target.y)}`;
       }
       routingRecovered(this);
+      clearDegraded(this);
       reportedFailures.delete(this);
       return roundedPath(route);
     },
     true,
   );
+}
+
+/** Narrow admission checks to routes whose actual footprint the obstacle can affect. */
+export function routingAffectedEdges(
+  graph: Graph,
+  node: Node,
+  previous: { x: number; y: number },
+): string[] {
+  const cache = obstacleCaches.get(graph);
+  if (!cache) return graph.getConnectedEdges(node).map((edge) => edge.id);
+  const box = node.getBBox();
+  const next = { x: box.x, y: box.y, width: box.width, height: box.height };
+  const old = { ...next, x: previous.x, y: previous.y };
+  return [...cache.routes]
+    .filter(
+      ([, route]) =>
+        route.sourceId === node.id ||
+        route.targetId === node.id ||
+        routeAffectedByNode(route, node.id, next, old),
+    )
+    .map(([id]) => id);
 }

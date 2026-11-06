@@ -20,3 +20,4 @@ export type { WorkbenchProps, FlowDesignerProviderProps } from "./types";
 export type { SignalHandler } from "./hooks/use-signal";
 export type { ITranslate } from "./hooks/use-translate";
 export type { ITheme } from "./hooks/use-theme";
+export type { Theme } from "@flow-designer/model";

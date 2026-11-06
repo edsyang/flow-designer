@@ -6,6 +6,19 @@ class RoutedSegments extends Registry.EdgeTool.presets.segments {
   private originalVertices: Array<{ x: number; y: number }> = [];
   private editingRouter = false;
   private moved = false;
+  private lastValidVertices: Array<{ x: number; y: number }> = [];
+  private lastRejected = false;
+  private notified = false;
+
+  /** Native segments may relocate an anchor inside its magnet; ports retain their exact anchor. */
+  protected override resetAnchor(
+    type: Edge.TerminalType,
+    _anchor: Edge.TerminalCellData["anchor"],
+  ): void {
+    const terminal =
+      type === "source" ? this.cellView.cell.getSource() : this.cellView.cell.getTarget();
+    super.resetAnchor(type, "anchor" in terminal ? terminal.anchor : undefined);
+  }
 
   protected override get vertices() {
     const edge = this.cellView.cell;
@@ -26,6 +39,9 @@ class RoutedSegments extends Registry.EdgeTool.presets.segments {
     this.originalVertices = edge.getVertices() as Array<{ x: number; y: number }>;
     this.editingRouter = !!this.originalRouter;
     this.moved = false;
+    this.lastRejected = false;
+    this.notified = false;
+    this.lastValidVertices = vertices;
     super.onHandleChange(args);
     if (this.editingRouter) {
       edge.setVertices(vertices, { silent: true });
@@ -38,13 +54,26 @@ class RoutedSegments extends Registry.EdgeTool.presets.segments {
   }): void {
     this.moved = true;
     super.onHandleChanging(args);
+    const policy = this.options as unknown as {
+      validate?: (edge: Edge) => boolean;
+      onRejected?: (edge: Edge) => void;
+    };
+    const edge = this.cellView.cell;
+    this.lastRejected = policy.validate?.(edge) === false;
+    if (this.lastRejected) {
+      edge.setVertices(this.lastValidVertices);
+      if (!this.notified) {
+        this.notified = true;
+        policy.onRejected?.(edge);
+      }
+    } else this.lastValidVertices = edge.getVertices() as Array<{ x: number; y: number }>;
   }
 
   protected override onHandleChanged(args: {
     handle: InstanceType<typeof Registry.EdgeTool.presets.segments.Handle>;
     e: Dom.MouseUpEvent;
   }): void {
-    if (this.editingRouter && !this.moved && this.originalRouter) {
+    if (this.editingRouter && (!this.moved || this.lastRejected) && this.originalRouter) {
       this.cellView.cell.setVertices(this.originalVertices, { silent: true });
       this.cellView.cell.setRouter(this.originalRouter, { silent: true });
     }

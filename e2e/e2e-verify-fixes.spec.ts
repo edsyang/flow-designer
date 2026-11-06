@@ -1,5 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { seedBpmnEdge, assertOrthogonalEdge, assertPinchZoom } from "./workbench-fixtures";
+
+async function inspectorContent(page: Page) {
+  const inspector = page.locator('[data-fd-area="inspector"]');
+  const toggle = inspector.getByRole("button").first();
+  const id = await toggle.getAttribute("aria-controls");
+  if (!id) throw new Error("Inspector toggle has no controlled content");
+  return { inspector, toggle, body: page.locator(`[id="${id}"]`) };
+}
 
 test.describe("Fix 1: BPMN edge routing is orthogonal (er router)", () => {
   test("edges between nodes use orthogonal routing", async ({ page }) => {
@@ -59,58 +67,71 @@ test.describe("Fix 2: Canvas boundary - nodes not clipped", () => {
 });
 
 test.describe("Fix 3: Right panel conditional display", () => {
-  test("ER right panel hidden when nothing selected", async ({ page }) => {
+  test("ER inspector body collapses with its reopen control visible", async ({ page }) => {
     await page.goto("http://127.0.0.1:5181");
     await page.waitForSelector('[data-fd-area="canvas"]', { timeout: 15000 });
-    await page.waitForTimeout(2000);
+    await page.waitForFunction(() => Boolean((window as any).designer?.graph));
 
-    // Right panel should NOT be visible when nothing is selected
-    const inspector = page.locator('[data-fd-area="inspector"]');
-    const isVisible = await inspector.isVisible().catch(() => false);
-    console.log(`ER inspector visible (nothing selected): ${isVisible}`);
-    expect(isVisible).toBe(false);
+    const { inspector, toggle, body } = await inspectorContent(page);
+    await expect(inspector).toBeVisible();
+    await expect(toggle).toHaveAccessibleName("展开属性");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(body).toBeHidden();
   });
 
-  test("ComfyUI right panel hidden when nothing selected", async ({ page }) => {
+  test("ComfyUI inspector body collapses with its reopen control visible", async ({ page }) => {
     await page.goto("http://127.0.0.1:5180");
     await page.waitForSelector('[data-fd-area="canvas"]', { timeout: 15000 });
-    await page.waitForTimeout(2000);
+    await page.waitForFunction(() => Boolean((window as any).designer?.graph));
 
-    // Right panel should NOT be visible when nothing is selected
-    const inspector = page.locator('[data-fd-area="inspector"]');
-    const isVisible = await inspector.isVisible().catch(() => false);
-    console.log(`ComfyUI inspector visible (nothing selected): ${isVisible}`);
-    expect(isVisible).toBe(false);
+    const { inspector, toggle, body } = await inspectorContent(page);
+    await expect(inspector).toBeVisible();
+    await expect(toggle).toHaveAccessibleName("展开属性");
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(body).toBeHidden();
   });
 
   test("BPMN right panel visible (has flow-level settings)", async ({ page }) => {
     await page.goto("http://127.0.0.1:5179");
     await page.waitForSelector('[data-fd-area="canvas"]', { timeout: 15000 });
-    await page.waitForTimeout(2000);
+    await page.waitForFunction(() => Boolean((window as any).designer?.graph));
 
-    // BPMN has doc-level settings, so right panel should be visible
-    const inspector = page.locator('[data-fd-area="inspector"]');
-    const isVisible = await inspector.isVisible().catch(() => false);
-    console.log(`BPMN inspector visible (has doc settings): ${isVisible}`);
-    expect(isVisible).toBe(true);
+    const { inspector, toggle, body } = await inspectorContent(page);
+    await expect(inspector).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(body).toBeVisible();
+    await expect(body.locator("input").first()).toBeVisible();
   });
 
   test("ER right panel appears when node selected", async ({ page }) => {
     await page.goto("http://127.0.0.1:5181");
     await page.waitForSelector('[data-fd-area="canvas"]', { timeout: 15000 });
-    await page.waitForTimeout(2000);
+    await page.waitForFunction(() => Boolean((window as any).designer?.graph));
 
-    // Click on a node to select it
-    const node = page.locator(".x6-cell.x6-node").first();
-    if (await node.isVisible()) {
-      await node.click();
-      await page.waitForTimeout(500);
-
-      const inspector = page.locator('[data-fd-area="inspector"]');
-      const isVisible = await inspector.isVisible().catch(() => false);
-      console.log(`ER inspector visible (node selected): ${isVisible}`);
-      expect(isVisible).toBe(true);
-    }
+    const id = await page.evaluate(async () => {
+      const designer = (window as any).designer;
+      const graph = designer.graph.getX6Graph();
+      const viewport = document.querySelector(".x6-graph-scroller")!.getBoundingClientRect();
+      const center = graph.clientToLocal(
+        viewport.left + viewport.width / 2,
+        viewport.top + viewport.height / 2,
+      );
+      const node = await designer.document
+        .getContent()
+        .addNode({ type: "Table", props: { __position: { x: center.x - 140, y: center.y - 60 } } });
+      return node.getId();
+    });
+    const node = page.locator(`.x6-cell.x6-node[data-cell-id="${id}"]`);
+    await expect(node).toBeVisible();
+    await node.click();
+    const { toggle, body } = await inspectorContent(page);
+    await expect(toggle).toHaveAccessibleName("收起属性");
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(body).toBeVisible();
+    await expect(body.locator("input").first()).toBeVisible();
+    await page.evaluate(() => (window as any).designer.graph.select([]));
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await expect(body).toBeHidden();
   });
 });
 

@@ -7,7 +7,6 @@ import { pluginCopyPaste } from "./copy-paste";
 import { pluginDelete } from "./delete";
 import { pluginStencilPanel } from "./stencil-panel";
 import { pluginSelectionPanel } from "./selection-panel";
-import { pluginEdgeLabel } from "./edge-label";
 import { pluginDebugLoader } from "./debug-loader";
 import { pluginSchemaViewer } from "./schema-viewer";
 import { pluginCanvasHelp } from "./canvas-help";
@@ -22,7 +21,6 @@ const BUILTIN_PLUGINS: Array<{ name: string; creator: PluginCreator }> = [
   { name: "plugin-delete", creator: pluginDelete },
   { name: "plugin-stencil-panel", creator: pluginStencilPanel },
   { name: "plugin-selection-panel", creator: pluginSelectionPanel },
-  { name: "plugin-edge-label", creator: pluginEdgeLabel },
   { name: "plugin-debug-loader", creator: pluginDebugLoader },
   { name: "plugin-schema-viewer", creator: pluginSchemaViewer },
   { name: "plugin-canvas-help", creator: pluginCanvasHelp },

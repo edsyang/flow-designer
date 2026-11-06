@@ -110,3 +110,24 @@ export type {
   GraphEventHandler,
   BlankConnectionEvent,
 } from "./interfaces";
+
+export { canUsePort } from "./connection";
+export type {
+  ConnectionCheckOptions,
+  ConnectionValidationResult,
+  ConnectionRejectionReason,
+  ConnectionRejectedEvent,
+} from "./interfaces";
+
+export { CANVAS_COMMANDS } from "./canvas-commands";
+export type {
+  CanvasCommandContext,
+  CanvasConnectionSource,
+  CanvasPrototypeRequest,
+  CanvasPrototypeResult,
+  CreateCanvasNodeRequest,
+  CreatedCanvasNode,
+  ConnectCanvasNodesRequest,
+} from "./canvas-commands";
+
+export type { ResolvedConnection } from "./interfaces";

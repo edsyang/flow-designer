@@ -50,7 +50,7 @@ for (const scenario of [
       const obstacle = await content.addNode({ type: s.obstacle });
       const obstacle2 = await content.addNode({ type: s.obstacle });
       source.setPosition(80, 240);
-      target.setPosition(900, 240);
+      target.setPosition(900, s.curve ? 240 : 360);
       obstacle.setPosition(490, 650);
       obstacle2.setPosition(650, 80);
       source.getRelation().addEdge({
@@ -100,6 +100,14 @@ for (const scenario of [
           .getRelation()
           .getEdgeById(edge.id);
         return {
+          startTangent: {
+            x: line.getPointAtLength(Math.min(0.25, line.getTotalLength())).x,
+            y: line.getPointAtLength(Math.min(0.25, line.getTotalLength())).y,
+          },
+          endTangent: {
+            x: line.getPointAtLength(Math.max(0, line.getTotalLength() - 0.25)).x,
+            y: line.getPointAtLength(Math.max(0, line.getTotalLength() - 0.25)).y,
+          },
           vertices: edge.getVertices(),
           relation,
           error: view.container.getAttribute("data-routing-error"),
@@ -122,12 +130,18 @@ for (const scenario of [
     expect(before.connector).toBe(scenario.curve ? "port-curve" : "flow-normal");
     expect(before.router).toBe(scenario.curve ? null : "flow-orthogonal");
     expect(Boolean(before.marker)).toBe(!scenario.curve);
-    await page.evaluate(async (ids) => {
-      const d = (window as any).designer;
-      await d.document.transaction("Move obstacle", () =>
-        d.document.getContent().getNode(ids.obstacle).setPosition(490, 225),
-      );
-    }, ids);
+    await page.evaluate(
+      async ({ ids, curve }) => {
+        const d = (window as any).designer;
+        await d.document.transaction("Move obstacle", () =>
+          d.document
+            .getContent()
+            .getNode(ids.obstacle)
+            .setPosition(490, curve ? 225 : 245),
+        );
+      },
+      { ids, curve: scenario.curve },
+    );
     await expect.poll(async () => (await snapshot()).d).not.toBe(before.d);
     const movedObstacle = await snapshot();
     for (const p of movedObstacle.points)
@@ -146,10 +160,9 @@ for (const scenario of [
     expect(movedObstacle.target).toEqual(before.target);
     expect(movedObstacle.connector).toBe(before.connector);
     expect(movedObstacle.router).toBe(before.router);
-    const path = movedObstacle.points;
-    expect(Math.abs(path[1]!.y - movedObstacle.sourcePoint.y)).toBeLessThan(1);
-    expect(path[1]!.x).toBeGreaterThan(movedObstacle.sourcePoint.x);
-    const last = path[path.length - 1]!;
+    expect(Math.abs(movedObstacle.startTangent.y - movedObstacle.sourcePoint.y)).toBeLessThan(0.1);
+    expect(movedObstacle.startTangent.x).toBeGreaterThan(movedObstacle.sourcePoint.x);
+    const last = movedObstacle.endTangent;
     expect(Math.abs(last.y - movedObstacle.targetPoint.y)).toBeLessThan(1);
     expect(last.x).toBeLessThan(movedObstacle.targetPoint.x + 0.1);
     await page.evaluate(() => (window as any).designer.document.getTimeline().back());
@@ -161,18 +174,38 @@ for (const scenario of [
     expect((await snapshot()).target).toEqual(before.target);
     expect((await snapshot()).router).toBe(before.router);
     expect((await snapshot()).connector).toBe(before.connector);
+    await page.evaluate(() => {
+      const g = (window as any).designer.graph.getX6Graph();
+      g.centerCell(g.getCellById("routing-contract-edge"));
+    });
+    await page.evaluate(
+      () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+    );
     const line = page.locator('[data-cell-id="routing-contract-edge"] path[pointer-events="none"]');
     const point = await line.evaluate((path: SVGPathElement) => {
-      const p = path
-        .getPointAtLength(path.getTotalLength() * 0.4)
-        .matrixTransform(path.getScreenCTM()!);
-      return { x: p.x, y: p.y };
+      const length = path.getTotalLength();
+      const matrix = path.getScreenCTM();
+      if (!matrix) throw new Error("Edge screen transform unavailable");
+      for (let i = 10; i < 90; i++) {
+        const p = path.getPointAtLength((length * i) / 100).matrixTransform(matrix);
+        const hit = document.elementFromPoint(p.x, p.y);
+        if (
+          hit?.closest("[data-cell-id]")?.getAttribute("data-cell-id") === "routing-contract-edge"
+        )
+          return { x: p.x, y: p.y };
+      }
+      throw new Error("No exposed edge point: node or workbench overlays cover the fixture");
     });
     await page.mouse.move(point.x, point.y);
     let start = point;
     let delta = { x: 0, y: scenario.curve ? -180 : -45 };
     if (!scenario.curve) {
-      const handle = page.locator(".x6-edge-tool-segment:visible").first();
+      const handles = page.locator(".x6-edge-tool-segment:visible");
+      const index = await handles.evaluateAll((els) =>
+        els.findIndex((el) => getComputedStyle(el).cursor === "col-resize"),
+      );
+      expect(index).toBeGreaterThanOrEqual(0);
+      const handle = handles.nth(index);
       await expect(handle).toBeVisible();
       const box = await handle.boundingBox();
       if (!box) throw new Error("Segment handle unavailable");

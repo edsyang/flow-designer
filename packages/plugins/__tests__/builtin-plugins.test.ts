@@ -301,25 +301,6 @@ describe("pluginUnsavedPrompt", () => {
   });
 });
 
-describe("pluginEdgeLabel", () => {
-  it("listens to edge:dblclick events", async () => {
-    const { pluginEdgeLabel } = await import("../src/edge-label");
-    const ctx = createMockContext();
-    const config = pluginEdgeLabel(ctx as any);
-    config.init!();
-    expect(ctx.graph.on).toHaveBeenCalledWith("edge:dblclick", expect.any(Function));
-  });
-
-  it("cleans up event listener on destroy", async () => {
-    const { pluginEdgeLabel } = await import("../src/edge-label");
-    const ctx = createMockContext();
-    const config = pluginEdgeLabel(ctx as any);
-    config.init!();
-    config.destroy!();
-    expect(ctx.graph.off).toHaveBeenCalledWith("edge:dblclick", expect.any(Function));
-  });
-});
-
 describe("pluginStencilPanel", () => {
   it("adds stencil container to sidebar", async () => {
     const { pluginStencilPanel } = await import("../src/stencil-panel");
@@ -404,17 +385,19 @@ describe("pluginTheme", () => {
 });
 
 describe("registerBuiltinPlugins", () => {
-  it("registers the thirteen builtin plugins", async () => {
+  it("registers the twelve builtin plugins without a canvas edge-name editor", async () => {
     const { registerBuiltinPlugins } = await import("../src/register-builtin-plugins");
     const pluginManager = { register: vi.fn() };
     await registerBuiltinPlugins(pluginManager as any);
-    expect(pluginManager.register).toHaveBeenCalledTimes(13);
+    expect(pluginManager.register).toHaveBeenCalledTimes(12);
+    const exports = await import("../src");
+    expect("pluginEdgeLabel" in exports).toBe(false);
   }, 30000);
 
   it("respects disableList", async () => {
     const { registerBuiltinPlugins } = await import("../src/register-builtin-plugins");
     const pluginManager = { register: vi.fn() };
     await registerBuiltinPlugins(pluginManager as any, ["plugin-zoom", "plugin-delete"]);
-    expect(pluginManager.register).toHaveBeenCalledTimes(11);
+    expect(pluginManager.register).toHaveBeenCalledTimes(10);
   });
 });

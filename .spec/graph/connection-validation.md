@@ -6,9 +6,9 @@ The scenario app chooses semantic compatibility policy; `packages/graph` adapts 
 
 The context always has `sourceNode` and `targetNode` strings. If X6 supplies no endpoint cell, the graph adapter currently uses an empty string for that node ID. `sourcePort` and `targetPort` are `PortDefinition | null`; absent or unresolvable port IDs become `null`. Port lookup accepts either the declared port ID or the generated `${group}-${position}` ID used when a definition omits `id`.
 
-If no semantic validator is configured, the graph adapter returns `true`. This means only that the application adds no extra semantic rejection; X6's other connection rules remain active.
+Every committed connection first requires real endpoint nodes and registered ports with compatible source/target capabilities. `allowAll` and an absent scenario validator do not bypass these structural checks. `canUsePort` reads `connectionDirection` when declared, otherwise preserves legacy `in`/`out` group direction. Port position is independent of capability.
 
-A connection drag that currently has no target cell (a blank drop) is not judged by the semantic validator: `validateConnection` returns `true` for it so the temporary edge can be intercepted, because the validator cannot inspect a target port that does not exist yet. The validator runs when that pending drop is completed, either through `IGraphManager.checkConnection` while offering candidate nodes or through X6 once a real target exists.
+A connection drag that currently has no target cell (a blank drop) is not judged by the semantic validator: `validateConnection` returns `true` for it so the temporary edge can be intercepted, because the validator cannot inspect a target port that does not exist yet. `evaluateConnection(context, { phase: "candidate" })` checks prototype port capabilities and returns a deferred result without invoking an instance validator with a fabricated node ID. Validators can optionally expose `validatePorts` for pure prototype metadata filtering; built-in type/direction validators do so. Commit phase (also used by boolean `checkConnection`) checks real node/port existence, structural rules, and scenario validation. Rejections carry translatable reason keys; hover checks remain silent and final drop emits one `connection:rejected` event.
 
 ## Independent X6 rules
 
@@ -16,13 +16,14 @@ A connection drag that currently has no target cell (a blank drop) is not judged
 
 ## Blank drops
 
-Dropping a connection drag over empty canvas is not a persistence action. The graph adapter accepts the X6 blank terminal, removes the temporary edge immediately, and emits `connection:blank` with:
+Dropping a connection drag over empty canvas is not a persistence action. The graph adapter accepts the X6 blank terminal, retains the temporary edge while the picker is open, and emits `connection:blank` with:
 
 - `sourceCellId`: the node the drag started from;
 - `sourcePortId`: the source port, or `null` when the node exposes no ports;
-- `x` / `y`: the drop point in graph coordinates.
+- `x` / `y`: the drop point in graph coordinates;
+- optional `reason`: a translatable capability rejection key for an explained empty picker.
 
-No model relation and no X6 cell survives the drop. The workbench (`packages/react/src/panels/canvas.tsx`) opens the node picker at that point and, once a prototype is chosen, creates the node and a `SerializedRelation` from the source port to the new node's default `in` port inside one `Document.transaction`, so a single undo removes both. Candidate prototypes are filtered through `IGraphManager.checkConnection` using their default `in` port, so a node the scenario validator would refuse is not offered as a target. `GraphBridge` ignores blank connections, so a dangling edge can never become a relation.
+No model relation is created by the blank drop. The workbench removes the temporary edge on completion or cancellation. It enumerates every source/target-capable port rather than selecting a geometric `in` group, filters candidates with candidate-phase checks, then validates the newly created real target again before adding its relation. An incoming-only source still opens an empty picker with its reason. GraphBridge ignores incomplete edges.
 
 Set `connecting.onBlankDrop: "ignore"` to keep plain X6 behavior instead.
 
@@ -31,14 +32,14 @@ Set `connecting.onBlankDrop: "ignore"` to keep plain X6 behavior instead.
 | Validator | Accepts | Rejects |
 | --- | --- | --- |
 | `sameDataType` | A source port has a non-null `dataType` and it exactly equals the target port's `dataType`. | Missing source port/type, missing target port, or unequal values. Matching `undefined` values are not accepted. |
-| `directionOnly` | `sourcePort.group === 'out'` and `targetPort.group === 'in'`. | Missing ports or any other group/direction, including reversed endpoints. |
+| `directionOnly` | `canUsePort(sourcePort, "source")` and `canUsePort(targetPort, "target")`. | Missing ports or any other group/direction, including reversed endpoints. |
 | `allowAll` | Every semantic context (the implementation does not inspect its arguments). | Nothing semantically. |
 
 These policies read model metadata only. `position`, `color`, and `label` are presentation/layout metadata and do not imply type or direction semantics.
 
 ## Scenario policy
 
-The scenario app is responsible for selecting a validator that matches its domain. ComfyUI declares typed ports and uses `sameDataType` when configured; ER currently configures `allowAll` despite declaring `ROW`, `REFERENCE`, and `ENUM_VALUE` port types. BPMN configures outgoing-to-incoming validation; its start/end node port definitions therefore prevent incoming connections to starts and outgoing connections from ends. See [ComfyUI](../scenarios/comfyui.md), [ER](../scenarios/er.md), and [BPMN](../scenarios/bpmn.md).
+The scenario app is responsible for selecting a validator that matches its domain. ComfyUI declares typed ports and uses `sameDataType` when configured; ER currently configures `allowAll` despite declaring `ROW`, `REFERENCE`, and `ENUM_VALUE` port types. BPMN uses four geometrical ports per node: starts explicitly allow only outgoing connections, ends only incoming, and every other node allows both directions on every side. Existing port IDs remain unchanged. See [ComfyUI](../scenarios/comfyui.md), [ER](../scenarios/er.md), and [BPMN](../scenarios/bpmn.md).
 
 ## Change constraints
 
@@ -58,3 +59,7 @@ The scenario app is responsible for selecting a validator that matches its domai
 - Scenario selection: `apps/comfyui/app/src/app.tsx` and `apps/er/app/src/app.tsx`.
 
 When modifying behavior, add an integration test for the X6 callback as well as policy unit tests when the change affects endpoint resolution, defaults, or the interaction with `allowBlank`, `allowLoop`, or `allowMulti`.
+
+## Final generic port resolution
+
+`evaluateConnection` validates the exact requested endpoints. `resolveConnection` is a pure commit-time resolver: if a geometrically invalid request uses interchangeable geometry-only ports (no explicit ID, label, or data type), it first keeps the requested source and tries legal target ports; only then may it try another interchangeable source. Feasible pairs are ranked by length and bends. A valid original pair is retained. Semantic/capability rejection is never bypassed, and named/typed fields are never substituted. Native final drop and shared creation commands apply the returned source/target IDs before persistence; hover and candidate queries do not change endpoints.

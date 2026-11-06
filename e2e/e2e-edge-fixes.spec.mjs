@@ -218,9 +218,21 @@ test.describe("Edge fixes: orthogonal + port exit + drag persist", () => {
     await page.mouse.up();
     await page.waitForTimeout(1500);
 
-    // Deselect
-    await page.mouse.click(mainBox.x + 20, mainBox.y + 20);
-    await page.waitForTimeout(500);
+    // Establish an unselected fixture explicitly: blank clicks in pan mode do not
+    // guarantee that a newly connected edge leaves the model selection.
+    await page.evaluate(() => {
+      const designer = window.designer;
+      designer.graph.select([]);
+      designer.document.getSelection().setKeys([]);
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(() => ({
+          graph: window.designer.graph.getSelection(),
+          model: window.designer.document.getSelection().getKeys(),
+        })),
+      )
+      .toEqual({ graph: [], model: [] });
 
     const edgeCount = await page.evaluate(
       () => document.querySelectorAll(".x6-cell.x6-edge").length,

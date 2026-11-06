@@ -5,7 +5,6 @@ export { pluginCopyPaste } from "./copy-paste";
 export { pluginDelete } from "./delete";
 export { pluginStencilPanel } from "./stencil-panel";
 export { pluginSelectionPanel } from "./selection-panel";
-export { pluginEdgeLabel } from "./edge-label";
 export { pluginDebugLoader } from "./debug-loader";
 export { pluginSchemaViewer } from "./schema-viewer";
 export { pluginCanvasHelp } from "./canvas-help";

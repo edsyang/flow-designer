@@ -80,6 +80,7 @@ export default class Timeline {
   private transactionDepth = 0;
   private transactionTitle = "";
   private transactionDirty = false;
+  private transactionBaseline: string | null = null;
   private pauseCount: number = 0;
   private navigating: boolean = false;
   private navigationTimer: ReturnType<typeof setTimeout> | null = null;
@@ -149,16 +150,28 @@ export default class Timeline {
   }
 
   beginTransaction(title: string): void {
-    if (this.transactionDepth++ === 0) {
+    if (this.transactionDepth === 0) {
       this.currentPoint?.end();
+      const baseline = JSON.stringify(this.logger());
+      // Deferred observers may not have recorded edits that predate this command.
+      // Keep that effective starting state independently undoable.
+      if (this.currentPoint && baseline !== JSON.stringify(this.currentPoint.getData())) {
+        this.log("Pending changes");
+        this.currentPoint.end();
+      }
+      this.transactionBaseline = baseline;
       this.transactionTitle = title;
       this.transactionDirty = false;
     }
+    this.transactionDepth++;
   }
 
   endTransaction(): void {
     if (this.transactionDepth === 0 || --this.transactionDepth > 0) return;
-    if (this.transactionDirty) this.log(this.transactionTitle);
+    if (this.transactionDirty && JSON.stringify(this.logger()) !== this.transactionBaseline) {
+      this.log(this.transactionTitle);
+    }
+    this.transactionBaseline = null;
     if (this.transactionSave !== null && JSON.stringify(this.logger()) === this.transactionSave) {
       this.savedRevision = this.currentPoint
         ? this.revisions.get(this.currentPoint)!

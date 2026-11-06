@@ -100,6 +100,39 @@ describe("BPMN node definitions", () => {
     ).toBe(true);
   });
 
+  it("allows both directions on every task and gateway port without changing legacy IDs", () => {
+    for (const def of [
+      userTaskDef,
+      exclusiveGatewayDef,
+      parallelGatewayDef,
+      inclusiveGatewayDef,
+      eventBasedGatewayDef,
+    ]) {
+      for (const port of def.view.ports ?? []) {
+        expect(port.connectionDirection).toBe("both");
+        expect(
+          isValidBpmnConnection({
+            sourceNode: "task",
+            sourcePort: port,
+            targetNode: "end",
+            targetPort: endEventDef.view.ports![0],
+          }),
+        ).toBe(true);
+        expect(
+          isValidBpmnConnection({
+            sourceNode: "start",
+            sourcePort: startEventDef.view.ports![0],
+            targetNode: "task",
+            targetPort: port,
+          }),
+        ).toBe(true);
+      }
+    }
+    expect(
+      userTaskDef.view.ports?.map((port) => port.id ?? `${port.group}-${port.position}`),
+    ).toEqual(["in-top", "in-left", "out-bottom", "out-right"]);
+  });
+
   it("ExclusiveGateway has diamond shape with 4 ports", () => {
     expect(exclusiveGatewayDef.meta.typeName).toBe(BPMN_TYPE_NAMES.EXCLUSIVE_GATEWAY);
     expect(exclusiveGatewayDef.view.shape).toBe("fd-diamond");

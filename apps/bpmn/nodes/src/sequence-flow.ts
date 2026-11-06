@@ -1,12 +1,11 @@
 import { BuiltinSetters } from "@flow-designer/setters/constants";
-import { t } from "@flow-designer/model";
+import { canUsePort, t } from "@flow-designer/model";
 import type { ConnectionContext, EdgeTypeConfig } from "@flow-designer/model";
 import { BPMN_TYPE_NAMES } from "./constants";
 
 export const sequenceFlowConfig: EdgeTypeConfig = {
   defaultAttrs: {
     line: {
-      stroke: "#4C6079",
       strokeWidth: 1,
       targetMarker: { name: "block", size: 8 },
     },
@@ -18,9 +17,9 @@ export const sequenceFlowConfig: EdgeTypeConfig = {
       step: 16,
     },
   },
-  connector: { name: "normal" },
+  connector: { name: "normal", args: { adaptiveTargetMarkerSize: 8 } },
   schema: [
-    { name: "name", type: "string", defaultValue: "" },
+    { name: "name", type: "string", defaultValue: t("bpmn.node.sequenceFlow") },
     { name: "conditionExpression", type: "string", defaultValue: "" },
   ],
   editor: [
@@ -40,5 +39,5 @@ export const sequenceFlowConfig: EdgeTypeConfig = {
 export const SEQUENCE_FLOW_TYPE = BPMN_TYPE_NAMES.SEQUENCE_FLOW;
 
 export function isValidBpmnConnection({ sourcePort, targetPort }: ConnectionContext): boolean {
-  return sourcePort?.group === "out" && targetPort?.group === "in";
+  return canUsePort(sourcePort, "source") && canUsePort(targetPort, "target");
 }

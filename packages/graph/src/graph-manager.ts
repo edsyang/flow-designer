@@ -1,4 +1,4 @@
-import { Graph, Markup, type Cell, type Edge, type Node as X6Node } from "@antv/x6";
+import { Graph, Markup, type Cell, type Edge, type Node as X6Node, type Registry } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Scroller } from "@antv/x6-plugin-scroller";
 import { Snapline } from "@antv/x6-plugin-snapline";
@@ -10,7 +10,7 @@ import "@antv/x6-plugin-stencil/dist/index.css";
 import { register } from "@antv/x6-react-shape";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { getTheme, subscribeTheme, t } from "@flow-designer/model";
+import { canUsePort, getTheme, subscribeTheme, t } from "@flow-designer/model";
 import type {
   IGraphManager,
   GraphOptions,
@@ -23,6 +23,10 @@ import type {
   GraphData,
   EdgeTypeConfig,
   ConnectionContext,
+  ConnectionCheckOptions,
+  ConnectionValidationResult,
+  ConnectionRejectedEvent,
+  ResolvedConnection,
   NodeMeta,
   NodeView,
   PortDefinition,
@@ -32,11 +36,14 @@ import type {
 import { wrapWithErrorBoundary } from "./node-error-boundary";
 import { installViewportCulling } from "./viewport-culling";
 import { registerRoutedSegments } from "./safe-segments";
+import { findShortPortRoute, routeWithPortStubs } from "./orthogonal-routing";
 import { normalizeOrthogonalVertices } from "./edge-geometry";
 import {
   registerPortCurveConnector,
   strictOrthogonalFallback,
   installEdgeRouting,
+  routingAffectedEdges,
+  markRoutingPersisted,
 } from "./edge-routing";
 import { registerBuiltinShapes, DEFAULT_PORT_ITEMS } from "./shapes";
 import {
@@ -44,6 +51,8 @@ import {
   installCanvasDragPan,
   type DragEdgePanController,
 } from "./viewport-input";
+
+type ThemeColor = Registry.Attr.ComplexAttrValue;
 
 const DIR_VECTORS: Record<string, { x: number; y: number }> = {
   right: { x: 1, y: 0 },
@@ -94,6 +103,12 @@ export class GraphManager implements IGraphManager {
   private nodeTypeByCellId: Map<string, string> = new Map();
   private contentNodeByCellId = new Map<string, ContentNode>();
   private nodeDataVersion = 0;
+  private themeColors = new WeakMap<Cell, Map<string, { value: ThemeColor; managed: boolean }>>();
+  private explicitEdgeStrokes = new WeakSet<Edge>();
+  private selectedNodeStrokes = new WeakMap<
+    X6Node,
+    { stroke: ThemeColor; strokeWidth: ThemeColor }
+  >();
   private edgeTypeByCellId: Map<string, string> = new Map();
   private edgeReactRoots: Map<HTMLElement, Root> = new Map();
   private stencil: Stencil | null = null;
@@ -101,6 +116,8 @@ export class GraphManager implements IGraphManager {
   private dragEdgePan: DragEdgePanController | null = null;
   private stencilBridgeBound = false;
   private hoveredEdgeId: string | null = null;
+  private connectionRules = { allowLoop: false, allowMulti: true };
+  private rejectedAttempts = new WeakMap<Edge, ConnectionRejectedEvent>();
   private connectionValidator: NonNullable<GraphOptions["connecting"]>["connectionValidator"];
   private viewportResizeObserver: ResizeObserver | null = null;
   private viewportResizeHandler: (() => void) | null = null;
@@ -117,6 +134,10 @@ export class GraphManager implements IGraphManager {
     const height = viewport.clientHeight || container.clientHeight;
     const connectionValidator = options.connecting?.connectionValidator;
     this.connectionValidator = connectionValidator;
+    this.connectionRules = {
+      allowLoop: options.connecting?.allowLoop ?? false,
+      allowMulti: options.connecting?.allowMulti ?? true,
+    };
     this.backgroundOption = options.background;
     this.gridOption = options.grid;
     const self = this;
@@ -186,7 +207,9 @@ export class GraphManager implements IGraphManager {
           const connector = typeConfig?.connector ?? { name: "normal" };
           return graph.createEdge({ attrs, router, connector });
         },
-        validateConnection: (args) => this.validateConnection(args, connectionValidator),
+        validateConnection: (args) => this.validateConnection(args),
+        validateEdge: ({ edge, type, previous }) =>
+          this.validateDroppedConnection(edge, type, previous),
       },
       onEdgeLabelRendered: (args) => this.handleEdgeLabelRendered(args),
     });
@@ -250,7 +273,8 @@ export class GraphManager implements IGraphManager {
     this.setupSelectionHighlight();
     this.setupEdgeToolsOnHover();
     this.setupPortAutoSwitch();
-    this.setupBlankConnection();
+    if ((options.connecting?.onBlankDrop ?? "choose-node") === "choose-node")
+      this.setupBlankConnection();
     this.setupEdgeZOrder();
     this.setupTemporaryPan(container, scroller);
     if (options.viewportCulling !== false)
@@ -403,6 +427,9 @@ export class GraphManager implements IGraphManager {
     this.graph?.dispose();
     this.graph = null;
     this.selectionPlugin = null;
+    this.themeColors = new WeakMap();
+    this.explicitEdgeStrokes = new WeakSet();
+    this.selectedNodeStrokes = new WeakMap();
     this.scroller = null;
     this.dragEdgePan = null;
     this.nodeTypeByCellId.clear();
@@ -521,21 +548,27 @@ export class GraphManager implements IGraphManager {
     const defaultEdgeAttrs = {
       line: { stroke: "#4C6079", strokeWidth: 1, targetMarker: { name: "block", size: 8 } },
     };
-    const edge = graph.addEdge(
-      {
-        id: config.id,
-        zIndex: -1,
-        source: this.toX6Terminal(config.source),
-        target: this.toX6Terminal(config.target),
-        vertices: config.vertices,
-        labels,
-        data: config.data,
-        attrs: typeEntry?.defaultAttrs ?? defaultEdgeAttrs,
-        router: typeEntry?.router === null ? undefined : (typeEntry?.router ?? DEFAULT_ROUTER),
-        connector: typeEntry?.connector ?? { name: "normal" },
-      },
-      this.bulkDepth ? { sort: false } : undefined,
-    );
+    const edge = graph.createEdge({
+      id: config.id,
+      zIndex: -1,
+      source: this.toX6Terminal(config.source),
+      target: this.toX6Terminal(config.target),
+      vertices: config.vertices,
+      labels,
+      data: config.data,
+      attrs: typeEntry?.defaultAttrs ?? defaultEdgeAttrs,
+      router: typeEntry?.router === null ? undefined : (typeEntry?.router ?? DEFAULT_ROUTER),
+      connector: typeEntry?.connector ?? { name: "normal" },
+    });
+    const line = typeEntry?.defaultAttrs?.line;
+    if (line && typeof line === "object" && "stroke" in line) this.explicitEdgeStrokes.add(edge);
+    else
+      this.themeColors.set(
+        edge,
+        new Map([["line/stroke", { value: edge.attr<ThemeColor>("line/stroke"), managed: true }]]),
+      );
+    markRoutingPersisted(edge);
+    graph.addEdge(edge, this.bulkDepth ? { sort: false } : undefined);
     if (config.type) {
       this.edgeTypeByCellId.set(edge.id, config.type);
     }
@@ -562,6 +595,7 @@ export class GraphManager implements IGraphManager {
   updateEdge(config: EdgeConfig): void {
     const edge = this.graph?.getCellById(config.id);
     if (!edge?.isEdge()) return;
+    markRoutingPersisted(edge);
     edge.setSource(typeof config.source === "string" ? { cell: config.source } : config.source);
     edge.setTarget(typeof config.target === "string" ? { cell: config.target } : config.target);
     if (config.type) this.edgeTypeByCellId.set(config.id, config.type);
@@ -650,7 +684,15 @@ export class GraphManager implements IGraphManager {
   getFirstPortOfGroup(nodeId: string, group: string): PortDefinition | null {
     const type = this.nodeTypeByCellId.get(nodeId);
     return (
-      (type ? this.portsByType.get(type)?.find((port) => port.group === group) : undefined) ?? null
+      (type
+        ? this.portsByType
+            .get(type)
+            ?.find((port) =>
+              group === "in" || group === "out"
+                ? canUsePort(port, group === "in" ? "target" : "source")
+                : port.group === group,
+            )
+        : undefined) ?? null
     );
   }
 
@@ -682,7 +724,17 @@ export class GraphManager implements IGraphManager {
     const typeName = this.nodeTypeByCellId.get(nodeId);
     if (!typeName) return null;
     const ports = this.portsByType.get(typeName);
-    if (!ports) return null;
+    if (!ports) {
+      const node = this.graph?.getCellById(nodeId);
+      const fallback = DEFAULT_PORT_ITEMS.find((port) => port.id === portId);
+      if (node?.isNode() && fallback && node.hasPort(portId))
+        return {
+          id: portId,
+          group: fallback.group,
+          position: portId as PortDefinition["position"],
+        };
+      return null;
+    }
     const byId = ports.find((port) => (port.id ?? `${port.group}-${port.position}`) === portId);
     if (byId) return byId;
     return ports.find((port) => port.position === portId) ?? null;
@@ -711,7 +763,7 @@ export class GraphManager implements IGraphManager {
       type: (edge as unknown as { shape: string }).shape,
       source: this.fromX6Terminal(edge.getSourceCellId(), edge.getSourcePortId()),
       target: this.fromX6Terminal(edge.getTargetCellId(), edge.getTargetPortId()),
-      vertices: edge.getVertices(),
+      vertices: edge.getVertices() as Array<{ x: number; y: number }>,
       data: edge.getData<Record<string, unknown>>() ?? undefined,
     }));
     return { nodes, edges };
@@ -927,7 +979,6 @@ export class GraphManager implements IGraphManager {
 
   private setupSelectionHighlight(): void {
     const graph = this.assertGraph();
-    const defaultStrokes = new Map<string, { stroke: string; strokeWidth: number }>();
 
     graph.on("render:done", () => {
       const ids = new Set(this.getSelection());
@@ -941,11 +992,11 @@ export class GraphManager implements IGraphManager {
     graph.on("selection:changed", ({ added, removed }: { added?: Cell[]; removed?: Cell[] }) => {
       for (const cell of removed ?? []) {
         if (cell.isNode()) {
-          const saved = defaultStrokes.get(cell.id);
+          const saved = this.selectedNodeStrokes.get(cell);
           if (saved) {
             cell.attr("body/stroke", saved.stroke);
             cell.attr("body/strokeWidth", saved.strokeWidth);
-            defaultStrokes.delete(cell.id);
+            this.selectedNodeStrokes.delete(cell);
           }
           graph.findViewByCell(cell)?.container.classList.remove("x6-node-selected");
         } else if (cell.isEdge()) {
@@ -954,7 +1005,10 @@ export class GraphManager implements IGraphManager {
       }
       for (const cell of added ?? []) {
         if (cell.isNode()) {
-          defaultStrokes.set(cell.id, { stroke: "#d9d9d9", strokeWidth: 1 });
+          this.selectedNodeStrokes.set(cell, {
+            stroke: cell.attr("body/stroke"),
+            strokeWidth: cell.attr("body/strokeWidth"),
+          });
           cell.attr("body/stroke", "#4d7cfe");
           cell.attr("body/strokeWidth", 2);
           graph.findViewByCell(cell)?.container.classList.add("x6-node-selected");
@@ -1027,6 +1081,25 @@ export class GraphManager implements IGraphManager {
       this.hoveredEdgeId = null;
       deferredLeaveEdge = null;
     };
+
+    // Tool redraws can replace the hovered SVG before X6 emits mouseleave.
+    // Check the pointer's owning cell without clearing tools beneath a drag.
+    const owner =
+      graph.container.closest<HTMLElement>('[data-fd-area="workbench"]') ?? graph.container;
+    const onOwnerMove = (event: MouseEvent) => {
+      if (!this.hoveredEdgeId || isDragging || event.buttons !== 0) return;
+      const cell = event.target instanceof Element ? event.target.closest("[data-cell-id]") : null;
+      if (cell?.getAttribute("data-cell-id") !== this.hoveredEdgeId) clearHoveredEdge();
+    };
+    const onOwnerLeave = (event: MouseEvent) => {
+      if (!isDragging && event.buttons === 0) clearHoveredEdge();
+    };
+    owner.addEventListener("mousemove", onOwnerMove, true);
+    owner.addEventListener("mouseleave", onOwnerLeave);
+    this.domEventCleanups.push(() => {
+      owner.removeEventListener("mousemove", onOwnerMove, true);
+      owner.removeEventListener("mouseleave", onOwnerLeave);
+    });
 
     let isEdgeDragging = false;
 
@@ -1114,6 +1187,17 @@ export class GraphManager implements IGraphManager {
           {
             name: "flow-routed-segments",
             args: {
+              validate: (edited: Edge) =>
+                this.hasShortConnectionRoute(
+                  this.connectionContext(edited),
+                  edited.id,
+                  edited.getVertices() as Array<{ x: number; y: number }>,
+                ),
+              onRejected: (edited: Edge) =>
+                this.reportConnectionRejection(edited, {
+                  valid: false,
+                  reason: "workbench.connection.routeUnavailable",
+                }),
               snapRadius: 20,
               threshold: 40,
               stopPropagation: false,
@@ -1180,6 +1264,16 @@ export class GraphManager implements IGraphManager {
       void graph.trigger("connection:blank", {
         sourceCellId,
         sourcePortId,
+        ...(!canUsePort(
+          sourcePortId ? this.getPortDefinition(sourceCellId, sourcePortId) : null,
+          "source",
+        )
+          ? {
+              reason: sourcePortId
+                ? ("workbench.connection.sourceCannotConnect" as const)
+                : ("workbench.connection.sourcePortRequired" as const),
+            }
+          : {}),
         edgeId: edge.id,
         x: point.x ?? 0,
         y: point.y ?? 0,
@@ -1190,8 +1284,9 @@ export class GraphManager implements IGraphManager {
   private setupPortAutoSwitch(): void {
     const graph = this.assertGraph();
 
-    graph.on("edge:connected", ({ edge }: { edge: any }) => {
+    graph.on("edge:connected", ({ edge }: { edge: Edge }) => {
       if (!edge.getTargetCell()) return;
+      markRoutingPersisted(edge);
       if (!this.edgeTypeByCellId.has(edge.id)) {
         const defaultType = this.getDefaultEdgeType();
         if (defaultType) this.edgeTypeByCellId.set(edge.id, defaultType);
@@ -1200,11 +1295,69 @@ export class GraphManager implements IGraphManager {
       this.updateConnectorDirections(edge);
     });
 
-    const reroute = ({ node }: { node: X6Node }) => {
-      for (const edge of graph.getConnectedEdges(node)) {
+    type SavedEdge = {
+      edge: Edge;
+      source: Edge.TerminalData;
+      target: Edge.TerminalData;
+      vertices: Array<{ x: number; y: number }>;
+    };
+    let gesture: {
+      node: X6Node;
+      position: { x: number; y: number };
+      edges: SavedEdge[];
+      positions: Array<{ node: X6Node; position: { x: number; y: number } }>;
+      rejected: boolean;
+      lastRejected?: boolean;
+    } | null = null;
+    const snapshot = (node: X6Node) => {
+      const selected = graph.getSelectedCells().filter((cell): cell is X6Node => cell.isNode());
+      const nodes = selected.some((cell) => cell.id === node.id) ? selected : [node];
+      const edges = [
+        ...new Set([
+          ...nodes.flatMap((item) => graph.getConnectedEdges(item)),
+          ...(gesture?.node === node ? gesture.edges.map((item) => item.edge) : []),
+        ]),
+      ];
+      return {
+        node,
+        position: { ...node.position() },
+        positions: nodes.map((item) => ({ node: item, position: { ...item.position() } })),
+        edges: edges.map((edge) => ({
+          edge,
+          source: edge.getSource(),
+          target: edge.getTarget(),
+          vertices: edge.getVertices() as Array<{ x: number; y: number }>,
+        })),
+        rejected: false,
+      };
+    };
+    let initial: ReturnType<typeof snapshot> | null = null;
+    const restore = (saved: NonNullable<typeof gesture>) => {
+      for (const item of saved.positions) item.node.position(item.position.x, item.position.y);
+      for (const item of saved.edges) {
+        item.edge.setSource(item.source);
+        item.edge.setTarget(item.target);
+        item.edge.setVertices(item.vertices);
+        this.updateRouterDirections(item.edge);
+        this.updateConnectorDirections(item.edge);
+      }
+    };
+    graph.on("node:mousedown", ({ node }: { node: X6Node }) => {
+      gesture = snapshot(node);
+      initial = snapshot(node);
+    });
+    type MovePayload = { node?: X6Node; cell?: Cell; routingEdgeIds?: string[] };
+    const movingNode = (args: MovePayload): X6Node | null => {
+      const node = args.node ?? args.cell;
+      return node?.isNode() ? node : null;
+    };
+    const reroute = (args: MovePayload) => {
+      const node = movingNode(args);
+      if (!node) return;
+      const members = gesture?.node === node ? gesture.positions.map((item) => item.node) : [node];
+      for (const edge of new Set(members.flatMap((item) => graph.getConnectedEdges(item)))) {
         const source = this.getPortDefinition(edge.getSourceCellId(), edge.getSourcePortId()!);
         const target = this.getPortDefinition(edge.getTargetCellId(), edge.getTargetPortId()!);
-        // A named or typed port denotes a semantic field, not an interchangeable side.
         const directional = (port: PortDefinition | null) =>
           !!port && !port.id && !port.label && !port.dataType;
         this.autoSwitchEdgePorts(edge, !directional(source), !directional(target), true);
@@ -1212,9 +1365,74 @@ export class GraphManager implements IGraphManager {
         this.updateRouterDirections(edge);
         this.updateConnectorDirections(edge);
       }
+      if (gesture?.node !== node) return;
+      // Include unrelated links: the dragged node may have become a new obstacle.
+      const affected = [
+        ...new Set(
+          gesture.positions.flatMap((item) => [
+            ...routingAffectedEdges(graph, item.node, item.position),
+            ...graph.getConnectedEdges(item.node).map((edge) => edge.id),
+          ]),
+        ),
+      ];
+      const invalid = affected
+        .map((id) => graph.getCellById(id))
+        .filter((cell): cell is Edge => cell.isEdge())
+        .find(
+          (edge) =>
+            edge.getSourceCell() &&
+            edge.getTargetCell() &&
+            !this.hasShortConnectionRoute(this.connectionContext(edge), edge.id) &&
+            (() => {
+              for (const saved of [gesture, initial])
+                if (saved && !saved.edges.some((item) => item.edge.id === edge.id))
+                  saved.edges.push({
+                    edge,
+                    source: edge.getSource(),
+                    target: edge.getTarget(),
+                    vertices: edge.getVertices() as Array<{ x: number; y: number }>,
+                  });
+              return !this.tryAlternativeDirectionalPorts(edge);
+            })(),
+        );
+      if (invalid) {
+        const saved = gesture;
+        saved.lastRejected = true;
+        restore(saved);
+        // Snapline runs later in this native pointer dispatch and may translate again.
+        // Reapply before paint, while retaining synchronous state for downstream listeners.
+        queueMicrotask(() => {
+          if (this.graph === graph && gesture === saved && saved.lastRejected) restore(saved);
+        });
+        if (!saved.rejected) {
+          saved.rejected = true;
+          this.reportConnectionRejection(invalid, {
+            valid: false,
+            reason: "workbench.connection.routeUnavailable",
+          });
+        }
+      } else {
+        const rejected = gesture.rejected;
+        gesture = snapshot(node);
+        gesture.rejected = rejected;
+      }
     };
     graph.on("node:moving", reroute);
-    graph.on("node:moved", reroute);
+    graph.on("node:moved", (args: MovePayload) => {
+      if (!movingNode(args)) return;
+      if (gesture?.lastRejected && initial) restore(initial);
+      else reroute(args);
+      Object.assign(args, {
+        routingEdgeIds: [
+          ...new Set([
+            ...(args.routingEdgeIds ?? []),
+            ...(initial?.edges.map((item) => item.edge.id) ?? []),
+          ]),
+        ],
+      });
+      gesture = null;
+      initial = null;
+    });
   }
 
   private autoSwitchEdgePorts(
@@ -1226,6 +1444,10 @@ export class GraphManager implements IGraphManager {
     const sourceCell = edge.getSourceCell() as X6Node | null;
     const targetCell = edge.getTargetCell() as X6Node | null;
     if (!sourceCell || !targetCell) return;
+    if (directionalOnly) {
+      this.selectDirectionalPorts(edge, true);
+      return;
+    }
     const sBBox = sourceCell.getBBox();
     const tBBox = targetCell.getBBox();
     const sc = { x: sBBox.x + sBBox.width / 2, y: sBBox.y + sBBox.height / 2 };
@@ -1238,12 +1460,9 @@ export class GraphManager implements IGraphManager {
     const sourcePorts = sourceType ? this.portsByType.get(sourceType) : undefined;
     const targetPorts = targetType ? this.portsByType.get(targetType) : undefined;
 
-    const eligible = (p: PortDefinition) => !directionalOnly || (!p.id && !p.label && !p.dataType);
-    const originalSource = edge.getSource();
-    const originalTarget = edge.getTarget();
     let sourceDir: string | null = null;
     if (sourcePorts) {
-      const outPorts = sourcePorts.filter((p) => p.group === "out" && eligible(p));
+      const outPorts = sourcePorts.filter((p) => canUsePort(p, "source"));
       const best = this.pickBestPort(outPorts, dx, dy);
       if (best) {
         sourceDir = preserveSource ? this.getPortDirectionFromDef(edge, "source") : best.position;
@@ -1254,7 +1473,7 @@ export class GraphManager implements IGraphManager {
       }
     }
     if (targetPorts) {
-      const inPorts = targetPorts.filter((p) => p.group === "in" && eligible(p));
+      const inPorts = targetPorts.filter((p) => canUsePort(p, "target"));
       let tdx = -dx;
       let tdy = -dy;
       if (sourceDir) {
@@ -1281,19 +1500,72 @@ export class GraphManager implements IGraphManager {
         }
       }
     }
-    if (
-      directionalOnly &&
-      this.connectionValidator &&
-      !this.connectionValidator({
-        sourceNode: sourceCell.id,
-        targetNode: targetCell.id,
-        sourcePort: this.getPortDefinition(sourceCell.id, edge.getSourcePortId()),
-        targetPort: this.getPortDefinition(targetCell.id, edge.getTargetPortId()),
-      })
-    ) {
-      edge.setSource(originalSource);
-      edge.setTarget(originalTarget);
+  }
+
+  /** Interchangeable geometry-only ports may escape an obstacle; semantic ports never change. */
+  private tryAlternativeDirectionalPorts(edge: Edge): boolean {
+    return this.selectDirectionalPorts(edge, false);
+  }
+
+  /** Decide preferred and fallback pairs without exposing rejected intermediate terminals. */
+  private selectDirectionalPorts(edge: Edge, geometryFirst: boolean): boolean {
+    const source = edge.getSourceCell();
+    const target = edge.getTargetCell();
+    if (!source?.isNode() || !target?.isNode()) return false;
+    const sc = source.getBBox().getCenter(),
+      tc = target.getBBox().getCenter();
+    const dx = tc.x - sc.x,
+      dy = tc.y - sc.y;
+    const choices = (node: X6Node, portId: string | undefined, terminal: "source" | "target") => {
+      const current = portId ? this.getPortDefinition(node.id, portId) : null;
+      if (!current || current.id || current.label || current.dataType)
+        return portId ? [portId] : [];
+      const type = this.nodeTypeByCellId.get(node.id);
+      const definitions = type ? this.portsByType.get(type) : undefined;
+      return [
+        ...new Set([
+          ...(portId ? [portId] : []),
+          ...(definitions ?? [])
+            .filter((p) => !p.id && !p.label && !p.dataType && canUsePort(p, terminal))
+            .map((p) => `${p.group}-${p.position}`),
+        ]),
+      ];
+    };
+    const score = (node: X6Node, id: string, sign: number) => {
+      const port = this.getPortDefinition(node.id, id);
+      const v = port ? DIR_VECTORS[port.position] : null;
+      return v ? (v.x * dx + v.y * dy) * sign : 0;
+    };
+    const pairs = choices(source, edge.getSourcePortId(), "source").flatMap((sp) =>
+      choices(target, edge.getTargetPortId(), "target").map((tp) => ({
+        sp,
+        tp,
+        current: sp === edge.getSourcePortId() && tp === edge.getTargetPortId(),
+        score: score(source, sp, 1) + score(target, tp, -1),
+      })),
+    );
+    pairs.sort(
+      (a, b) => (geometryFirst ? 0 : Number(b.current) - Number(a.current)) || b.score - a.score,
+    );
+    for (const { sp, tp } of pairs) {
+      const context: ConnectionContext = {
+        sourceNode: source.id,
+        targetNode: target.id,
+        sourcePort: this.getPortDefinition(source.id, sp),
+        targetPort: this.getPortDefinition(target.id, tp),
+      };
+      if (
+        (!this.connectionValidator || this.connectionValidator(context)) &&
+        this.hasShortConnectionRoute(context, edge.id)
+      ) {
+        if (edge.getSourcePortId() !== sp) edge.setSource({ cell: source.id, port: sp });
+        if (edge.getTargetPortId() !== tp) edge.setTarget({ cell: target.id, port: tp });
+        this.updateRouterDirections(edge);
+        this.updateConnectorDirections(edge);
+        return true;
+      }
     }
+    return false;
   }
 
   private pickBestPort(ports: PortDefinition[], dx: number, dy: number): PortDefinition | null {
@@ -1408,7 +1680,7 @@ export class GraphManager implements IGraphManager {
     if (name !== "port-curve") {
       edge.setConnector(
         name === "normal" && edge.getRouter()?.name === "flow-orthogonal"
-          ? { name: "flow-normal" }
+          ? { name: "flow-normal", args: typeof connector === "string" ? {} : connector.args }
           : connector,
       );
       return;
@@ -1528,24 +1800,88 @@ export class GraphManager implements IGraphManager {
         };
   }
 
+  /** A caller change detaches that colour from the palette for this cell. */
+  private themeColor(
+    cell: Cell,
+    path: string,
+    current: ThemeColor,
+    initial: ThemeColor,
+    next: string,
+    explicit = false,
+  ): ThemeColor {
+    let colors = this.themeColors.get(cell);
+    if (!colors) {
+      colors = new Map();
+      this.themeColors.set(cell, colors);
+    }
+    const previous = colors.get(path);
+    const managed = previous
+      ? previous.managed && current === previous.value
+      : !explicit && (current === undefined || current === initial);
+    const value = managed ? next : current;
+    colors.set(path, { value, managed });
+    return value;
+  }
+
   private applyNodeTheme(node: X6Node): void {
     if (typeof node.shape !== "string" || !node.shape.startsWith("fd-")) return;
     const palette = this.resolveCanvasPalette();
+    const selected = this.selectedNodeStrokes.get(node);
+    const stroke = this.themeColor(
+      node,
+      "body/stroke",
+      selected?.stroke ?? node.attr("body/stroke"),
+      "#d9d9d9",
+      palette.bodyStroke,
+    );
+    if (selected) selected.stroke = stroke;
     node.attr({
       body: {
-        fill: node.shape === "fd-rect-event" ? palette.eventFill : palette.bodyFill,
-        stroke: palette.bodyStroke,
+        fill: this.themeColor(
+          node,
+          "body/fill",
+          node.attr("body/fill"),
+          node.shape === "fd-rect-event" ? "#fff7e6" : "#ffffff",
+          node.shape === "fd-rect-event" ? palette.eventFill : palette.bodyFill,
+        ),
+        ...(!selected ? { stroke } : {}),
       },
-      label: { fill: palette.label },
+      label: {
+        fill: this.themeColor(
+          node,
+          "label/fill",
+          node.attr("label/fill"),
+          "#262626",
+          palette.label,
+        ),
+      },
     });
     for (const port of node.getPorts()) {
       if (!port.id) continue;
-      node.setPortProp(port.id, "attrs/circle/fill", palette.portFill);
+      const current: ThemeColor = node.getPortProp(port.id, "attrs/circle/fill");
+      const fill = this.themeColor(
+        node,
+        `port/${port.id}/fill`,
+        current,
+        "#fff",
+        palette.portFill,
+        current !== undefined,
+      );
+      if (fill !== current) node.setPortProp(port.id, "attrs/circle/fill", fill);
     }
   }
 
   private applyEdgeTheme(edge: Edge): void {
-    edge.attr("line/stroke", this.resolveCanvasPalette().edgeStroke);
+    const current: ThemeColor = edge.attr("line/stroke");
+    const stroke = this.themeColor(
+      edge,
+      "line/stroke",
+      current,
+      "#4C6079",
+      this.resolveCanvasPalette().edgeStroke,
+      this.explicitEdgeStrokes.has(edge),
+    );
+    if (stroke !== current) edge.attr("line/stroke", stroke);
   }
 
   /** Repaint everything that X6 draws itself, keeping canvas and chrome in step. */
@@ -1565,35 +1901,269 @@ export class GraphManager implements IGraphManager {
     });
   }
 
-  /**
-   * Runs the configured connection validator, if any. Exposed so callers can
-   * judge a candidate connection before an edge exists, which is what a pending
-   * blank drop needs when the user picks the node that should receive it.
-   */
+  /** Commit-phase boolean compatibility wrapper; evaluateConnection also returns reasons. */
   checkConnection(context: ConnectionContext): boolean {
-    return this.connectionValidator ? this.connectionValidator(context) : true;
+    return this.evaluateConnection(context).valid;
   }
 
-  private validateConnection(
-    args: {
-      sourceCell?: Cell | null;
-      targetCell?: Cell | null;
-      sourcePort?: string | null;
-      targetPort?: string | null;
-    },
-    validator?: (context: ConnectionContext) => boolean,
+  evaluateConnection(
+    context: ConnectionContext,
+    options: ConnectionCheckOptions = {},
+  ): ConnectionValidationResult {
+    return this.evaluateConnectionRules(context, options, true);
+  }
+
+  resolveConnection(
+    context: ConnectionContext,
+    options: ConnectionCheckOptions = {},
+  ): ResolvedConnection {
+    const initial = this.evaluateConnection(context, options);
+    const id = (port: PortDefinition | null) =>
+      port ? (port.id ?? `${port.group}-${port.position}`) : undefined;
+    const result = (candidate: ConnectionContext): ResolvedConnection => ({
+      valid: true,
+      sourcePortId: id(candidate.sourcePort),
+      targetPortId: id(candidate.targetPort),
+    });
+    if (initial.valid) return { ...initial, ...result(context) };
+    if (options.phase === "candidate" || initial.reason !== "workbench.connection.routeUnavailable")
+      return initial;
+    const choices = (
+      nodeId: string,
+      current: PortDefinition | null,
+      terminal: "source" | "target",
+    ) => {
+      if (!current || current.id || current.label || current.dataType)
+        return current ? [current] : [];
+      const type = this.nodeTypeByCellId.get(nodeId);
+      const definitions = type ? this.portsByType.get(type) : undefined;
+      return [
+        current,
+        ...(definitions ?? []).filter(
+          (p) =>
+            id(p) !== id(current) && !p.id && !p.label && !p.dataType && canUsePort(p, terminal),
+        ),
+      ];
+    };
+    const candidates: Array<{ context: ConnectionContext; sourcePriority: number; score: number }> =
+      [];
+    for (const sourcePort of choices(context.sourceNode, context.sourcePort, "source"))
+      for (const targetPort of choices(context.targetNode, context.targetPort, "target")) {
+        const candidate = { ...context, sourcePort, targetPort };
+        if (!this.evaluateConnection(candidate, options).valid) continue;
+        const score = { value: Infinity };
+        this.hasShortConnectionRoute(candidate, options.edgeId, [], score);
+        candidates.push({
+          context: candidate,
+          sourcePriority: id(sourcePort) === id(context.sourcePort) ? 0 : 1,
+          score: score.value,
+        });
+      }
+    candidates.sort((a, b) => a.sourcePriority - b.sourcePriority || a.score - b.score);
+    const best = candidates[0];
+    return best ? result(best.context) : initial;
+  }
+
+  private evaluateConnectionRules(
+    context: ConnectionContext,
+    options: ConnectionCheckOptions,
+    checkRoute: boolean,
+  ): ConnectionValidationResult {
+    const reject = (
+      reason: NonNullable<ConnectionValidationResult["reason"]>,
+    ): ConnectionValidationResult => ({ valid: false, reason });
+    if (!context.sourcePort) return reject("workbench.connection.sourcePortRequired");
+    if (!canUsePort(context.sourcePort, "source"))
+      return reject("workbench.connection.sourceCannotConnect");
+    if (!context.targetPort) return reject("workbench.connection.targetPortRequired");
+    if (!canUsePort(context.targetPort, "target"))
+      return reject("workbench.connection.targetCannotReceive");
+    // A prototype is not an instance. Never pass an empty target ID to an instance validator.
+    if (options.phase === "candidate") {
+      if (
+        this.connectionValidator?.validatePorts &&
+        !this.connectionValidator.validatePorts(context)
+      )
+        return reject("workbench.connection.incompatible");
+      return { valid: true, deferred: true };
+    }
+    const graph = this.graph;
+    const sourceCell = graph?.getCellById(context.sourceNode) as Cell | null | undefined;
+    const targetCell = graph?.getCellById(context.targetNode) as Cell | null | undefined;
+    if (!graph || !sourceCell?.isNode() || !targetCell?.isNode())
+      return reject("workbench.connection.endpointMissing");
+    const sourcePortId =
+      context.sourcePort.id ?? `${context.sourcePort.group}-${context.sourcePort.position}`;
+    const targetPortId =
+      context.targetPort.id ?? `${context.targetPort.group}-${context.targetPort.position}`;
+    if (!sourceCell.hasPort(sourcePortId)) return reject("workbench.connection.sourcePortRequired");
+    if (!targetCell.hasPort(targetPortId)) return reject("workbench.connection.targetPortRequired");
+    if (!this.connectionRules.allowLoop && context.sourceNode === context.targetNode)
+      return reject("workbench.connection.loopNotAllowed");
+    if (
+      !this.connectionRules.allowMulti &&
+      graph
+        .getEdges()
+        .some(
+          (edge) =>
+            edge.id !== options.edgeId &&
+            edge.getSourceCellId() === context.sourceNode &&
+            edge.getTargetCellId() === context.targetNode,
+        )
+    )
+      return reject("workbench.connection.duplicateNotAllowed");
+    if (this.connectionValidator && !this.connectionValidator(context))
+      return reject("workbench.connection.incompatible");
+    if (checkRoute && !this.hasShortConnectionRoute(context, options.edgeId))
+      return reject("workbench.connection.routeUnavailable");
+    return { valid: true };
+  }
+
+  private hasShortConnectionRoute(
+    context: ConnectionContext,
+    edgeId?: string,
+    vertices: Array<{ x: number; y: number }> = [],
+    score?: { value: number },
   ): boolean {
-    if (!validator) return true;
-    // A blank drop has no target yet. Approve the temporary edge so the drop
-    // can be intercepted, and let the validator judge the real connection when
-    // the user picks a node for it.
-    const targetCell = args.targetCell ?? null;
-    if (!targetCell) return true;
+    const graph = this.assertGraph();
+    const type = (edgeId ? this.edgeTypeByCellId.get(edgeId) : null) ?? this.getDefaultEdgeType();
+    if (!type) return true;
+    const curved = this.edgeTypes.get(type)?.router === null;
+    const endpoint = (id: string, port: PortDefinition | null) => {
+      const node = graph.getCellById(id) as Cell | null | undefined;
+      if (!node?.isNode() || !port) return null;
+      const portId = port.id ?? `${port.group}-${port.position}`;
+      const actual = node.getPort(portId);
+      if (!actual?.group) return null;
+      const local = node.getPortsPosition(actual.group)[portId]?.position;
+      if (!local) return null;
+      const origin = node.position();
+      return { x: origin.x + local.x, y: origin.y + local.y };
+    };
+    const source = endpoint(context.sourceNode, context.sourcePort);
+    const target = endpoint(context.targetNode, context.targetPort);
+    if (!source || !target || !context.sourcePort || !context.targetPort) return false;
+    const boxes = graph.getNodes().map((node) => {
+      const b = node.getBBox();
+      return { x: b.x, y: b.y, width: b.width, height: b.height };
+    });
+    const route = (curved ? routeWithPortStubs : findShortPortRoute)(
+      source,
+      target,
+      context.sourcePort.position,
+      context.targetPort.position,
+      boxes,
+      vertices,
+    );
+    if (route && score)
+      score.value =
+        route.slice(1).reduce((sum, p, i) => {
+          const prev = route[i];
+          return sum + (prev ? Math.abs(p.x - prev.x) + Math.abs(p.y - prev.y) : 0);
+        }, 0) +
+        Math.max(0, route.length - 2) * 12;
+    return !!route;
+  }
+
+  private connectionContext(edge: Edge): ConnectionContext {
+    const sourceNode = edge.getSourceCellId();
+    const targetNode = edge.getTargetCellId();
+    const sourcePortId = edge.getSourcePortId();
+    const targetPortId = edge.getTargetPortId();
+    return {
+      sourceNode,
+      targetNode,
+      sourcePort: sourcePortId ? this.getPortDefinition(sourceNode, sourcePortId) : null,
+      targetPort: targetPortId ? this.getPortDefinition(targetNode, targetPortId) : null,
+    };
+  }
+
+  private reportConnectionRejection(
+    edge: Edge,
+    result: ConnectionValidationResult,
+    context: Pick<ConnectionContext, "sourceNode" | "targetNode"> = this.connectionContext(edge),
+  ): false {
+    this.rejectedAttempts.delete(edge);
+    void this.graph?.trigger("connection:rejected", {
+      ...result,
+      sourceNode: context.sourceNode,
+      targetNode: context.targetNode,
+    } satisfies ConnectionRejectedEvent);
+    return false;
+  }
+
+  private validateDroppedConnection(
+    edge: Edge,
+    terminal: "source" | "target",
+    previous: Edge.TerminalData,
+  ): boolean {
+    const context = this.connectionContext(edge);
+    if (context.sourceNode && context.targetNode) {
+      const result = this.resolveConnection(context, { edgeId: edge.id });
+      if (!result.valid) return this.reportConnectionRejection(edge, result, context);
+      if (result.sourcePortId && result.sourcePortId !== edge.getSourcePortId())
+        edge.setSource({ cell: context.sourceNode, port: result.sourcePortId });
+      if (result.targetPortId && result.targetPortId !== edge.getTargetPortId())
+        edge.setTarget({ cell: context.targetNode, port: result.targetPortId });
+      this.updateRouterDirections(edge);
+      this.updateConnectorDirections(edge);
+      return true;
+    }
+    // Detaching a saved relation must revert its old terminal, never leave graph/model split.
+    if (typeof previous === "object" && "cell" in previous && previous.cell)
+      return this.reportConnectionRejection(edge, {
+        valid: false,
+        reason: "workbench.connection.endpointMissing",
+      });
+    if (terminal === "source" || !context.sourceNode)
+      return this.reportConnectionRejection(edge, {
+        valid: false,
+        reason: "workbench.connection.sourcePortRequired",
+      });
+    const point = edge.getTargetPoint();
+    const rejected = this.rejectedAttempts.get(edge);
+    const rejectedNode = rejected?.targetNode ? this.graph?.getCellById(rejected.targetNode) : null;
+    if (
+      rejected &&
+      rejectedNode?.isNode() &&
+      rejectedNode.getBBox().inflate(12).containsPoint(point)
+    )
+      return this.reportConnectionRejection(edge, rejected, rejected);
+    // Dropping on a body without a usable port is not a blank-canvas create gesture.
+    const hit = this.graph?.getNodes().find((node) => node.getBBox().containsPoint(point));
+    if (hit)
+      return this.reportConnectionRejection(
+        edge,
+        { valid: false, reason: "workbench.connection.targetPortRequired" },
+        { ...context, targetNode: hit.id },
+      );
+    return true;
+  }
+
+  private validateConnection(args: {
+    edge?: Edge | null;
+    sourceCell?: Cell | null;
+    targetCell?: Cell | null;
+    sourcePort?: string | null;
+    targetPort?: string | null;
+  }): boolean {
+    // A new blank drop stays reachable even for an incoming-only source so the
+    // picker can explain why no target is offered. No persistent relation is made.
+    if (!args.targetCell) return true;
     const sourceNode = args.sourceCell?.id ?? "";
-    const targetNode = targetCell.id;
-    const sourcePort = args.sourcePort ? this.getPortDefinition(sourceNode, args.sourcePort) : null;
-    const targetPort = args.targetPort ? this.getPortDefinition(targetNode, args.targetPort) : null;
-    return validator({ sourceNode, sourcePort, targetNode, targetPort });
+    const targetNode = args.targetCell.id;
+    const context: ConnectionContext = {
+      sourceNode,
+      targetNode,
+      sourcePort: args.sourcePort ? this.getPortDefinition(sourceNode, args.sourcePort) : null,
+      targetPort: args.targetPort ? this.getPortDefinition(targetNode, args.targetPort) : null,
+    };
+    const result = this.evaluateConnectionRules(context, { edgeId: args.edge?.id }, false);
+    if (args.edge) {
+      if (result.valid) this.rejectedAttempts.delete(args.edge);
+      else this.rejectedAttempts.set(args.edge, { ...result, sourceNode, targetNode });
+    }
+    return result.valid;
   }
 
   private toX6Terminal(ref: string | PortRef): string | { cell: string; port: string } {

@@ -11,7 +11,7 @@ export const dataLinkConfig: EdgeTypeConfig = {
   },
   router: null,
   connector: { name: "port-curve" },
-  schema: [],
+  schema: [{ name: "name", type: "string", defaultValue: "Data Link" }],
   editor: [],
 };
 

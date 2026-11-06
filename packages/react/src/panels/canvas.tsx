@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Input } from "antd";
-import { prototypeRegistry, t } from "@flow-designer/model";
+import { CANVAS_COMMANDS, prototypeRegistry, t } from "@flow-designer/model";
 import type {
-  GenericRelation,
+  BlankConnectionEvent,
+  ConnectionRejectedEvent,
+  ConnectionRejectionReason,
+  Document as EditorDocument,
+  CanvasPrototypeRequest,
+  CreateCanvasNodeRequest,
   IArea,
   IGraphManager,
-  PortDefinition,
   Prototype,
 } from "@flow-designer/model";
 import { useEditor } from "../hooks";
+import { commandRegistry } from "@flow-designer/core";
+import { getMessageApi } from "../message-holder";
 import { mountArea } from "./mount-area";
 import styles from "../workbench.module.less";
 
@@ -27,21 +33,22 @@ interface QuickAddMenu {
   pendingSource?: { cellId: string; portId: string | null };
   /** Temporary X6 edge kept on screen until the drop is resolved or cancelled. */
   pendingEdgeId?: string;
+  pendingReason?: ConnectionRejectionReason;
 }
 
-let edgeSequence = 0;
-
-function createEdgeId(): string {
-  edgeSequence += 1;
-  return `edge-${Date.now().toString(36)}-${edgeSequence.toString(36)}`;
-}
-
-function getDefaultTargetPort(prototype: Prototype): PortDefinition | null {
-  return (prototype.getView().ports ?? []).find((port) => port.group === "in") ?? null;
-}
-
-function getPortId(port: PortDefinition | null): string | undefined {
-  return port ? (port.id ?? `${port.group}-${port.position}`) : undefined;
+function rejectionMessage(
+  reason: ConnectionRejectionReason,
+  document: EditorDocument,
+  nodeId?: string,
+): string {
+  const node = nodeId ? document.getContent().getNode(nodeId) : null;
+  const prototype = node ? prototypeRegistry.getPrototypeByType(node.getTypeName()) : null;
+  const value: unknown = node?.getProps().getPropData("name");
+  const name =
+    typeof value === "string" && value
+      ? (prototype?.getNameForValue(value) ?? value)
+      : prototype?.getName();
+  return name ? `${name}：${t(reason)}` : t(reason);
 }
 
 function getQuickAddShapeClass(shape: string): string {
@@ -70,18 +77,20 @@ export function Canvas(props: CanvasProps) {
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<QuickAddMenu | null>(null);
   const addingRef = useRef(false);
+  const pendingEdgeRef = useRef<string | null>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const menuOpen = menu !== null;
 
   const closeQuickAdd = useCallback(() => {
-    if (menu?.pendingEdgeId) graph?.removeCell(menu.pendingEdgeId);
+    if (pendingEdgeRef.current) graph?.removeCell(pendingEdgeRef.current);
+    pendingEdgeRef.current = null;
     setMenu(null);
     // The panel stays mounted between selections; the inspector itself decides
     // whether it shows a body or the collapsed strip.
     editor.getSkeleton().inspector.setVisible(true);
-  }, [editor, graph, menu?.pendingEdgeId]);
+  }, [editor, graph]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -117,12 +126,19 @@ export function Canvas(props: CanvasProps) {
 
     const openQuickAdd = (
       clientPoint: { x: number; y: number },
-      pendingSource?: { cellId: string; portId: string | null; edgeId?: string },
+      pendingSource?: {
+        cellId: string;
+        portId: string | null;
+        edgeId?: string;
+        reason?: ConnectionRejectionReason;
+      },
     ) => {
       const canvasArea = canvasAreaRef.current;
       if (!canvasArea) return;
       const rect = canvasArea.getBoundingClientRect();
       const graphPoint = graphManager.clientToLocal(clientPoint.x, clientPoint.y);
+      if (pendingEdgeRef.current) graphManager.removeCell(pendingEdgeRef.current);
+      pendingEdgeRef.current = pendingSource?.edgeId ?? null;
       returnFocusRef.current = container;
       setQuery("");
       setError(null);
@@ -140,28 +156,47 @@ export function Canvas(props: CanvasProps) {
           ? {
               pendingSource: { cellId: pendingSource.cellId, portId: pendingSource.portId },
               ...(pendingSource.edgeId ? { pendingEdgeId: pendingSource.edgeId } : {}),
+              ...(pendingSource.reason ? { pendingReason: pendingSource.reason } : {}),
             }
           : {}),
       });
     };
 
     const handleBlankConnection = (...args: unknown[]) => {
-      const payload = args[0] as
-        | {
-            sourceCellId?: string;
-            sourcePortId?: string | null;
-            edgeId?: string;
-            x?: number;
-            y?: number;
-          }
-        | undefined;
+      const payload = args[0] as BlankConnectionEvent | undefined;
       if (!payload?.sourceCellId) return;
-      const clientPoint = graphManager.localToClient(payload.x ?? 0, payload.y ?? 0);
+      const clientPoint = graphManager.localToClient(payload.x, payload.y);
       openQuickAdd(clientPoint, {
         cellId: payload.sourceCellId,
         portId: payload.sourcePortId ?? null,
         ...(payload.edgeId ? { edgeId: payload.edgeId } : {}),
+        ...(payload.reason ? { reason: payload.reason } : {}),
       });
+    };
+
+    const handleConnectionRejected = (...args: unknown[]) => {
+      const payload = args[0] as ConnectionRejectedEvent | undefined;
+      if (payload?.reason) {
+        const nodeId =
+          payload.reason === "workbench.connection.sourceCannotConnect"
+            ? payload.sourceNode
+            : payload.reason === "workbench.connection.targetCannotReceive"
+              ? payload.targetNode
+              : undefined;
+        void getMessageApi()?.warning(
+          rejectionMessage(payload.reason, editor.getDocument(), nodeId),
+        );
+      }
+    };
+
+    let warnedBaseline: object | undefined;
+    const handleRoutingDegraded = (...args: unknown[]) => {
+      const payload = args[0] as { edgeIds?: string[]; reason?: string } | undefined;
+      if (!payload?.edgeIds?.length) return;
+      const baseline = editor.getDocument().getTimeline().getPoints()[0];
+      if (!baseline || baseline === warnedBaseline) return;
+      warnedBaseline = baseline;
+      void getMessageApi()?.warning(t(payload.reason ?? "workbench.connection.legacyRouteWarning"));
     };
 
     const handleBlankDoubleClick = (...args: unknown[]) => {
@@ -209,9 +244,15 @@ export function Canvas(props: CanvasProps) {
 
     graphManager.on("blank:dblclick", handleBlankDoubleClick);
     graphManager.on("connection:blank", handleBlankConnection);
+    graphManager.on("connection:rejected", handleConnectionRejected);
+    graphManager.on("edge:routing:degraded", handleRoutingDegraded);
     return () => {
       graphManager.off("blank:dblclick", handleBlankDoubleClick);
       graphManager.off("connection:blank", handleBlankConnection);
+      graphManager.off("connection:rejected", handleConnectionRejected);
+      graphManager.off("edge:routing:degraded", handleRoutingDegraded);
+      if (pendingEdgeRef.current) graphManager.removeCell(pendingEdgeRef.current);
+      pendingEdgeRef.current = null;
       container.removeEventListener("keydown", handleCanvasKeyDown);
       try {
         disposeArea();
@@ -326,43 +367,29 @@ export function Canvas(props: CanvasProps) {
     addingRef.current = true;
     setAdding(true);
 
-    const size = prototype.getView().defaultSize ?? { width: 140, height: 40 };
     const pending = menu.pendingSource;
-    const pendingEdgeId = menu.pendingEdgeId;
-    const document = editor.getDocument();
     try {
-      const node = await document.transaction(t("workbench.canvas.connectNode"), async () => {
-        const created = await document.getContent().addNode({
-          type: prototype.getTypeName(),
-          props: {
-            __position: {
-              x: menu.graphX - size.width / 2,
-              y: menu.graphY - size.height / 2,
-            },
-          },
-        });
-        if (created && pending) {
-          const source = document.getContent().getNode(pending.cellId);
-          if (source) {
-            (source.getRelation() as GenericRelation).addEdge({
-              id: createEdgeId(),
-              targetNodeId: created.getId(),
-              sourcePort: pending.portId ?? undefined,
-              targetPort: getPortId(getDefaultTargetPort(prototype)),
-              type: graph.getDefaultEdgeType() ?? undefined,
-            });
-          }
-        }
-        return created;
-      });
-      if (!node) {
-        setError(t("workbench.canvas.addFailed", { name: prototype.getName() }));
-        return;
+      const request: CreateCanvasNodeRequest = {
+        document: editor.getDocument(),
+        graph,
+        typeName: prototype.getTypeName(),
+        position: { x: menu.graphX, y: menu.graphY },
+        ...(pending ? { source: { nodeId: pending.cellId, portId: pending.portId } } : {}),
+      };
+      const result: unknown = await commandRegistry.executeCommand(
+        CANVAS_COMMANDS.createNode,
+        request,
+      );
+      if (
+        !result ||
+        typeof result !== "object" ||
+        !("nodeId" in result) ||
+        typeof result.nodeId !== "string"
+      ) {
+        throw new Error(t("workbench.canvas.addFailed", { name: prototype.getName() }));
       }
-
-      if (pendingEdgeId) graph.removeCell(pendingEdgeId);
-      graph.select([node.getId()]);
-      editor.getDocument().getSelection().setKeys([node.getId()]);
+      graph.select([result.nodeId]);
+      editor.getDocument().getSelection().setKeys([result.nodeId]);
       closeQuickAdd();
     } catch (addError) {
       setError(addError instanceof Error ? addError.message : String(addError));
@@ -372,17 +399,22 @@ export function Canvas(props: CanvasProps) {
     }
   };
 
-  // A pending blank drop only becomes a real connection once a node is picked,
-  // so judge each candidate's default in-port before offering it.
   const canReceivePendingConnection = (prototype: Prototype): boolean => {
     if (!menu?.pendingSource || !graph) return true;
-    const { cellId, portId } = menu.pendingSource;
-    return graph.checkConnection({
-      sourceNode: cellId,
-      sourcePort: portId ? graph.getPortDefinition(cellId, portId) : null,
-      targetNode: "",
-      targetPort: getDefaultTargetPort(prototype),
-    });
+    if (menu.pendingReason) return false;
+    const request: CanvasPrototypeRequest = {
+      document: editor.getDocument(),
+      graph,
+      typeName: prototype.getTypeName(),
+      source: { nodeId: menu.pendingSource.cellId, portId: menu.pendingSource.portId },
+    };
+    const result: unknown = commandRegistry.executeCommand(
+      CANVAS_COMMANDS.evaluatePrototype,
+      request,
+    );
+    return Boolean(
+      result && typeof result === "object" && "valid" in result && result.valid === true,
+    );
   };
 
   const visiblePrototypes = prototypes.filter((prototype) => {
@@ -465,7 +497,15 @@ export function Canvas(props: CanvasProps) {
               );
             })}
             {visiblePrototypes.length === 0 && (
-              <div className={styles.canvasQuickAddEmpty}>{t("workbench.canvas.noMatch")}</div>
+              <div className={styles.canvasQuickAddEmpty}>
+                {menu.pendingReason
+                  ? rejectionMessage(
+                      menu.pendingReason,
+                      editor.getDocument(),
+                      menu.pendingSource?.cellId,
+                    )
+                  : t("workbench.canvas.noMatch")}
+              </div>
             )}
           </div>
           {error && (

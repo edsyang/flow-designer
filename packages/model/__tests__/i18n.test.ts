@@ -83,3 +83,13 @@ describe("locale messages", () => {
     expect(getLocale()).toBe("en-US");
   });
 });
+
+it("keeps route diagnostics in the selected language", async () => {
+  const { coreMessages } = await import("../src/i18n-messages");
+  expect(coreMessages["zh-CN"]["workbench.connection.routeUnavailable"]).toContain("无法");
+  expect(coreMessages["zh-CN"]["workbench.connection.legacyRouteWarning"]).toContain("已有连线");
+  expect(coreMessages["en-US"]["workbench.connection.routeUnavailable"]).toContain("No route");
+  expect(coreMessages["en-US"]["workbench.connection.legacyRouteWarning"]).toContain(
+    "Some existing",
+  );
+});

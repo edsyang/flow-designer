@@ -175,7 +175,11 @@ for (const count of [100, 300, 500]) {
       const rect = scroller.getBoundingClientRect();
       const point = graph.localToClient(cell.getBBox().getCenter());
       // Leave enough real screen space for a 300px drag without touching edge-pan zones.
-      scroller.scrollLeft += point.x - (rect.left + 180);
+      const sidebar = document.querySelector<HTMLElement>('[data-fd-area="sidebar"]');
+      const sidebarRight = sidebar?.querySelector('button[aria-expanded="true"]')
+        ? sidebar.getBoundingClientRect().right + 80
+        : rect.left;
+      scroller.scrollLeft += point.x - Math.max(rect.left + 180, sidebarRight);
       scroller.scrollTop += point.y - (rect.top + 180);
       const stats = {
         positionEvents: 0,
@@ -204,6 +208,13 @@ for (const count of [100, 300, 500]) {
     const nodeView = page.locator('[data-cell-id="perf-node-24"]').first();
     const nodeBounds = await nodeView.boundingBox();
     expect(nodeBounds).not.toBeNull();
+    expect(
+      await page.evaluate(
+        ({ x, y }) =>
+          document.elementFromPoint(x, y)?.closest("[data-cell-id]")?.getAttribute("data-cell-id"),
+        { x: nodeBounds!.x + nodeBounds!.width / 2, y: nodeBounds!.y + nodeBounds!.height / 2 },
+      ),
+    ).toBe("perf-node-24");
     const dragViewport = await page.locator(".x6-graph-scroller").boundingBox();
     expect(nodeBounds!.x + nodeBounds!.width / 2).toBeGreaterThan(dragViewport!.x + 24);
     expect(nodeBounds!.x + nodeBounds!.width / 2 + dragDistance).toBeLessThan(
@@ -375,7 +386,11 @@ for (const count of [100, 300, 500]) {
       const scroller = graph.getPlugin("scroller").container;
       const rect = scroller.getBoundingClientRect();
       const point = graph.localToClient(cell.getBBox().getCenter());
-      scroller.scrollLeft += point.x - (rect.left + 180);
+      const sidebar = document.querySelector<HTMLElement>('[data-fd-area="sidebar"]');
+      const sidebarRight = sidebar?.querySelector('button[aria-expanded="true"]')
+        ? sidebar.getBoundingClientRect().right + 80
+        : rect.left;
+      scroller.scrollLeft += point.x - Math.max(rect.left + 180, sidebarRight);
       scroller.scrollTop += point.y - (rect.top + 180);
       const stats = (window as any).__perfDragStats;
       stats.nodeId = "perf-node-24";
@@ -402,6 +417,13 @@ for (const count of [100, 300, 500]) {
       };
       requestAnimationFrame(tick);
     });
+    expect(
+      await page.evaluate(
+        ({ x, y }) =>
+          document.elementFromPoint(x, y)?.closest("[data-cell-id]")?.getAttribute("data-cell-id"),
+        fitPoint,
+      ),
+    ).toBe("perf-node-24");
     const fitBefore = await page.evaluate(() =>
       (window as any).designer.document.getContent().getNode("perf-node-24").getPosition(),
     );
@@ -451,9 +473,13 @@ for (const count of [100, 300, 500]) {
         edgeCount: graph.getEdges().length,
         failureEvents: (window as any).__perfRoutingFailures,
         errorElements: document.querySelectorAll("[data-routing-error]").length,
+        warningElements: document.querySelectorAll("[data-routing-warning]").length,
         renderedEdges: document.querySelectorAll(".x6-edge").length,
       };
     });
+    expect(routing.edgeCount).toBe(result.edgeCount);
+    expect(routing.failureEvents).toBe(0);
+    expect(routing.errorElements).toBe(0);
     const builtScripts = await page
       .locator("script[src]")
       .evaluateAll((elements) => elements.map((element) => element.getAttribute("src")));

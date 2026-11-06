@@ -11,7 +11,7 @@ export const relationConfig: EdgeTypeConfig = {
   },
   router: null,
   connector: { name: "port-curve" },
-  schema: [],
+  schema: [{ name: "name", type: "string", defaultValue: "Relation" }],
   editor: [],
 };
 

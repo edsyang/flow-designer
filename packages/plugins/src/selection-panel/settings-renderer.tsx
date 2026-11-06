@@ -1,7 +1,7 @@
 import { createElement, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { SettingsPanel } from "@flow-designer/skeleton";
-import { useSelection, useNode, useGraph, useDocument } from "@flow-designer/react";
+import { useSelection, useNode, useGraph, useDocument, useTranslate } from "@flow-designer/react";
 import type {
   Document as EditorDocument,
   GenericRelation,
@@ -11,6 +11,7 @@ import type {
 import type { Locale } from "@flow-designer/model";
 import { prototypeRegistry, setterRegistry, t } from "@flow-designer/model";
 import styles from "./settings-renderer.module.less";
+import { edgeNameField, edgeNamePatch, edgeNameValue } from "../x6-graph/commands/edge-properties";
 
 const NodeSettingsPanel = observer(function NodeSettingsPanel({
   nodeId,
@@ -44,7 +45,8 @@ function findEdge(doc: EditorDocument, edgeId: string) {
   return null;
 }
 
-function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale }) {
+function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
+  const { t, locale } = useTranslate();
   const graph = useGraph();
   const doc = useDocument();
   const [, forceUpdate] = useState(0);
@@ -63,7 +65,12 @@ function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale 
   const handleChange = (fieldName: string, value: unknown) => {
     const relation = sourceNode.getRelation();
     if (relation && typeof relation.updateEdgeProps === "function") {
-      relation.updateEdgeProps(edgeId, { [fieldName]: value });
+      relation.updateEdgeProps(
+        edgeId,
+        fieldName === "name" && typeof value === "string" && edgeNameField(typeConfig) === "name"
+          ? edgeNamePatch(props, typeConfig, value)
+          : { [fieldName]: value },
+      );
       forceUpdate((count) => count + 1);
     }
   };
@@ -75,7 +82,10 @@ function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale 
         typeConfig.editor.map((field) => {
           const setterType = setterRegistry.getSetter(field.setter);
           if (!setterType) return null;
-          const value = props[field.target] ?? "";
+          const value =
+            field.target === edgeNameField(typeConfig)
+              ? edgeNameValue(props, typeConfig)
+              : (props[field.target] ?? "");
           return (
             <div key={field.target} className={styles.edgeField}>
               <label className={styles.edgeLabel}>{field.description}</label>
@@ -95,7 +105,8 @@ function EdgeSettingsPanel({ edgeId, locale }: { edgeId: string; locale: Locale 
   );
 }
 
-export const SettingsRenderer = observer(function SettingsRenderer({ locale }: { locale: Locale }) {
+export const SettingsRenderer = observer(function SettingsRenderer() {
+  const { t, locale } = useTranslate();
   const { keys } = useSelection();
   const graph = useGraph();
   const doc = useDocument();
@@ -120,7 +131,7 @@ export const SettingsRenderer = observer(function SettingsRenderer({ locale }: {
   return (
     <div className={styles.container}>
       {isEdge ? (
-        <EdgeSettingsPanel edgeId={selectedKey} locale={locale} />
+        <EdgeSettingsPanel edgeId={selectedKey} />
       ) : (
         <NodeSettingsPanel nodeId={selectedKey} locale={locale} />
       )}

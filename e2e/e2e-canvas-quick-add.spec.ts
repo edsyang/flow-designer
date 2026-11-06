@@ -54,7 +54,7 @@ test.describe("Canvas quick add", () => {
     await canvas.focus();
     await canvas.press("Enter");
     const panel = page.getByRole("dialog", { name: "添加节点" });
-    const search = panel.getByRole("textbox", { name: "搜索已注册节点" });
+    const search = panel.getByRole("textbox", { name: "搜索节点…" });
     await expect(search).toBeFocused();
     await search.fill("不存在的节点");
     await expect(panel.getByText("没有匹配的节点")).toBeVisible();
@@ -66,12 +66,12 @@ test.describe("Canvas quick add", () => {
     await expect(page.locator(".x6-graph .x6-cell.x6-node")).toHaveCount(3);
     await expect(page.locator(".x6-node-selected")).toContainText("人工节点");
     await canvas.focus();
-    await canvas.dblclick({ position: { x: 80, y: bounds.height - 160 } });
+    await canvas.dblclick({ position: { x: bounds.width * 0.4, y: bounds.height - 160 } });
     await expect(search).toBeFocused();
     await search.press("Escape");
     await expect(panel).toHaveCount(0);
     await expect(canvas).toBeFocused();
-    await canvas.dblclick({ position: { x: 80, y: bounds.height - 160 } });
+    await canvas.dblclick({ position: { x: bounds.width * 0.4, y: bounds.height - 160 } });
     const librarySearch = page.getByRole("textbox", { name: "搜索节点库" });
     await librarySearch.click();
     await expect(panel).toHaveCount(0);
@@ -81,16 +81,20 @@ test.describe("Canvas quick add", () => {
   });
 
   test("dock tools track interaction mode and stay the same size across zoom", async ({ page }) => {
-    const select = page.getByRole("button", { name: "选择工具", exact: true });
-    const pan = page.getByRole("button", { name: "平移工具", exact: true });
-    await expect(select).toHaveAttribute("aria-pressed", "true");
-    await pan.click();
-    await expect(pan).toHaveAttribute("aria-pressed", "true");
-    await select.click();
-    await expect(select).toHaveAttribute("aria-pressed", "true");
-    const before = await select.boundingBox();
+    const tools = page.getByRole("group", { name: "画布交互" });
+    const toggle = tools.getByRole("button");
+    await expect(toggle).toHaveCount(1);
+    await expect(toggle).toHaveAccessibleName("平移工具");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await toggle.click();
+    await expect(toggle).toHaveAccessibleName("选择工具");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAccessibleName("平移工具");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    const before = await toggle.boundingBox();
     await page.getByRole("button", { name: "放大", exact: true }).click();
-    const after = await select.boundingBox();
+    const after = await toggle.boundingBox();
     expect(after?.width).toBe(before?.width);
     expect(after?.height).toBe(before?.height);
   });
@@ -104,8 +108,8 @@ test.describe("Canvas quick add", () => {
     await canvas.dblclick({
       position: { x: Math.min(440, bounds.width / 2), y: bounds.height - 160 },
     });
-    await page.getByRole("textbox", { name: "搜索已注册节点" }).fill("人工");
-    await page.getByRole("textbox", { name: "搜索已注册节点" }).press("Enter");
+    await page.getByRole("textbox", { name: "搜索节点…" }).fill("人工");
+    await page.getByRole("textbox", { name: "搜索节点…" }).press("Enter");
     await expect(page.locator(".x6-graph .x6-cell.x6-node")).toHaveCount(3);
     const toolbar = page.getByRole("toolbar", { name: "选中项操作" });
     await expect(toolbar).toHaveCount(0);
@@ -118,13 +122,15 @@ test.describe("Canvas quick add", () => {
     await canvas.press("ControlOrMeta+z");
     await expect(page.locator(".x6-graph .x6-cell.x6-node")).toHaveCount(4);
     await page.locator(".x6-node").filter({ hasText: "人工节点" }).first().click();
-    await canvas.click({ position: { x: 80, y: bounds.height - 160 } });
+    await canvas.click({ position: { x: bounds.width * 0.4, y: bounds.height - 160 } });
     await expect(toolbar).toHaveCount(0);
     await expect(page.locator(".x6-node-selected")).toHaveCount(0);
   });
 
-  test("help is modal, traps keyboard focus and restores its dock trigger", async ({ page }) => {
-    const help = page.getByRole("button", { name: "操作帮助", exact: true });
+  test("help is modal, traps keyboard focus and restores its header trigger", async ({ page }) => {
+    const help = page
+      .locator('[data-fd-area="header"]')
+      .getByRole("button", { name: "操作帮助", exact: true });
     await help.click();
     const dialog = page.getByRole("dialog", { name: "画布操作帮助" });
     await expect(dialog).toBeVisible();
@@ -155,7 +161,7 @@ test.describe("Canvas quick add", () => {
     const canvas = page.locator('[data-fd-area="canvas"]');
     await canvas.focus();
     await canvas.press("Enter");
-    const search = page.getByRole("textbox", { name: "搜索已注册节点" });
+    const search = page.getByRole("textbox", { name: "搜索节点…" });
     await search.fill("人工");
     await search.press("Enter");
     await expect(page.locator(".x6-node-selected")).toContainText("人工节点");

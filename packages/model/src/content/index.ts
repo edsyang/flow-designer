@@ -92,9 +92,23 @@ export default abstract class Content<T extends Relation = Relation> {
     return this.nodes;
   }
 
-  addNode(nodeData: NodeData): Promise<ContentNode<T> | null> {
+  addNode(
+    nodeData: NodeData,
+    // Capture the allocated object before async hooks or insertion can fail.
+    // This observer is for retaining identity, not mutating document state.
+    onAllocated?: (node: ContentNode<T>) => void,
+  ): Promise<ContentNode<T> | null> {
     if (this.destroyed) return Promise.reject(new Error("Content has been destroyed"));
     const node = new ContentNode<T>(this, nodeData);
+    try {
+      onAllocated?.(node);
+    } catch (error) {
+      runInAction(() => {
+        if (this.nodesMap[node.getId()] === node) this.nodesMap[node.getId()] = null;
+      });
+      node.didPurge();
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    }
     const doc = this.getDocument();
     return doc.invoke(ContentAop.NODE_ADDING, node, this).then(
       () => {
@@ -151,6 +165,24 @@ export default abstract class Content<T extends Relation = Relation> {
         },
       );
     }
+  }
+
+  /** Compensate a command-owned addition; user deletion vetoes do not apply to rollback. */
+  rollbackAddedNode(node: ContentNode<T>): boolean {
+    const index = this.nodes.indexOf(node);
+    if (index < 0 || this.nodesMap[node.getId()] !== node) return false;
+    runInAction(() => {
+      this.nodesMap[node.getId()] = null;
+      this.nodes.splice(index, 1);
+    });
+    const doc = this.getDocument();
+    try {
+      doc.sendSignal(ContentSignal.REMOVE_NODE, node, this);
+    } finally {
+      node.didPurge();
+      doc.timelineLog(`Roll back added ContentNode #${node.getId()}`);
+    }
+    return true;
   }
 
   applyTimelinePointData(data: ContentData): void {

@@ -4,6 +4,7 @@ import { prototypeRegistry } from "@flow-designer/model";
 import type { GraphManager } from "@flow-designer/graph";
 import { NodeBridge } from "./node-bridge";
 import { EdgeBridge } from "./edge-bridge";
+import { CanvasConnectionError, commitCanvasConnection } from "../commands";
 
 export type SyncDirection = "idle" | "model-to-graph" | "graph-to-model";
 type TimelineData = Parameters<Document["applyTimelinePointData"]>[0];
@@ -63,6 +64,9 @@ export class GraphBridge {
   constructor(
     private graphManager: GraphManager,
     private document: Document,
+    private reportError: (error: unknown) => void = (error) => {
+      console.error(error);
+    },
   ) {}
 
   getSyncDirection(): SyncDirection {
@@ -223,7 +227,15 @@ export class GraphBridge {
           if (defaultPort) target = { cell: edge.targetNodeId, port: defaultPort };
         }
 
-        return { id: edge.id, type: edge.type, source, target, vertices: edge.vertices };
+        return {
+          id: edge.id,
+          type: edge.type,
+          source,
+          target,
+          vertices: edge.vertices,
+          data: edge.props,
+          labels: [],
+        };
       });
   }
 
@@ -243,7 +255,8 @@ export class GraphBridge {
 
   private bindGraphEvents(): void {
     const onNodeMoved = (...args: unknown[]) => {
-      const payload = args[0] as { cell?: X6NodeHandle; node?: X6NodeHandle } | undefined;
+      const payload = args[0] as
+        { cell?: X6NodeHandle; node?: X6NodeHandle; routingEdgeIds?: string[] } | undefined;
       const cell = payload?.cell ?? payload?.node;
       if (!cell) return;
       this.syncDirection = "graph-to-model";
@@ -255,13 +268,22 @@ export class GraphBridge {
           void this.document.transaction("Move node", () => {
             contentNode.setPosition(pos.x, pos.y);
             const graph = this.graphManager.getX6Graph() as {
-              getCellById(id: string): X6NodeHandle | null;
+              getCellById(id: string): X6NodeHandle | X6EdgeHandle | null;
               getConnectedEdges(node: X6NodeHandle): X6EdgeHandle[];
             } | null;
-            const graphNode = graph?.getCellById(cell.id);
-            const edges = graph && graphNode ? graph.getConnectedEdges(graphNode) : [];
-            for (const edge of edges) {
-              if (edge.getSourceCellId() !== cell.id && edge.getTargetCellId() !== cell.id)
+            const graphNode = graph?.getCellById(cell.id) as X6NodeHandle | null | undefined;
+            const routingIds = new Set(payload?.routingEdgeIds ?? []);
+            const connected = graph && graphNode ? graph.getConnectedEdges(graphNode) : [];
+            const rerouted = [...routingIds]
+              .map((id) => graph?.getCellById(id) as X6EdgeHandle | null | undefined)
+              .filter((edge): edge is X6EdgeHandle => Boolean(edge));
+            const edges = new Map([...connected, ...rerouted].map((edge) => [edge.id, edge]));
+            for (const edge of edges.values()) {
+              if (
+                edge.getSourceCellId() !== cell.id &&
+                edge.getTargetCellId() !== cell.id &&
+                !routingIds.has(edge.id)
+              )
                 continue;
               const source = this.document
                 .getContent()
@@ -343,29 +365,64 @@ export class GraphBridge {
             this.graphManager.getEdgeTypeName(edge.id) ??
             this.graphManager.getDefaultEdgeType() ??
             undefined;
-          const edgeProps: Record<string, unknown> = {};
-          if (edgeTypeName) {
-            const edgeConfig = this.graphManager.getEdgeTypeConfig(edgeTypeName);
-            if (edgeConfig?.schema) {
-              for (const field of edgeConfig.schema) {
-                if (field.defaultValue !== undefined) {
-                  edgeProps[field.name] = field.defaultValue;
-                }
+          void this.document
+            .transaction("Create connection", () => {
+              try {
+                commitCanvasConnection({
+                  document: this.document,
+                  graph: this.graphManager,
+                  edgeId: edge.id,
+                  edgeType: edgeTypeName,
+                  source: {
+                    nodeId: edge.getSourceCellId(),
+                    portId: edge.getSourcePortId() ?? null,
+                  },
+                  target: {
+                    nodeId: edge.getTargetCellId(),
+                    portId: edge.getTargetPortId() ?? null,
+                  },
+                  vertices: edge.getVertices(),
+                });
+                const created = sourceNode.getRelation().getEdgeById(edge.id);
+                this.graphManager.updateEdge({
+                  id: edge.id,
+                  type: edgeTypeName,
+                  source: edge.getSourcePortId()
+                    ? { cell: sourceNode.getId(), port: edge.getSourcePortId() as string }
+                    : sourceNode.getId(),
+                  target: edge.getTargetPortId()
+                    ? { cell: edge.getTargetCellId(), port: edge.getTargetPortId() as string }
+                    : edge.getTargetCellId(),
+                  vertices: edge.getVertices(),
+                  data: created?.props,
+                  labels: [],
+                });
+                if (edgeTypeName) this.graphManager.setEdgeTypeName(edge.id, edgeTypeName);
+              } catch (error) {
+                sourceNode.getRelation().removeEdgeById(edge.id);
+                throw error;
               }
-            }
-          }
-          sourceNode.getRelation().addEdge({
-            id: edge.id,
-            targetNodeId: edge.getTargetCellId(),
-            sourcePort: edge.getSourcePortId(),
-            targetPort: edge.getTargetPortId(),
-            type: edgeTypeName,
-            vertices: edge.getVertices(),
-            props: Object.keys(edgeProps).length > 0 ? edgeProps : undefined,
-          });
-          if (edgeTypeName) {
-            this.graphManager.setEdgeTypeName(edge.id, edgeTypeName);
-          }
+            })
+            .then(() => {
+              if (this.disposeAutorun) this.graphManager.select([edge.id]);
+            })
+            .catch((error: unknown) => {
+              this.graphManager.removeCell(edge.id);
+              const graph = this.graphManager.getX6Graph() as {
+                trigger(name: string, payload: unknown): unknown;
+              } | null;
+              void graph?.trigger("connection:rejected", {
+                valid: false,
+                reason:
+                  error instanceof CanvasConnectionError
+                    ? error.reason
+                    : "workbench.connection.incompatible",
+                sourceNode: edge.getSourceCellId(),
+                targetNode: edge.getTargetCellId(),
+              });
+              if (!(error instanceof CanvasConnectionError)) this.reportError(error);
+            });
+          return;
         }
         this.graphManager.select([edge.id]);
       } finally {

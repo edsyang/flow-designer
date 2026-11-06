@@ -96,10 +96,10 @@ export const Workbench = observer(function Workbench(props: WorkbenchProps) {
                 <Header doc={doc} area={skeleton.header} locale={locale} />
               )}
               <div className={styles.editorContent}>
-                {skeleton.sidebar.getVisible() && (
-                  <Sidebar area={skeleton.sidebar} locale={locale} />
-                )}
-                <div className={styles.canvasWorkspace}>
+                <div className={styles.canvasWorkspace} data-fd-layout="canvasWorkspace">
+                  {skeleton.sidebar.getVisible() && (
+                    <Sidebar area={skeleton.sidebar} locale={locale} />
+                  )}
                   <div className={styles.canvasArea}>
                     {skeleton.canvas.getVisible() && <Canvas area={skeleton.canvas} />}
                     {skeleton.canvasToolbar.getVisible() && (

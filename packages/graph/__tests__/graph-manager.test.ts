@@ -596,9 +596,14 @@ describe("GraphManager", () => {
     });
 
     it("retains existing endpoints when the semantic validator rejects the geometric candidate", () => {
+      let allowTargetChoice = false;
       manager.dispose();
       manager.init(container, {
-        connecting: { connectionValidator: (context) => context.sourcePort?.position === "right" },
+        connecting: {
+          connectionValidator: (context) =>
+            context.sourcePort?.position === "right" &&
+            (allowTargetChoice || context.targetPort?.position === "left"),
+        },
       });
       manager.registerNodeType(
         { name: "validated", typeName: "validated" },
@@ -627,6 +632,11 @@ describe("GraphManager", () => {
       const edge = graph.getCellById("edge") as Edge;
       expect(edge.getSourcePortId()).toBe("out-right");
       expect(edge.getTargetPortId()).toBe("in-left");
+      // The original source-only policy permits choosing a better target side.
+      allowTargetChoice = true;
+      graph.trigger("node:moved", { node } as never);
+      expect(edge.getSourcePortId()).toBe("out-right");
+      expect(edge.getTargetPortId()).toBe("in-top");
     });
 
     it("preserves configured router options for manual vertices and resolves named port axes", () => {
@@ -940,7 +950,7 @@ describe("GraphManager", () => {
       graph.on("connection:blank", handler);
 
       const edge = graph.addEdge({
-        source: { cell: "n1", port: "out-right" },
+        source: { cell: "n1", port: "right" },
         target: { x: 120, y: 40 },
       }) as Edge;
       dropOnBlank(edge);
@@ -951,7 +961,7 @@ describe("GraphManager", () => {
       expect(handler).toHaveBeenCalledTimes(1);
       expect(handler).toHaveBeenCalledWith({
         sourceCellId: "n1",
-        sourcePortId: "out-right",
+        sourcePortId: "right",
         edgeId: edge.id,
         x: 120,
         y: 40,
@@ -966,8 +976,8 @@ describe("GraphManager", () => {
       graph.on("connection:blank", handler);
 
       const edge = graph.addEdge({
-        source: { cell: "n1", port: "out-right" },
-        target: { cell: "n2", port: "in-left" },
+        source: { cell: "n1", port: "right" },
+        target: { cell: "n2", port: "left" },
       }) as Edge;
       dropOnBlank(edge);
 
@@ -1004,7 +1014,7 @@ describe("GraphManager", () => {
         const handler = vi.fn();
         graph.on("connection:blank", handler);
         const edge = graph.addEdge({
-          source: { cell: "s1", port: "out-right" },
+          source: { cell: "s1", port: "right" },
           target: { x: 10, y: 20 },
         }) as Edge;
 
@@ -1039,20 +1049,26 @@ describe("GraphManager", () => {
         const inPort = isolated.getPortDefinition("j1", "in-left");
 
         expect(
-          isolated.checkConnection({
-            sourceNode: "j1",
-            sourcePort,
-            targetNode: "",
-            targetPort: inPort,
-          }),
+          isolated.evaluateConnection(
+            {
+              sourceNode: "j1",
+              sourcePort,
+              targetNode: "",
+              targetPort: inPort,
+            },
+            { phase: "candidate" },
+          ).valid,
         ).toBe(true);
         expect(
-          isolated.checkConnection({
-            sourceNode: "j1",
-            sourcePort,
-            targetNode: "",
-            targetPort: sourcePort,
-          }),
+          isolated.evaluateConnection(
+            {
+              sourceNode: "j1",
+              sourcePort,
+              targetNode: "",
+              targetPort: sourcePort,
+            },
+            { phase: "candidate" },
+          ).valid,
         ).toBe(false);
       } finally {
         isolated.dispose();

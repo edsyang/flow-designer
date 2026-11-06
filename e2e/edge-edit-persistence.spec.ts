@@ -6,6 +6,13 @@ test("hover preserves routing and segment drag preserves anchored ports through 
 }) => {
   await page.goto("http://127.0.0.1:5179");
   const id = await seedBpmnEdge(page);
+  await page.evaluate((id) => {
+    const d = (window as any).designer,
+      g = d.graph.getX6Graph(),
+      edge = g.getCellById(id);
+    d.document.getContent().getNode(edge.getSourceCellId()).setPosition(250, 100);
+  }, id);
+  await page.waitForTimeout(50);
   await page.evaluate(() => (window as any).designer.document.getTimeline().reset());
   const snapshot = () =>
     page.evaluate((id) => {
@@ -61,7 +68,12 @@ test("hover preserves routing and segment drag preserves anchored ports through 
   expect(hover.vertices).toEqual(before.vertices);
   expect(hover.router).toEqual(before.router);
   expect(hover.d).toBe(before.d);
-  const handle = page.locator(".x6-edge-tool-segment:visible").first();
+  const handles = page.locator(".x6-edge-tool-segment:visible");
+  const vertical = await handles.evaluateAll((els) =>
+    els.findIndex((el) => getComputedStyle(el).cursor === "col-resize"),
+  );
+  expect(vertical).toBeGreaterThanOrEqual(0);
+  const handle = handles.nth(vertical);
   const box = await handle.boundingBox();
   if (!box) throw new Error("No segment handle");
   const historyBeforeClick = await page.evaluate(

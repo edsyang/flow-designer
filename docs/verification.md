@@ -245,3 +245,59 @@ The first serial workspace test run aborted in `@flow-designer/comfyui-nodes` wi
 Browser checks against the production BPMN build confirmed: the header toggle switches `data-fd-theme`, `--fd-*` tokens, storage and the canvas background between light (`#ffffff` bodies, `rgb(247,248,250)` canvas) and dark (`#1d2432` bodies, `rgb(18,23,34)` canvas), with the grid switched to a mesh pattern; the node library is absolutely positioned and no longer displaces the canvas; a drag released on empty canvas keeps its temporary edge while the picker is open, hides the library, keeps the inspector, and creates plus connects the chosen prototype in one undo step; cancelling removes the temporary edge. Selecting a connection shows the localized "connection" heading in the inspector.
 
 Graph lint dropped from 216 to **214** warnings while adding the palette code, so `packages/graph/package.json` pins the lower budget. Background recolouring goes through X6's scroller background (`scroller.drawBackground`), because X6 delegates `Graph.drawBackground` to the scroller whenever `options.background` is null; a direct `graph.options.background` assertion therefore reads null even though the colour is applied.
+
+## Connection policy, bounded routing, and floating workbench — 2026-11-05
+
+This pass separates physical port positions from connection capabilities. BPMN Start emits only, End receives only, and ordinary BPMN ports accept both directions without changing existing port IDs. Blank-drop menus use candidate metadata; committing validates real endpoints, semantic rules and routability. New connection names come from scenario defaults, while imported labels and explicit empty names remain intact. The inspector updates localized field labels without rewriting document data.
+
+Canvas creation and connection operations now use shared typed commands. Failed creation compensates only owned objects; no-op transactions preserve redo and unrelated edits. The floating dock measures the visible panel corridor without moving the graph viewport. Theme changes preserve caller colors, and stale edge hover highlights are cleared with owned listener cleanup.
+
+Orthogonal interaction admission uses signed port tangents, physical obstacles, no backtracking and at most three bends. A node move can evaluate interchangeable ports without mutating candidate endpoints, then commit the chosen pair once. Impossible new edits are rejected/restored with feedback. Loaded legacy documents are preserved: longer routes carry a warning, and impossible paths remain visibly diagnostic instead of silently disappearing. This compatibility path is not a claim that every imported route satisfies the new interaction constraints. Obstacle invalidation remembers blockers of competitive candidate paths, so removing or undoing an obstacle can restore the shorter route. Segment editing retains exact port anchors.
+
+Browser fixture repairs preserve behavioral assertions: floating panels require a real hit-test before dragging; a collapsed inspector retains its toggle but hides its body; obstacle fixtures must actually intersect the path; port-tangent probes must sample within short terminal segments. Browser failures also exposed the stale-hover, port-anchor and obstacle-undo defects fixed above.
+
+Final verification ran on macOS with Node 22.23.2, pnpm 9.15.9 and installed Chrome. After the final port-decision optimization, the results were:
+
+| Gate                   | Result                                                                                |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| Workspace build        | 19/19 tasks; no TypeScript diagnostics                                                |
+| Workspace unit tests   | 536/536 tests across 66 files                                                         |
+| Typecheck and lint     | 53/53 tasks; graph warning budget lowered from 214 to 199, plugins from 114 to 104    |
+| Full serial Chrome E2E | 71/71, zero skipped, unexpected or flaky cases; 147.7 seconds                         |
+| Production performance | All six cases passed: 100/300/500 nodes with 200/600/1000 edges, 300px and 30px drags |
+
+The production runs used the final BPMN build on port 5199, with no concurrent builds or browser tests. Every case asserts real node displacement and position events, retained edge count, zero routing failures and zero diagnostic errors. Long drags recorded 30 position events / 126 route computations; short drags recorded 3 / 18. The preceding pre-optimization development sample required 834–846 route computations for 30 events; this work-count comparison is not a cross-build timing benchmark.
+
+| Nodes / edges | Sync load | All-path stability | Undo | Long drag P95 | Short drag P95 | Pan P95 | Wheel P95 | Fit drag P95 | Legacy warnings |
+| --- | --: | --: | --: | --: | --: | --: | --: | --: | --: |
+| 100 / 200 | 121.9ms | 979.8ms | 24.5ms | 16.7ms | 16.7ms | 16.7ms | 16.8ms | 16.8ms | 101 |
+| 300 / 600 | 318.5ms | 3130.6ms | 45.1ms | 16.7ms | 16.8ms | 16.7ms | 16.7ms | 16.7ms | 309 |
+| 500 / 1000 | 518.9ms | 1710.7ms | 78.4ms | 16.8ms | 16.7ms | 16.8ms | 16.8ms | 16.7ms | 517 |
+
+Long-drag intervals above 25ms were 1.61%, 1.64% and 1.59% respectively; pan and wheel samples recorded zero above 25ms. The loaded stress fixture contains old-style cross-row edges, so **101/309/517 legacy routing warnings remain observable**, with zero diagnostic errors. These samples verify responsiveness and retained edges in that legacy-load scenario, not universal compliance of those imported routes with the new three-bend admission rule. Strict new-interaction legality is verified separately by the connection and routing suites. Initial rendered-path stability took roughly 1–3.2 seconds in these samples; frame percentiles do not promise continuous 60 FPS for every graph or eliminate first-render cost.
+
+Logs: `/private/tmp/flow-final4-{build,unit,static,e2e}.log`; browser report: `/private/tmp/flow-final4-e2e.json`; production artifacts: `/private/tmp/flow-final4-perf-{long,short}/**/performance.json`. Earlier failed integration attempts were retained separately; they are not passing evidence. No generated test artifacts are included in the worktree changes.
+
+Final repository checks also passed: **38/38 import-boundary assertions**, whole-repository Prettier check, and `git diff --check`. Final source checksums remained unchanged throughout the last full E2E and production performance runs.
+
+## Visible port routing and canvas workspace follow-up — 2026-11-05
+
+The maintainer's three screenshots revealed gaps in the prior acceptance checks: a signed subpixel terminal was mathematically valid but visually hidden by the arrow, and fixed bottom-to-bottom ports could require four bends. The maintainer chose automatic interchangeable-port resolution rather than relaxing the three-bend limit. A valid requested pair is retained; otherwise eligible targets are tried while preserving the source, then eligible source alternatives. Capability and semantic failures never enter this fallback, and named/typed ports remain fixed. Native drops and shared creation commands persist the resolved IDs through undo/redo/load.
+
+Bent routes now keep visible outward terminal segments (normally at least 12 graph units, compressed to a minimum of 4 in constrained gaps). Opposing close ports balance the shared lane. The BPMN default arrow can shrink only in presentation, leaving visible line behind it; custom marker definitions and serialized attrs remain unchanged. Browser assertions verify marker coordinate frames and tip alignment, not merely a sampled tangent. Temporary connection previews no longer produce legacy-document warnings. The swapped Chinese/English routing messages were corrected.
+
+Sidebar is now inside canvasWorkspace without participating in canvas sizing. Dock centering follows sidebar visibility only. Inspector expansion does not shift the dock, and inspector maximum height reserves the measured dock strip plus a 12px gap; small-window content scrolls internally. Actual control hit tests cover narrow layouts. Connection names are inspector-only metadata; the canvas label editor plugin and export were removed, while property defaults, aliases, history and serialization remain supported. The generic graph label/custom-renderer API remains available.
+
+Final checks for this follow-up: **542/542 unit tests across 65 files**, **79/79 Chrome browser cases** (zero skipped, unexpected or flaky; 159.9s), workspace build **19/19**, combined typecheck/lint **53/53**, and import boundaries **38/38**. Removed canvas-name-editor tests were replaced by inspector-only metadata and real double-click regressions; the generic label renderer was not removed. Graph warning budget fell from 199 to 192, plugins from 104 to 101.
+
+Production checks used `/assets/index-DU0ikOfV.js` on port 5199 without concurrent builds or other browser runs. All six 100/300/500-node long/short cases passed actual displacement, retained-edge and routing-error assertions.
+
+| Nodes / edges | Sync load | Final path stability | Long drag P95 | Short drag P95 | Pan P95 | Wheel P95 | Fit drag P95, first long run | Legacy warnings |
+| --- | --: | --: | --: | --: | --: | --: | --: | --: |
+| 100 / 200 | 123.6ms | 1004.2ms | 16.7ms | 16.7ms | 16.8ms | 16.7ms | 16.7ms | 101 |
+| 300 / 600 | 318.5ms | 3238.7ms | 16.8ms | 16.8ms | 16.8ms | 16.8ms | 16.8ms | 309 |
+| 500 / 1000 | 516.0ms | 1748.2ms | 16.8ms | 16.8ms | 16.7ms | 16.8ms | 33.3ms | 517 |
+
+All samples retained 200/600/1000 edges with zero routing failures or diagnostic errors. Long drags produced 30 position events / 126 route computations, and fit-view drags 60 / 240. The initial 500-node fit-view sample had P95 **33.3ms**, with 6.17% of intervals over 25ms; the short-run comparison measured **16.8ms** (3.95% over 25ms), and one isolated repeat measured **16.7ms** (1.33% over 25ms). No code or thresholds changed between these runs. The first result is retained rather than replaced by the repeat: steady-state interaction is responsive in these samples, but occasional frame drops and initial rendering costs remain. Legacy warnings belong to the imported cross-row stress fixture; they do not establish that every imported edge satisfies the new short-route rule.
+
+Reports: `/private/tmp/flow-six-{build,unit,static,e2e}.log`, `/private/tmp/flow-six-e2e.json`; performance artifacts under `/private/tmp/flow-six-perf-{long,short,500-repeat}/`. Visual review used `/private/tmp/flow-workspace-layout.png`, `/private/tmp/flow-diamond-stubs.png`, `/private/tmp/flow-start-left-stub.png`, and `/private/tmp/flow-bottom-auto-port.png`. Root visually checked all four, including the final bottom-port result without a warning toast.

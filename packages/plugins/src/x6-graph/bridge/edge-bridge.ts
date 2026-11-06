@@ -53,8 +53,7 @@ export class EdgeBridge {
             : edge.targetNodeId,
           vertices: edge.vertices,
           data: edge.props,
-          labels:
-            typeof edge.props?.label === "string" && edge.props.label ? [edge.props.label] : [],
+          labels: [],
         });
       });
 
@@ -72,8 +71,7 @@ export class EdgeBridge {
             : edge.targetNodeId,
           vertices: edge.vertices,
           data: edge.props,
-          labels:
-            typeof edge.props?.label === "string" && edge.props.label ? [edge.props.label] : [],
+          labels: [],
         });
       }
       this.snapshots.set(edge.id, snapshot);

@@ -108,9 +108,13 @@
 }
 
 .canvasWorkspace {
+  --fd-canvas-dock-reserve: 0px;
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
+  min-width: 0;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -123,7 +127,7 @@
 
 .canvasToolbar {
   position: absolute;
-  z-index: 20;
+  z-index: 40;
   left: 50%;
   bottom: 20px;
   display: flex;
@@ -211,7 +215,7 @@
 
 .canvasQuickAdd {
   position: absolute;
-  z-index: 30;
+  z-index: 50;
   display: flex;
   flex-direction: column;
   gap: var(--fd-space-sm);
@@ -357,11 +361,12 @@
 .inspector {
   position: absolute;
   z-index: 99;
-  top: var(--fd-space-md);
+  --fd-inspector-top: var(--fd-space-md);
+  top: var(--fd-inspector-top);
   right: var(--fd-space-md);
   box-sizing: border-box;
   width: var(--fd-inspector-width);
-  max-height: calc(100% - var(--fd-space-xl));
+  max-height: max(0px, calc(100% - var(--fd-inspector-top) - var(--fd-canvas-dock-reserve)));
   padding: 12px 14px;
   overflow-y: auto;
   background: var(--fd-surface-primary);
@@ -384,6 +389,7 @@
 }
 
 .inspectorCollapsed {
+  max-height: none;
   width: 44px;
   height: 44px;
   padding: 4px;
@@ -465,8 +471,9 @@
   }
 
   .inspector {
-    top: 8px;
+    --fd-inspector-top: 8px;
     right: 8px;
+    max-width: calc(100% - 72px);
   }
 
   .canvasToolbar {

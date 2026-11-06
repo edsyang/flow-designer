@@ -32,6 +32,19 @@ describe("GenericContent", () => {
     setup();
   });
 
+  it("cleans a provisional allocation when its identity observer throws", async () => {
+    const doc = new Document({ id: "allocation", documentType: "*", documentVersion: "1.0.0" });
+    await expect(
+      doc.getContent().addNode({ id: "failed", type: "task" }, () => {
+        throw new Error("capture failed");
+      }),
+    ).rejects.toThrow("capture failed");
+    expect(doc.getContent().getNode("failed")).toBeNull();
+    expect(doc.getContent().getNodes()).toEqual([]);
+    expect(doc.getTimeline().getPoints()).toHaveLength(1);
+    expect(doc.isModified()).toBe(false);
+  });
+
   it("nodesFromData parses serialized nodes", () => {
     const doc = new Document({
       id: "doc-gc",

@@ -90,7 +90,14 @@ describe("workbench panels", () => {
       area: "sidebar",
       content: () => <input aria-label="library state" defaultValue="retained" />,
     });
-    render(<Workbench engine={engine as unknown as WorkbenchProps["engine"]} />);
+    const { container } = render(
+      <Workbench engine={engine as unknown as WorkbenchProps["engine"]} />,
+    );
+    const workspace = container.querySelector('[data-fd-layout="canvasWorkspace"]');
+    expect(container.querySelector('[data-fd-area="sidebar"]')?.parentElement).toBe(workspace);
+    expect(container.querySelector('[data-fd-area="canvas"]')?.parentElement?.parentElement).toBe(
+      workspace,
+    );
     fireEvent.click(screen.getByRole("button", { name: "节点库" }));
     expect(screen.getByRole("button", { name: "展开节点库" }).getAttribute("aria-expanded")).toBe(
       "false",

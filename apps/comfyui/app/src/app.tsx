@@ -12,7 +12,6 @@ import {
 import { comfyuiMessages } from "@flow-designer/comfyui-nodes/i18n";
 import { comfyuiTransformer } from "@flow-designer/comfyui-utils";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
-import { getTheme } from "@flow-designer/engine";
 import styles from "./app.module.less";
 
 contentTypesRegistry.register(GenericContent);
@@ -33,8 +32,6 @@ async function init() {
 
   const { registerComfyUINodes, refreshComfyUITranslations, getDataLinkEdgeType } =
     await import("@flow-designer/comfyui-nodes");
-  const theme = getTheme();
-  const isDarkTheme = theme === "dark";
 
   registerComfyUINodes();
   refreshComfyUITranslations();
@@ -65,7 +62,7 @@ async function init() {
         style={{
           fontWeight: 600,
           fontSize: 14,
-          color: isDarkTheme ? "#202a3e" : "e7ebf3",
+          color: "var(--fd-text-primary)",
           cursor: "pointer",
         }}
       >

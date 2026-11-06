@@ -52,12 +52,16 @@ export interface IGraphManager {
   /** First registered edge type, used when creating connections without an explicit type. */
   getDefaultEdgeType(): string | null;
   getEdgeTypeConfig(name: string): EdgeTypeConfig | null;
-  /**
-   * Evaluates the configured connection validator, if any. Returns `true` when
-   * no validator is configured. Use it to judge a candidate connection before
-   * an edge exists, for example while completing a pending blank drop.
-   */
+  /** Boolean commit-phase validation for real endpoints; use evaluateConnection for reasons or candidates. */
   checkConnection(context: ConnectionContext): boolean;
+  evaluateConnection(
+    context: ConnectionContext,
+    options?: ConnectionCheckOptions,
+  ): ConnectionValidationResult;
+  resolveConnection(
+    context: ConnectionContext,
+    options?: ConnectionCheckOptions,
+  ): ResolvedConnection;
   toJSON(): GraphData;
   fromJSON(data: GraphData): void;
   getX6Graph(): unknown;
@@ -117,7 +121,41 @@ export interface GridConfig {
   type?: "dot" | "fixedDot" | "mesh" | "doubleMesh";
 }
 
-export type ConnectionValidator = (context: ConnectionContext) => boolean;
+export type ConnectionRejectionReason =
+  | "workbench.connection.sourcePortRequired"
+  | "workbench.connection.targetPortRequired"
+  | "workbench.connection.sourceCannotConnect"
+  | "workbench.connection.targetCannotReceive"
+  | "workbench.connection.endpointMissing"
+  | "workbench.connection.loopNotAllowed"
+  | "workbench.connection.duplicateNotAllowed"
+  | "workbench.connection.incompatible"
+  | "workbench.connection.routeUnavailable";
+
+export interface ConnectionValidationResult {
+  valid: boolean;
+  reason?: ConnectionRejectionReason;
+  /** Candidate metadata passed structural checks; the actual target must still be validated at commit. */
+  deferred?: boolean;
+}
+export interface ResolvedConnection extends ConnectionValidationResult {
+  sourcePortId?: string;
+  targetPortId?: string;
+}
+export interface ConnectionCheckOptions {
+  phase?: "candidate" | "commit";
+  /** Existing edge excluded from duplicate checks while reconnecting it. */
+  edgeId?: string;
+}
+export interface ConnectionRejectedEvent extends ConnectionValidationResult {
+  sourceNode: string;
+  targetNode: string;
+}
+
+export type ConnectionValidator = ((context: ConnectionContext) => boolean) & {
+  /** Optional prototype-only policy; never receives fabricated node IDs. */
+  validatePorts?: (ports: Pick<ConnectionContext, "sourcePort" | "targetPort">) => boolean;
+};
 
 export interface ConnectionContext {
   sourceNode: string;
@@ -127,6 +165,7 @@ export interface ConnectionContext {
 }
 
 export type GraphEvent =
+  | "edge:routing:degraded"
   | "edge:routing:failed"
   | "node:click"
   | "node:dblclick"
@@ -141,6 +180,7 @@ export type GraphEvent =
   | "edge:mouseleave"
   | "edge:connected"
   | "connection:blank"
+  | "connection:rejected"
   | "edge:vertices:committed"
   | "blank:click"
   | "blank:dblclick"
@@ -150,6 +190,8 @@ export type GraphEvent =
 
 /** Payload of the `connection:blank` event. */
 export interface BlankConnectionEvent {
+  /** Source capability rejection shown as the picker's empty-state explanation. */
+  reason?: ConnectionRejectionReason;
   /** Node the drag started from. */
   sourceCellId: string;
   /** Port the drag started from, when the source node exposes ports. */

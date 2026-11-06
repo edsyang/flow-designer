@@ -12,7 +12,6 @@ import {
 } from "@flow-designer/engine";
 import { erMessages } from "@flow-designer/er-nodes/i18n";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
-import { getTheme } from "@flow-designer/engine";
 import styles from "./app.module.less";
 
 contentTypesRegistry.register(GenericContent);
@@ -31,8 +30,6 @@ async function init() {
   await initializeI18n(erMessages);
   const { registerERNodes, refreshERTranslations, getRelationEdgeType } =
     await import("@flow-designer/er-nodes");
-  const theme = getTheme();
-  const isDarkTheme = theme === "dark";
 
   registerERNodes();
   refreshERTranslations();
@@ -68,7 +65,7 @@ async function init() {
         style={{
           fontWeight: 600,
           fontSize: 14,
-          color: isDarkTheme ? "#202a3e" : "e7ebf3",
+          color: "var(--fd-text-primary)",
           cursor: "pointer",
         }}
       >

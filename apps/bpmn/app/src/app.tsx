@@ -10,7 +10,6 @@ import {
 import { registerProcessContentType } from "@flow-designer/bpmn-model";
 import { bpmnMessages } from "@flow-designer/bpmn-nodes/i18n";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
-import { getTheme } from "@flow-designer/engine";
 import styles from "./app.module.less";
 
 declare global {
@@ -35,8 +34,6 @@ async function init() {
     getProcessGlobalSettings,
     isValidBpmnConnection,
   } = await import("@flow-designer/bpmn-nodes");
-  const theme = getTheme();
-  const isDarkTheme = theme === "dark";
 
   registerBpmnNodes();
   refreshBpmnTranslations();
@@ -78,7 +75,7 @@ async function init() {
         style={{
           fontWeight: 600,
           fontSize: 14,
-          color: isDarkTheme ? "#202a3e" : "e7ebf3",
+          color: "var(--fd-text-primary)",
           cursor: "pointer",
         }}
       >

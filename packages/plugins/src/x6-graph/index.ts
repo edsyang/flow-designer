@@ -3,6 +3,7 @@ import { GraphManager } from "@flow-designer/graph";
 import { prototypeRegistry, signal, t } from "@flow-designer/model";
 import type { NodeMeta, GraphOptions, Prototype } from "@flow-designer/model";
 import { GraphBridge } from "./bridge/graph-bridge";
+import { registerCanvasCommands } from "./commands";
 
 function toNodeMeta(prototype: Prototype): NodeMeta {
   return {
@@ -27,6 +28,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
   const graphManager = new GraphManager();
   let graphBridge: GraphBridge | null = null;
   let destroyed = false;
+  let releaseCommands: (() => void) | null = null;
   let unsubscribeRegistry: (() => void) | null = null;
   let unregisterMount: (() => void) | undefined;
   let cleanupMount: (() => void) | null = null;
@@ -41,6 +43,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
     name: "plugin-x6-graph",
     dep: [],
     init() {
+      releaseCommands = registerCanvasCommands();
       try {
         unregisterMount = ctx.skeleton.canvas.hooks.didMount((container) => {
           if (destroyed) return;
@@ -85,7 +88,9 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
             registerAllPrototypes();
             unsubscribeRegistry = prototypeRegistry.onRegistryChange(registerAllPrototypes);
 
-            graphBridge = new GraphBridge(graphManager, doc);
+            graphBridge = new GraphBridge(graphManager, doc, (error) =>
+              ctx.logger.error("Graph mutation failed:", error),
+            );
             graphBridge.setup();
             doc
               .getTimeline()
@@ -105,11 +110,15 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
           return cleanup;
         });
       } catch (error) {
+        releaseCommands?.();
+        releaseCommands = null;
         signal.sendSignal("graph:init-failed", error);
       }
     },
     destroy() {
       destroyed = true;
+      releaseCommands?.();
+      releaseCommands = null;
       unregisterMount?.();
       unregisterMount = undefined;
       cleanupMount?.();

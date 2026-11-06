@@ -16,7 +16,6 @@ const ALL_DISABLED = [
   "plugin-delete",
   "plugin-stencil-panel",
   "plugin-selection-panel",
-  "plugin-edge-label",
   "plugin-debug-loader",
   "plugin-schema-viewer",
   "plugin-canvas-help",

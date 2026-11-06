@@ -20,6 +20,61 @@ function createTimeline(initialData: any = { v: 0 }) {
 }
 
 describe("Timeline", () => {
+  it("keeps no-op nested failures clean and preserves redo checkpoints", async () => {
+    const { tl, setState, getState } = createTimeline();
+    await tl.transaction("real", () => {
+      setState({ v: 1 });
+      tl.log("edit");
+    });
+    tl.back();
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    const points = [...tl.getPoints()];
+    await expect(
+      tl.transaction("failed creation", async () => {
+        setState({ v: 2 });
+        tl.log("temporary");
+        await tl.transaction("nested compensation", () => {
+          setState({ v: 0 });
+          tl.log("compensate");
+        });
+        throw new Error("rejected");
+      }),
+    ).rejects.toThrow("rejected");
+    expect(tl.getPoints()).toEqual(points);
+    expect(tl.getCurrentCursor()).toBe(0);
+    expect(tl.isModified()).toBe(false);
+    tl.forward();
+    expect(getState()).toEqual({ v: 1 });
+  });
+
+  it("preserves the effective starting state when an operation returns to an older checkpoint", async () => {
+    const { tl, setState, getState } = createTimeline();
+    setState({ v: 1 });
+    await tl.transaction("restore old value", () => {
+      setState({ v: 0 });
+      tl.log("edit");
+    });
+    expect(tl.getPoints()).toHaveLength(3);
+    tl.back();
+    expect(getState()).toEqual({ v: 1 });
+  });
+
+  it("records pre-existing unlogged changes before a net-zero transaction and reconciles saves", async () => {
+    const { tl, setState, getState } = createTimeline();
+    setState({ v: 1 });
+    await tl.transaction("no-op", () => {
+      setState({ v: 2 });
+      tl.log("temporary");
+      setState({ v: 1 });
+      tl.log("compensate");
+      tl.savePoint();
+    });
+    expect(tl.getPoints()).toHaveLength(2);
+    expect(tl.isModified()).toBe(false);
+    tl.back();
+    expect(getState()).toEqual({ v: 0 });
+  });
+
   it("handles save inside a transaction and a delayed observer after save", async () => {
     const { tl, setState } = createTimeline();
     await tl.transaction("edit and save", () => {

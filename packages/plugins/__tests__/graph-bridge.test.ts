@@ -153,6 +153,57 @@ describe("GraphBridge", () => {
       });
   });
 
+  it.each(["name", "label"])(
+    "keeps %s metadata persisted without canvas text or a double-click editor",
+    async (field) => {
+      graphManager.registerEdgeType("metadata", {
+        schema: [{ name: field, type: "string", defaultValue: "Default connection" }],
+      });
+      const source = await document
+        .getContent()
+        .addNode({ id: "source", type: "rect", props: { __position: { x: 0, y: 0 } } });
+      await document
+        .getContent()
+        .addNode({ id: "target", type: "rect", props: { __position: { x: 300, y: 0 } } });
+      source!.getRelation().addEdge({
+        id: "metadata-edge",
+        targetNodeId: "target",
+        type: "metadata",
+        props: { [field]: "Stored connection name" },
+      });
+      bridge.setup();
+      document.getTimeline().setApplier((data) => bridge.resetFromData(data as never));
+      document.save();
+      const graph = graphManager.getX6Graph() as {
+        getCellById(id: string): any;
+        trigger(name: string, payload: unknown): void;
+      };
+      expect(graph.getCellById("metadata-edge").getLabels()).toEqual([]);
+      expect(container.textContent).not.toContain("Stored connection name");
+      const before = structuredClone(document.getData());
+      const points = [...document.getTimeline().getPoints()];
+      graph.trigger("edge:dblclick", {
+        edge: graph.getCellById("metadata-edge"),
+        e: new MouseEvent("dblclick", { clientX: 100, clientY: 100 }),
+      });
+      expect(container.querySelector("input, textarea, [contenteditable=true]")).toBeNull();
+      expect(document.getData()).toEqual(before);
+      expect(document.getTimeline().getPoints()).toEqual(points);
+      source!.getRelation().updateEdgeProps("metadata-edge", { [field]: "Changed property name" });
+      expect(graph.getCellById("metadata-edge").getLabels()).toEqual([]);
+      const saved = document.save();
+      document.getTimeline().back();
+      expect(source!.getRelation().getEdgeById("metadata-edge")?.props?.[field]).toBe(
+        "Stored connection name",
+      );
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      document.getTimeline().forward();
+      document.load(saved);
+      expect(document.getData()).toEqual(saved);
+      expect(graph.getCellById("metadata-edge").getLabels()).toEqual([]);
+    },
+  );
+
   it("updates an existing relation on reconnection and persists segment vertices", async () => {
     bridge.setup();
     const source = await document.getContent().addNode({ id: "source", type: "rect", props: {} });
@@ -176,6 +227,98 @@ describe("GraphBridge", () => {
     edge.setVertices([{ x: 40, y: 50 }]);
     graph.trigger("edge:vertices:committed", { edge });
     expect(source!.getRelation().getEdgeById("edge")?.vertices).toEqual([{ x: 40, y: 50 }]);
+  });
+
+  it("persists explicitly rerouted nonincident edges in the obstacle move's single history step", async () => {
+    bridge.setup();
+    const source = await document
+      .getContent()
+      .addNode({ id: "source", type: "rect", props: { __position: { x: 0, y: 0 } } });
+    await document
+      .getContent()
+      .addNode({ id: "target", type: "rect", props: { __position: { x: 300, y: 0 } } });
+    await document
+      .getContent()
+      .addNode({ id: "obstacle", type: "rect", props: { __position: { x: 900, y: 900 } } });
+    source!.getRelation().addEdge({
+      id: "remote",
+      targetNodeId: "target",
+      sourcePort: "in",
+      targetPort: "in",
+      props: { label: "Preserved" },
+      vertices: [{ x: 20, y: 50 }],
+    });
+    document.save();
+    const graph = graphManager.getX6Graph() as {
+      getCellById(id: string): any;
+      trigger(name: string, payload: unknown): void;
+    };
+    const remote = graph.getCellById("remote");
+    remote.setSource({ cell: "source", port: "out" });
+    remote.setVertices([]);
+    const obstacle = graph.getCellById("obstacle");
+    obstacle.position(910, 900);
+    graph.trigger("node:moved", { node: obstacle, routingEdgeIds: ["remote", "remote"] });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(source!.getRelation().getEdgeById("remote")).toMatchObject({
+      sourcePort: "out",
+      vertices: [],
+      props: { label: "Preserved" },
+    });
+    document.getTimeline().back();
+    expect(source!.getRelation().getEdgeById("remote")).toMatchObject({
+      sourcePort: "in",
+      vertices: [{ x: 20, y: 50 }],
+      props: { label: "Preserved" },
+    });
+    expect(document.getContent().getNode("obstacle")?.getPosition()).toEqual({ x: 900, y: 900 });
+  });
+
+  it("compensates a newly committed relation when graph projection fails without leaving ghost selection or history", async () => {
+    const source = await document
+      .getContent()
+      .addNode({ id: "source", type: "rect", props: { __position: { x: 0, y: 0 } } });
+    await document
+      .getContent()
+      .addNode({ id: "target", type: "rect", props: { __position: { x: 300, y: 0 } } });
+    const reportError = vi.fn();
+    bridge = new GraphBridge(graphManager, document, reportError);
+    bridge.setup();
+    graphManager.select(["source"]);
+    document.getSelection().setKeys(["source"]);
+    document.save();
+    const before = structuredClone(document.getData());
+    const points = [...document.getTimeline().getPoints()];
+    Object.defineProperty(graphManager, "evaluateConnection", {
+      configurable: true,
+      value: () => ({ valid: true }),
+    });
+    graphManager.addEdge({
+      id: "new-failed-edge",
+      source: { cell: "source", port: "out" },
+      target: { cell: "target", port: "in" },
+    });
+    const update = vi.spyOn(graphManager, "updateEdge").mockImplementationOnce(() => {
+      throw new Error("projection failed");
+    });
+    const graph = graphManager.getX6Graph() as {
+      getCellById(id: string): unknown;
+      trigger(name: string, payload: unknown): void;
+    };
+    graph.trigger("edge:connected", { edge: graph.getCellById("new-failed-edge") });
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(source!.getRelation().getEdgeById("new-failed-edge")).toBeNull();
+    expect(graphManager.toJSON().edges).toEqual([]);
+    expect(document.getData()).toEqual(before);
+    expect(document.getTimeline().getPoints()).toEqual(points);
+    expect(document.isModified()).toBe(false);
+    expect(document.getSelection().getKeys()).toEqual(["source"]);
+    expect(graphManager.getSelection()).toEqual(["source"]);
+    expect(reportError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "projection failed" }),
+    );
+    update.mockRestore();
   });
 
   it("adds a node to the graph when one is added to the model", async () => {

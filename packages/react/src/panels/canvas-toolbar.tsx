@@ -6,6 +6,7 @@ import { createContent } from "@flow-designer/skeleton";
 import type { Document } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/model";
 import { useEditor } from "../hooks";
+import { useToolbarCenter } from "./toolbar-position";
 import { mountArea } from "./mount-area";
 import styles from "../workbench.module.less";
 
@@ -32,6 +33,7 @@ export const CanvasToolbar = observer(function CanvasToolbar(props: CanvasToolba
     };
   }, [graph]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const center = useToolbarCenter(containerRef);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -54,6 +56,7 @@ export const CanvasToolbar = observer(function CanvasToolbar(props: CanvasToolba
       <div
         className={styles.canvasToolbar}
         data-fd-area="canvasToolbar"
+        style={center === null ? undefined : { left: center }}
         lang={locale}
         ref={containerRef}
       >
