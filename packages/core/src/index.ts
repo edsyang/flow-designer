@@ -1,5 +1,5 @@
 export { Editor, GraphView } from "./editor";
-export { CommandRegistry, commandRegistry } from "./command";
+export { CommandRegistry } from "./command";
 export type { CommandName } from "./command";
 export { PluginManager } from "./plugins/plugin-manager";
 export { PluginContext } from "./plugins/plugin-context";

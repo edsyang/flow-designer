@@ -6,9 +6,8 @@ import type { NodeDefinition } from "../src/prototype";
 function definition(name: string): NodeDefinition {
   return {
     meta: { name, typeName: "same" },
-    view: { type: "node", ports: [{ id: name, group: "out", position: "right" }] },
+    connection: { ports: [{ id: name, group: "out", position: "right" }] },
     schema: [{ name: "name", type: "string", defaultValue: name }],
-    editor: [],
   };
 }
 function registries() {
@@ -41,8 +40,8 @@ describe("document registry and signal ownership", () => {
       const nodeB = await second.getContent().addNode({ type: "same" });
       expect(nodeA?.getProps().getPropData("name")).toBe("A");
       expect(nodeB?.getProps().getPropData("name")).toBe("Seed");
-      expect(nodeA?.getPrototype().getView().ports?.[0]?.id).toBe("A");
-      expect(nodeB?.getPrototype().getView().ports?.[0]?.id).toBe("Seed");
+      expect(nodeA?.getPrototype().getPorts()?.[0]?.id).toBe("A");
+      expect(nodeB?.getPrototype().getPorts()?.[0]?.id).toBe("Seed");
       expect(initialized).toHaveBeenCalled();
       const identity = nodeA?.getPrototype();
       a.prototypes.register(definition("Updated A"));

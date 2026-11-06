@@ -1,3 +1,4 @@
+import { defineNode } from "../../engine/src/definitions";
 import type { GraphApplicationEvent } from "@flow-designer/core";
 import type { GenericRelation } from "@flow-designer/model";
 import { bindSkeleton } from "@flow-designer/skeleton";
@@ -160,13 +161,15 @@ describe("workbench panels", () => {
       }),
     };
     const engine = fixture();
-    engine.editor.getRegistries().prototypes.register({
-      name: "Configured double-click",
-      typeName: "workbench-double-click",
-      view: { type: "node", shape: "fd-rect" },
-      props: [{ name: "label", defaultValue: "" }],
-      settings: [{ name: "label", setter: "StringSetter" }],
-    });
+    engine.skeleton.ui.register(
+      defineNode({
+        meta: { name: "Configured double-click", typeName: "workbench-double-click" },
+        view: { type: "node", shape: "fd-rect" },
+        schema: [{ name: "label", type: "string", defaultValue: "" }],
+        editor: [{ target: "label", setter: "StringSetter" }],
+      }),
+      engine.editor.getRegistries().prototypes,
+    );
     const configuredNode = await engine.doc
       .getContent()
       .addNode({ type: "workbench-double-click" });
@@ -217,13 +220,15 @@ describe("workbench panels", () => {
     );
     try {
       const engine = fixture();
-      engine.editor.getRegistries().prototypes.register({
-        name: "Configured",
-        typeName: "workbench-configured",
-        view: { type: "node" },
-        props: [{ name: "label", defaultValue: "" }],
-        settings: [{ name: "label", setter: "StringSetter" }],
-      });
+      engine.skeleton.ui.register(
+        defineNode({
+          meta: { name: "Configured", typeName: "workbench-configured" },
+          view: { type: "node" },
+          schema: [{ name: "label", type: "string", defaultValue: "" }],
+          editor: [{ target: "label", setter: "StringSetter" }],
+        }),
+        engine.editor.getRegistries().prototypes,
+      );
       const first = await engine.doc.getContent().addNode({ type: "workbench-configured" });
       const second = await engine.doc.getContent().addNode({ type: "workbench-configured" });
       engine.skeleton.inspector.add({

@@ -3,7 +3,6 @@ import {
   GenericContent,
   contentTypesRegistry,
   prototypeRegistry,
-  defineNode,
 } from "@flow-designer/model";
 
 type DocumentData = ConstructorParameters<typeof Document>[0];
@@ -18,31 +17,22 @@ export function setupRegistries(): void {
     contentTypesRegistry.register(GenericContent as any);
   }
   if (!prototypeRegistry.getPrototypeByType("Unknown")) {
-    prototypeRegistry.register(
-      defineNode({
-        meta: { name: "unknown", typeName: "Unknown" },
-        view: { type: "node", shape: "fd-rect" },
-        schema: [],
-        editor: [],
-      }),
-    );
+    prototypeRegistry.register({
+      meta: { name: "unknown", typeName: "Unknown" },
+      schema: [],
+    });
   }
   if (!prototypeRegistry.getPrototypeByType("rect")) {
-    prototypeRegistry.register(
-      defineNode({
-        meta: { name: "rect", typeName: "rect" },
-        view: {
-          type: "node",
-          shape: "fd-rect",
-          ports: [
-            { id: "out", group: "out", position: "right" },
-            { id: "in", group: "in", position: "left" },
-          ],
-        },
-        schema: [],
-        editor: [],
-      }),
-    );
+    prototypeRegistry.register({
+      meta: { name: "rect", typeName: "rect" },
+      connection: {
+        ports: [
+          { id: "out", group: "out", position: "right" },
+          { id: "in", group: "in", position: "left" },
+        ],
+      },
+      schema: [],
+    });
   }
 }
 

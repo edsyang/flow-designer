@@ -23,7 +23,7 @@
   "scripts": {
     "build": "vite build",
     "test": "vitest run",
-    "lint": "eslint src/ --max-warnings 46",
+    "lint": "eslint src/ --max-warnings 32",
     "typecheck": "tsc --noEmit",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\""
   },
@@ -31,7 +31,8 @@
     "@flow-designer/core": "workspace:*",
     "@flow-designer/model": "workspace:*",
     "mobx-react-lite": "^4.0.0",
-    "@flow-designer/i18n": "workspace:*"
+    "@flow-designer/i18n": "workspace:*",
+    "@flow-designer/graph": "workspace:*"
   },
   "peerDependencies": {
     "mobx": "^6.0.0",

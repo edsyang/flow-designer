@@ -4,19 +4,8 @@ import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
 import { t } from "@flow-designer/i18n";
-import type { NodeMeta, Prototype } from "@flow-designer/model";
 import { GraphBridge } from "./bridge/graph-bridge";
 import { registerCanvasCommands } from "./commands";
-
-function toNodeMeta(prototype: Prototype): NodeMeta {
-  return {
-    name: prototype.getName(),
-    typeName: prototype.getTypeName(),
-    icon: prototype.getIcon() || undefined,
-    category: prototype.getCategory() || undefined,
-    categoryTitle: prototype.getCategoryTitle() || undefined,
-  };
-}
 
 function showInitError(container: HTMLElement): void {
   const message = document.createElement("div");
@@ -30,7 +19,7 @@ function showInitError(container: HTMLElement): void {
 export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): IPluginConfig {
   const skeleton = getSkeleton(ctx.editor);
   const graphManager = new GraphManager();
-  const prototypeRegistry = ctx.editor.getRegistries().prototypes;
+  const contributions = skeleton.ui;
   let graphBridge: GraphBridge | null = null;
   let destroyed = false;
   let releaseCommands: (() => void) | null = null;
@@ -39,9 +28,8 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
   let cleanupMount: (() => void) | null = null;
 
   function registerAllPrototypes(): void {
-    prototypeRegistry.getRegistry().forEach((prototype) => {
-      graphManager.registerNodeType(toNodeMeta(prototype), prototype.getView());
-    });
+    for (const contribution of contributions.getNodes())
+      graphManager.registerNodeType(contribution.meta, contribution.view);
   }
 
   return {
@@ -91,7 +79,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
             }
             ctx.editor.setGraph(graphManager);
             registerAllPrototypes();
-            unsubscribeRegistry = prototypeRegistry.onRegistryChange(registerAllPrototypes);
+            unsubscribeRegistry = contributions.onChange(registerAllPrototypes);
 
             graphBridge = new GraphBridge(graphManager, doc, (error) =>
               ctx.logger.error("Graph mutation failed:", error),

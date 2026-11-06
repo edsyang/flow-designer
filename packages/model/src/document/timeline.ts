@@ -83,6 +83,7 @@ export default class Timeline {
   private transactionBaseline: string | null = null;
   private pauseCount: number = 0;
   private navigating: boolean = false;
+  private applyingNavigation = false;
   private navigationTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
@@ -150,7 +151,15 @@ export default class Timeline {
   }
 
   beginTransaction(title: string): void {
+    if (this.applyingNavigation)
+      throw new Error("Cannot begin a transaction inside a history applier");
     if (this.transactionDepth === 0) {
+      // A new explicit edit after go() returned supersedes deferred restore echoes.
+      this.navigating = false;
+      if (this.navigationTimer !== null) {
+        clearTimeout(this.navigationTimer);
+        this.navigationTimer = null;
+      }
       this.currentPoint?.end();
       const baseline = JSON.stringify(this.logger());
       // Deferred observers may not have recorded edits that predate this command.
@@ -164,6 +173,7 @@ export default class Timeline {
       this.transactionDirty = false;
     }
     this.transactionDepth++;
+    if (this.transactionDepth === 1) this.emitter.emit("statechange", this.getState());
   }
 
   endTransaction(): void {
@@ -181,6 +191,7 @@ export default class Timeline {
     this.transactionSave = null;
     this.currentPoint?.end();
     this.transactionDirty = false;
+    this.emitter.emit("statechange", this.getState());
   }
 
   async transaction<T>(title: string, operation: () => T | Promise<T>): Promise<T> {
@@ -193,9 +204,10 @@ export default class Timeline {
     }
   }
 
-  go(cursor: number) {
-    if (!this.currentPoint) {
-      return;
+  /** Navigation is refused while an async transaction owns the effective baseline. */
+  go(cursor: number): boolean {
+    if (this.transactionDepth > 0 || !this.currentPoint) {
+      return false;
     }
 
     const currentCursor = this.getCurrentCursor();
@@ -206,13 +218,14 @@ export default class Timeline {
       cursor = this.points.length - 1;
     }
     if (cursor === currentCursor) {
-      return;
+      return false;
     }
 
     const point = this.points[cursor]!;
     const hotData = point.getData();
 
     this.navigating = true;
+    this.applyingNavigation = true;
     try {
       this.applier(hotData);
       this.currentPoint.end();
@@ -223,20 +236,23 @@ export default class Timeline {
     } catch (error) {
       this.navigating = false;
       throw error;
+    } finally {
+      this.applyingNavigation = false;
     }
     if (this.navigationTimer !== null) clearTimeout(this.navigationTimer);
     this.navigationTimer = setTimeout(() => {
       this.navigating = false;
       this.navigationTimer = null;
     }, 0);
+    return true;
   }
 
-  back() {
-    this.go(this.getCurrentCursor() - 1);
+  back(): boolean {
+    return this.go(this.getCurrentCursor() - 1);
   }
 
-  forward() {
-    this.go(this.getCurrentCursor() + 1);
+  forward(): boolean {
+    return this.go(this.getCurrentCursor() + 1);
   }
 
   savePoint() {
@@ -275,6 +291,7 @@ export default class Timeline {
   }
 
   getState(): number {
+    if (this.transactionDepth > 0) return this.isModified() ? 4 : 0;
     const cursor = this.getCurrentCursor();
     let state = 7;
     if (cursor <= 0) {

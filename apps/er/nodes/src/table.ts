@@ -1,4 +1,4 @@
-import { defineNode } from "@flow-designer/model";
+import { defineNode } from "@flow-designer/engine/definitions";
 import { t } from "@flow-designer/i18n";
 import { BuiltinSetters } from "@flow-designer/setters/constants";
 import { ER_CATEGORIES, ER_TYPE_NAMES, ER_DATA_TYPES, ER_DATA_TYPE_COLORS } from "./constants";

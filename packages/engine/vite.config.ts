@@ -5,9 +5,9 @@ export default defineConfig({
   plugins: [dts({ rollupTypes: true })],
   build: {
     lib: {
-      entry: "src/index.ts",
+      entry: { index: "src/index.ts", definitions: "src/definitions.ts" },
       formats: ["es", "cjs"],
-      fileName: (format) => `index.${format === "es" ? "mjs" : "cjs"}`,
+      fileName: (format, name) => `${name}.${format === "es" ? "mjs" : "cjs"}`,
     },
     rollupOptions: {
       external: [

@@ -13,6 +13,18 @@ export const PORT_VECTORS: Record<PortSide, EdgePoint> = {
   top: { x: 0, y: -1 },
   bottom: { x: 0, y: 1 },
 };
+export interface RoutingSearchEvidence {
+  candidates: number;
+  obstacleChecks: number;
+  bestCost?: number;
+  blockingCosts?: Map<RoutingObstacle, number>;
+  laneCandidatesTruncated?: boolean;
+  obstacleCandidatesTruncated?: boolean;
+  expansionBudgetExhausted?: boolean;
+  /** Optional test/caller budgets preserve the production defaults when absent. */
+  laneLimit?: number;
+  expansionLimit?: number;
+}
 const EPS = 0.01;
 const distance = (a: EdgePoint, b: EdgePoint) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
 export function segmentHitsObstacle(a: EdgePoint, b: EdgePoint, rect: RoutingObstacle): boolean {
@@ -62,6 +74,7 @@ export function findOrthogonalPath(
   a: EdgePoint,
   b: EdgePoint,
   obstacles: readonly RoutingObstacle[],
+  stats?: RoutingSearchEvidence,
 ): EdgePoint[] | null {
   const clear = (from: EdgePoint, to: EdgePoint) =>
     !obstacles.some((rect) => segmentHitsObstacle(from, to, rect));
@@ -94,10 +107,12 @@ export function findOrthogonalPath(
   const right = Math.max(a.x, b.x) + 96;
   const top = Math.min(a.y, b.y) - 96;
   const bottom = Math.max(a.y, b.y) + 96;
-  const relevant = obstacles
+  const relevantCandidates = obstacles
     .filter((r) => r.x < right && r.x + r.width > left && r.y < bottom && r.y + r.height > top)
-    .sort((x, y) => distance(a, x) + distance(b, x) - distance(a, y) - distance(b, y))
-    .slice(0, 48);
+    .sort((x, y) => distance(a, x) + distance(b, x) - distance(a, y) - distance(b, y));
+  const relevant = relevantCandidates.slice(0, stats?.laneLimit ?? 48);
+  if (stats && relevant.length < relevantCandidates.length)
+    stats.obstacleCandidatesTruncated = true;
   const xs = new Set([a.x, b.x]);
   const ys = new Set([a.y, b.y]);
   for (const r of relevant) {
@@ -149,7 +164,7 @@ export function findOrthogonalPath(
   };
   const scores = new Map<number, number>();
   push({ id: start, axis: 0, score: 0, estimate: distance(a, b), parent: null });
-  let budget = 16000;
+  let budget = stats?.expansionLimit ?? 16000;
   while (heap.length && budget-- > 0) {
     const current = pop();
     const key = current.id * 3 + current.axis;
@@ -183,6 +198,7 @@ export function findOrthogonalPath(
       push({ id: next, axis, score, estimate: score + distance(to, b), parent: current });
     }
   }
+  if (stats && heap.length > 0 && budget <= 0) stats.expansionBudgetExhausted = true;
   return null;
 }
 
@@ -193,6 +209,7 @@ export function routeWithPortStubs(
   targetSide: PortSide,
   obstacles: readonly RoutingObstacle[],
   vertices: readonly EdgePoint[] = [],
+  stats?: RoutingSearchEvidence,
 ): EdgePoint[] | null {
   const stub = (point: EdgePoint, side: PortSide) => {
     const v = PORT_VECTORS[side];
@@ -236,7 +253,7 @@ export function routeWithPortStubs(
   ];
   const result = [source];
   for (let i = 1; i < waypoints.length; i++) {
-    const route = findOrthogonalPath(waypoints[i - 1]!, waypoints[i]!, obstacles);
+    const route = findOrthogonalPath(waypoints[i - 1]!, waypoints[i]!, obstacles, stats);
     if (!route) return null;
     result.push(...route.slice(i === 1 ? 0 : 1));
   }
@@ -277,12 +294,7 @@ export function findShortPortRoute(
   targetSide: PortSide,
   obstacles: readonly RoutingObstacle[],
   vertices: readonly EdgePoint[] = [],
-  stats?: {
-    candidates: number;
-    obstacleChecks: number;
-    bestCost?: number;
-    blockingCosts?: Map<RoutingObstacle, number>;
-  },
+  stats?: RoutingSearchEvidence,
 ): EdgePoint[] | null {
   const sv = PORT_VECTORS[sourceSide];
   const tv = PORT_VECTORS[targetSide];
@@ -434,10 +446,13 @@ export function findShortPortRoute(
   const result = () => best.route;
   consider([source, target]);
   if (result()) return result();
-  const nearby = (values: Set<number>, a: number, b: number) =>
-    [...values]
+  const nearby = (values: Set<number>, a: number, b: number) => {
+    const limit = stats?.laneLimit ?? 48;
+    if (stats && values.size > limit) stats.laneCandidatesTruncated = true;
+    return [...values]
       .sort((x, y) => Math.abs(x - a) + Math.abs(x - b) - Math.abs(y - a) - Math.abs(y - b))
-      .slice(0, 48);
+      .slice(0, limit);
+  };
   const xLanes = nearby(xs, source.x, target.x);
   const yLanes = nearby(ys, source.y, target.y);
   if (horizontal === targetHorizontal) {

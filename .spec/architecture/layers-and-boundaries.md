@@ -39,7 +39,7 @@ Static import rules do not establish transitive dependency isolation or detect d
 
 ## Instance support boundary
 
-Document catalogs/signals, editor commands/notifications, scoped shortcuts and business renderer registrations are instance-owned. Two independently configured editors are verified with same-name types and IDs, focused shortcuts and destruction of one while the other remains usable. Theme and locale are explicitly page-shared preferences. Setter/UI contribution ownership is addressed separately in P6; this guarantee does not isolate arbitrary application globals or explicit page-global native X6 extensions.
+Document catalogs/signals, editor commands/notifications, scoped shortcuts and business renderer registrations are instance-owned. Two independently configured editors are verified with same-name types and IDs, focused shortcuts and destruction of one while the other remains usable. Theme and locale are explicitly page-shared preferences. Setter catalogs and UI node contributions are skeleton-owned; this guarantee does not isolate arbitrary application globals or explicit page-global native X6 extensions.
 
 ## Translation ownership and migration
 
@@ -60,3 +60,11 @@ Engine binds its editor to its skeleton through `bindSkeleton(editor, skeleton)`
 Core exports `GraphPort`, composed from projection, selection, viewport, interaction-mode, connection-decision and subscription capabilities. Its configs and finalized edit/application notifications contain data rather than X6 cells, DOM events or React renderers. Editor and PluginContext expose this application port. Canvas command names/request/results and connection Context/Validator/Result/Reason types are also core contracts; implementations stay in plugins. PortDefinition and canUsePort remain model-owned.
 
 Graph exports `GraphAdapterPort` and its compatibility alias `IGraphManager`. Native events, renderer registration/configuration, GraphOptions, GraphData, stencil/Dnd, X6 plugin and debug access belong to this adapter, not core. The engine facade aggregates the new owning packages; direct imports formerly obtained from model must migrate to core or graph, without a reverse compatibility re-export. UI querying application state uses the core port; explicit renderer/stencil configuration uses the graph adapter through the owning graph plugin.
+
+## Pure definitions and explicit composition
+
+Model exports pure `NodeDefinition`: schema, lifecycle, ports, initial size and capabilities. It neither imports React (including types) nor re-exports graph renderer or skeleton setter contracts. `NodeView`, `NodeMeta` and node renderer props belong to graph; UI settings and setter registries belong to skeleton.
+
+`@flow-designer/engine/definitions` is a lightweight helper entry with ESM, CommonJS and declarations. `defineNode` returns a combined UI bundle and its pure `.domain` definition; the helper itself does not load React, X6, CSS or browser globals. Engine's full facade remains a browser-oriented composition entry. Creation accepts `nodeDefinitions`; dynamic UI contributions register against the intended engine. Model registries accept domain definitions only.
+
+Each skeleton owns its UI registrations and setter catalog. Registration cleanup is identity-bound, including replacement and overlays; refreshing translated metadata must not accumulate registrations or modify another designer's definitions. Domain settings own values, targets and codecs; UI adapters own presentation, controls and behavior. The built consumer checks and import-boundary fixtures enforce these ownership rules.

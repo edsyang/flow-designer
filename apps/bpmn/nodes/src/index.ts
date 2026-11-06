@@ -1,8 +1,7 @@
-import type { PrototypeRegistry } from "@flow-designer/model";
-import { prototypeRegistry } from "@flow-designer/model";
+import type { NodeDefinitionRegistry } from "@flow-designer/engine/definitions";
 import { t } from "@flow-designer/i18n";
 export { bpmnMessages } from "./i18n";
-import type { NodeDefinition } from "@flow-designer/model";
+import type { NodeDefinition } from "@flow-designer/engine/definitions";
 import { startEventDef } from "./start-event";
 import { endEventDef } from "./end-event";
 import { timerEventDef } from "./timer-event";
@@ -28,7 +27,7 @@ export { processGlobalDef } from "./process-global";
 export { sequenceFlowConfig, SEQUENCE_FLOW_TYPE, isValidBpmnConnection } from "./sequence-flow";
 export { BPMN_CATEGORIES, BPMN_TYPE_NAMES } from "./constants";
 
-const allDefs: NodeDefinition[] = [
+export const bpmnNodeDefinitions: NodeDefinition[] = [
   startEventDef,
   endEventDef,
   timerEventDef,
@@ -47,10 +46,10 @@ const allDefs: NodeDefinition[] = [
  * Idempotent: already-registered types are left to `refreshBpmnTranslations()`,
  * which owns locale updates. Registering an absent type is this function's job.
  */
-export function registerBpmnNodes(registry: PrototypeRegistry = prototypeRegistry): void {
-  for (const def of allDefs) {
-    if (!registry.getPrototypeByType(def.meta.typeName)) {
-      registry.register(def);
+export function registerBpmnNodes(registry: NodeDefinitionRegistry): void {
+  for (const def of bpmnNodeDefinitions) {
+    if (!registry.prototypes.getPrototypeByType(def.meta.typeName)) {
+      registry.ui.register(def, registry.prototypes);
     }
   }
 }
@@ -68,9 +67,7 @@ export interface DefaultNameChange {
  * It never registers a new type: a translation refresh must not create nodes as
  * a side effect. Call `registerBpmnNodes()` first (or after) to define nodes.
  */
-export function refreshBpmnTranslations(
-  registry: PrototypeRegistry = prototypeRegistry,
-): DefaultNameChange[] {
+export function refreshBpmnTranslations(registry: NodeDefinitionRegistry): DefaultNameChange[] {
   const defaultNameKeys: Record<string, string> = {
     StartEvent: "bpmn.node.startEvent.label",
     EndEvent: "bpmn.node.endEvent.label",
@@ -106,8 +103,9 @@ export function refreshBpmnTranslations(
     global: "bpmn.category.global",
   };
 
-  for (const template of allDefs) {
-    const def = registry.getPrototypeByType(template.meta.typeName)?.getDefinition() ?? template;
+  for (const template of bpmnNodeDefinitions) {
+    const def = registry.ui.getNode(template.meta.typeName);
+    if (!def) continue;
     if (def.meta.category && categoryKeys[def.meta.category]) {
       def.meta.categoryTitle = t(categoryKeys[def.meta.category]!);
     }
@@ -141,8 +139,8 @@ export function refreshBpmnTranslations(
       }
     };
     refreshFields(def.editor);
-    if (registry.getPrototypeByType(def.meta.typeName)) {
-      registry.replace(def);
+    if (registry.prototypes.getPrototypeByType(def.meta.typeName)) {
+      registry.ui.replace(def, registry.prototypes);
     }
   }
 
@@ -161,7 +159,20 @@ export function getSequenceFlowEdgeType(): {
   return { name: SEQUENCE_FLOW_TYPE, config: sequenceFlowConfig };
 }
 
-export function getProcessGlobalSettings(registry: PrototypeRegistry = prototypeRegistry) {
-  const proto = registry.getPrototypeByType("ProcessGlobal");
-  return proto?.getSettings() ?? [];
+export function getProcessGlobalSettings() {
+  const labels: Record<string, string> = {
+    processName: "bpmn.property.processName",
+    processId: "bpmn.property.processId",
+    description: "bpmn.property.processDescription",
+    isExecutable: "bpmn.property.executable",
+  };
+  return processGlobalDef.editor.map((field) => ({
+    target: field.target,
+    get description() {
+      return typeof field.target === "string" && labels[field.target]
+        ? t(labels[field.target]!)
+        : field.description;
+    },
+    setter: field.setter,
+  }));
 }

@@ -4,11 +4,13 @@ import type Prop from "../props/prop";
 import Setting from "./setting";
 import type { SettingConfig } from "./setting";
 
+type SettingFilter<T> = { accept(setting: Setting<T>): boolean }["accept"];
+
 export default class Settings<T> {
   private emitter: EventEmitter = new EventEmitter();
   private items: Array<Setting<T>>;
   private willDetach: () => void;
-  private filter: ((setting: Setting<T>) => boolean) | null;
+  private filter: SettingFilter<T> | null;
 
   constructor(
     private props: Props<T>,
@@ -27,7 +29,6 @@ export default class Settings<T> {
         revision = scope.getRevision();
         this.items.forEach((item) => {
           item.update();
-          item.updateBehavior();
         });
         this.emitter.emit("scopechange");
       }
@@ -42,7 +43,7 @@ export default class Settings<T> {
     return this.filter ? this.items.filter(this.filter) : this.items;
   }
 
-  setFilter(filter: ((setting: Setting<T>) => boolean) | null) {
+  setFilter(filter: SettingFilter<T> | null) {
     this.filter = filter;
   }
 

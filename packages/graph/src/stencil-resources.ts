@@ -2,7 +2,7 @@ import { runCleanupTasks } from "./cleanup-tasks";
 import type { Graph } from "@antv/x6";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import type { Dnd } from "@antv/x6-plugin-dnd";
-import type { NodeMeta, NodeView } from "@flow-designer/model";
+import type { NodeMeta, NodeView } from "./contracts";
 import { t } from "@flow-designer/i18n";
 import { StableViewportDnd, type DragEdgePanController } from "./viewport-input";
 import { DEFAULT_NODE_WIDTH, DEFAULT_NODE_HEIGHT } from "./graph-defaults";

@@ -1,5 +1,6 @@
+import type { NodeDefinitionBundle, UiSettingConfig } from "@flow-designer/skeleton";
 import type { GraphOptions, GraphAdapterPort } from "@flow-designer/graph";
-import type { ContentTransformer, SettingConfig, RegistrySet } from "@flow-designer/model";
+import type { ContentTransformer, RegistrySet } from "@flow-designer/model";
 import type { Locale, Messages } from "@flow-designer/i18n";
 import type { PluginCreator, Editor, IPluginManager } from "@flow-designer/core";
 import type { Engine } from "./engine";
@@ -17,7 +18,8 @@ export interface DesignerOptions {
   autoSave?: boolean | { interval?: number };
   unsavedPrompt?: boolean;
   transformers?: ContentTransformer[];
-  docSettings?: Array<SettingConfig<Document>>;
+  nodeDefinitions?: readonly NodeDefinitionBundle[];
+  docSettings?: Array<UiSettingConfig<Document>>;
   localeMessages?: Partial<Record<Locale, Messages>>;
 }
 

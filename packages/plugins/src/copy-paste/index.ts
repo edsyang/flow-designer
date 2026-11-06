@@ -25,7 +25,7 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
         continue;
       }
       const prototype = prototypeRegistry.getPrototypeByType(node.getTypeName());
-      if (prototype?.getView().copyable === false) {
+      if (prototype?.getCapabilities().copyable === false) {
         blockedNames.push(prototype.getName());
       } else {
         nodes.push(node);

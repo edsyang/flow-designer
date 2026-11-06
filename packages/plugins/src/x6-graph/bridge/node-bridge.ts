@@ -2,7 +2,6 @@ import type { ContentNode } from "@flow-designer/model";
 import { subscribeLocale } from "@flow-designer/i18n";
 import type { GraphPort } from "@flow-designer/core";
 import type { GraphBridge } from "./graph-bridge";
-import { truncateLabel } from "./graph-bridge";
 
 export class NodeBridge {
   private unsubscribe: () => void;
@@ -46,9 +45,9 @@ export class NodeBridge {
       nodeId: this.node.getId(),
       position: this.node.getPosition(),
       ...(this.label !== label ? { label } : {}),
-      portLabels: (prototype?.getView().ports ?? []).flatMap((port) =>
-        port.id && port.label ? [{ portId: port.id, label: port.label }] : [],
-      ),
+      portLabels: prototype
+        .getPorts()
+        .flatMap((port) => (port.id && port.label ? [{ portId: port.id, label: port.label }] : [])),
     });
     this.label = label;
   }
@@ -56,10 +55,7 @@ export class NodeBridge {
   private getLabel(): string {
     const prototype = this.node.getPrototype();
     const name = this.node.getProps().getProp("name")?.getData() as string | undefined;
-    return truncateLabel(
-      prototype?.getNameForValue(name) ?? name ?? this.node.getTypeName(),
-      prototype?.getView().shape,
-    );
+    return prototype.getNameForValue(name);
   }
 
   dispose(): void {

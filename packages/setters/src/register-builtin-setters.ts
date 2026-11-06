@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import { StringSetter } from "./string-setter";
 import { NumberSetter } from "./number-setter";
 import { BooleanSetter } from "./boolean-setter";
@@ -8,7 +9,11 @@ import { TextAreaSetter } from "./textarea-setter";
 import { RadioGroupSetter } from "./radio-group-setter";
 
 interface SetterRegistryLike {
-  register(type: string, setter: any, isDefault?: boolean): void;
+  register<P extends object>(
+    type: string,
+    setter: ComponentType<P>,
+    isDefault?: boolean,
+  ): () => void;
 }
 
 export function registerBuiltinSetters(registry: SetterRegistryLike): void {

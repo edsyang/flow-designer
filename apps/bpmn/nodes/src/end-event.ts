@@ -1,4 +1,4 @@
-import { defineNode } from "@flow-designer/model";
+import { defineNode } from "@flow-designer/engine/definitions";
 import { t } from "@flow-designer/i18n";
 import { BuiltinSetters } from "@flow-designer/setters/constants";
 import { BPMN_CATEGORIES, BPMN_TYPE_NAMES } from "./constants";

@@ -10,16 +10,14 @@ function setup() {
   }
   if (!prototypeRegistry.getPrototypeByType("Unknown")) {
     prototypeRegistry.register({
-      name: "Unknown",
-      typeName: "Unknown",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Unknown", typeName: "Unknown" },
+      schema: [],
     } as any);
   }
   if (!prototypeRegistry.getPrototypeByType("UserTask")) {
     prototypeRegistry.register({
-      name: "UserTask",
-      typeName: "UserTask",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "UserTask", typeName: "UserTask" },
+      schema: [],
       props: [
         { name: "name", defaultValue: "" },
         { name: "assignee", defaultValue: "" },
@@ -28,17 +26,15 @@ function setup() {
   }
   if (!prototypeRegistry.getPrototypeByType("StartEvent")) {
     prototypeRegistry.register({
-      name: "StartEvent",
-      typeName: "StartEvent",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "StartEvent", typeName: "StartEvent" },
+      schema: [],
       props: [{ name: "name", defaultValue: "Start" }],
     } as any);
   }
   if (!prototypeRegistry.getPrototypeByType("EndEvent")) {
     prototypeRegistry.register({
-      name: "EndEvent",
-      typeName: "EndEvent",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "EndEvent", typeName: "EndEvent" },
+      schema: [],
       props: [{ name: "name", defaultValue: "End" }],
     } as any);
   }

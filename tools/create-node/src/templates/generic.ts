@@ -10,7 +10,7 @@ export function generateGenericNodeDef(opts: GenericTemplateOptions): string {
   const pascalName = toPascalCase(kebabName);
   const defName = toDefName(kebabName);
 
-  return `import { defineNode } from '@flow-designer/model';
+  return `import { defineNode } from '@flow-designer/engine/definitions';
 import { BuiltinSetters } from '@flow-designer/setters/constants';
 
 // defineNode() 创建一个节点定义，包含四个部分：
@@ -58,13 +58,13 @@ export function generateGenericIndex(opts: GenericTemplateOptions): string {
   const defName = toDefName(kebabName);
   const registerFn = toRegisterFnName(kebabName);
 
-  return `import { prototypeRegistry } from '@flow-designer/model';
+  return `import type { NodeDefinitionRegistry } from '@flow-designer/engine/definitions';
 import { ${defName} } from './${kebabName}.js';
 
 export { ${defName} };
 
-export function ${registerFn}(): void {
-  prototypeRegistry.register(${defName});
+export function ${registerFn}(registry: NodeDefinitionRegistry): () => void {
+  return registry.ui.register(${defName}, registry.prototypes);
 }
 `;
 }

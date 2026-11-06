@@ -7,6 +7,10 @@ const { ESLint, Linter } = require("eslint");
 const eslint = new ESLint({ cwd: root });
 const linter = new Linter();
 const cases = [
+  ["packages/model/src/prototype/index.ts", "import type {ReactNode} from 'react';", true],
+  ["packages/model/src/settings/setting.ts", "import {createElement} from 'react';", true],
+  ["packages/model/src/index.ts", "export type {NodeView} from '@flow-designer/graph';", true],
+  ["packages/model/src/index.ts", "export {SetterRegistry} from '@flow-designer/skeleton';", true],
   ["packages/core/src/editor.ts", "import type {GraphOptions} from '@flow-designer/graph';", true],
   [
     "packages/core/src/index.ts",

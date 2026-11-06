@@ -19,3 +19,19 @@ Scoped shortcuts are supplied through `editor.shortcuts` by the browser adapter.
 Framework translations are built into i18n. Applications register only business text or overrides. Theme and language remain explicitly shared page preferences; this is separate from document, command, renderer and notification isolation. Browser storage and HTML attributes are managed by browser adapters, not model.
 
 Native global X6 extensions remain explicitly global. Business node renderers use private per-instance registrations; their internal shape names are not serialized as document type identifiers.
+
+## Node definitions and UI settings
+
+`model.NodeDefinition` describes schema, lifecycle, ports, initial size and copy/delete capabilities. It does not contain React views or editor controls. Import the convenience `defineNode` helper from `@flow-designer/engine/definitions`; its result is a UI definition bundle with a pure `.domain` definition. This lightweight entry can be imported without browser globals or loading React/X6. The full engine facade still composes the browser workbench and is not a headless entry.
+
+Pass bundles through `createDesigner({ nodeDefinitions: [...] })`, or register them with the target engine. Domain-only consumers register `bundle.domain` or construct a model definition directly. Do not register a UI bundle into the model prototype registry. Keep the returned registration disposer for dynamic contributions.
+
+Views and node renderer contracts belong to graph. Setter components, UI settings and contribution registries belong to skeleton. Each skeleton owns its setter catalog and node UI contributions. Model settings retain targets, values and codecs; the UI adapter supplies presentation and behavior. Applications and generated node packages must migrate imports together with their definition registration.
+
+There is no global command registry or model event signal to subscribe to: use `editor.commands`, `editor.events`, and `document.getSignals()`. Framework messages remain centrally supplied by the i18n package; only application messages and overrides need registration.
+
+## Editing and history
+
+Native finalized gestures enter `applyCanvasGraphEdit` in plugins; direct create/connect commands remain available and share its per-document ordering. Group moves and reconnections commit positions, ports and vertices in one history step. Failed projection repairs only affected IDs from current model state, preserving unrelated edits and same-ID external replacements.
+
+While a transaction is pending, Timeline navigation methods return `false` and the toolbar's history availability is disabled. A new explicit transaction after navigation receives its own checkpoint. Code that invokes navigation programmatically can inspect the boolean result rather than assuming the cursor moved.

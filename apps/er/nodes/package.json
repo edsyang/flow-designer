@@ -37,6 +37,7 @@
     "@flow-designer/graph": "workspace:*"
   },
   "dependencies": {
-    "@flow-designer/i18n": "workspace:*"
+    "@flow-designer/i18n": "workspace:*",
+    "@flow-designer/engine": "workspace:*"
   }
 }

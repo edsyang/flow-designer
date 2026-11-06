@@ -24,5 +24,3 @@ export default class Signal extends EventEmitter {
     };
   }
 }
-
-export const signal = new Signal();

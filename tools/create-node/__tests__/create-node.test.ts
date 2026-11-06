@@ -45,7 +45,7 @@ describe("package-json template", () => {
     const result = generatePackageJson("my-node");
     const parsed = JSON.parse(result);
     expect(parsed.name).toBe("my-node");
-    expect(parsed.peerDependencies["@flow-designer/model"]).toBe("^0.1.0");
+    expect(parsed.peerDependencies["@flow-designer/engine"]).toBe("^0.1.0");
     expect(parsed.peerDependencies["@flow-designer/setters"]).toBe("^0.1.0");
     expect(parsed.type).toBe("module");
   });
@@ -77,7 +77,7 @@ describe("BPMN templates", () => {
 
   it("node def should use defineNode with directional ports", () => {
     const result = generateBpmnNodeDef(opts);
-    expect(result).toContain("import { defineNode } from '@flow-designer/model'");
+    expect(result).toContain("import { defineNode } from '@flow-designer/engine/definitions'");
     expect(result).toContain("export const myApprovalDef = defineNode(");
     expect(result).toContain("name: 'MyApproval'");
     expect(result).toContain("category: 'tasks'");
@@ -89,8 +89,10 @@ describe("BPMN templates", () => {
   it("index should export def and register function", () => {
     const result = generateBpmnIndex(opts);
     expect(result).toContain("export { myApprovalDef }");
-    expect(result).toContain("export function registerMyApprovalNodes()");
-    expect(result).toContain("prototypeRegistry.register(myApprovalDef)");
+    expect(result).toContain(
+      "export function registerMyApprovalNodes(registry: NodeDefinitionRegistry)",
+    );
+    expect(result).toContain("registry.ui.register(myApprovalDef, registry.prototypes)");
   });
 
   it("test should verify meta and ports", () => {
@@ -106,7 +108,7 @@ describe("ComfyUI templates", () => {
 
   it("node def should use typed ports with dataType and color", () => {
     const result = generateComfyUINodeDef(opts);
-    expect(result).toContain("import { defineNode } from '@flow-designer/model'");
+    expect(result).toContain("import { defineNode } from '@flow-designer/engine/definitions'");
     expect(result).toContain("export const myFilterDef = defineNode(");
     expect(result).toContain("name: 'MyFilter'");
     expect(result).toContain("category: 'image'");
@@ -117,7 +119,9 @@ describe("ComfyUI templates", () => {
   it("index should export def and register function", () => {
     const result = generateComfyUIIndex(opts);
     expect(result).toContain("export { myFilterDef }");
-    expect(result).toContain("export function registerMyFilterNodes()");
+    expect(result).toContain(
+      "export function registerMyFilterNodes(registry: NodeDefinitionRegistry)",
+    );
   });
 
   it("test should verify typed ports", () => {
@@ -148,7 +152,9 @@ describe("Generic templates", () => {
   it("index should export def and register function", () => {
     const result = generateGenericIndex(opts);
     expect(result).toContain("export { myNodeDef }");
-    expect(result).toContain("export function registerMyNodeNodes()");
+    expect(result).toContain(
+      "export function registerMyNodeNodes(registry: NodeDefinitionRegistry)",
+    );
   });
 
   it("test should verify basic structure", () => {
@@ -163,7 +169,7 @@ describe("ER templates", () => {
 
   it("node def should use typed ports with ER dataTypes", () => {
     const result = generateERNodeDef(opts);
-    expect(result).toContain("import { defineNode } from '@flow-designer/model'");
+    expect(result).toContain("import { defineNode } from '@flow-designer/engine/definitions'");
     expect(result).toContain("export const myEntityDef = defineNode(");
     expect(result).toContain("name: 'MyEntity'");
     expect(result).toContain("category: 'tables'");
@@ -176,7 +182,9 @@ describe("ER templates", () => {
   it("index should export def and register function", () => {
     const result = generateERIndex(opts);
     expect(result).toContain("export { myEntityDef }");
-    expect(result).toContain("export function registerMyEntityNodes()");
+    expect(result).toContain(
+      "export function registerMyEntityNodes(registry: NodeDefinitionRegistry)",
+    );
   });
 
   it("test should verify typed ports", () => {

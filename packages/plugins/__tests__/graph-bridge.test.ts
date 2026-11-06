@@ -2,16 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { GraphManager } from "@flow-designer/graph";
 import { prototypeRegistry } from "@flow-designer/model";
 import type { Document } from "@flow-designer/model";
-import { GraphBridge, truncateLabel } from "../src/x6-graph/bridge/graph-bridge";
+import { GraphBridge } from "../src/x6-graph/bridge/graph-bridge";
 import { setupRegistries, createDocument } from "./test-helpers";
 
 describe("GraphBridge", () => {
-  it("keeps short English labels readable in circular nodes", () => {
-    expect(truncateLabel("Start", "fd-circle")).toBe("Start");
-    expect(truncateLabel("End", "fd-circle")).toBe("End");
-    expect(truncateLabel("开始", "fd-circle")).toBe("开始");
-  });
-
   let container: HTMLElement;
   let graphManager: GraphManager;
   let document: Document;
@@ -27,7 +21,7 @@ describe("GraphBridge", () => {
     const rectPrototype = prototypeRegistry.getPrototypeByType("rect")!;
     graphManager.registerNodeType(
       { name: rectPrototype.getName(), typeName: rectPrototype.getTypeName() },
-      rectPrototype.getView(),
+      { type: "node", shape: "fd-rect", ports: rectPrototype.getPorts() },
     );
 
     document = createDocument();
@@ -114,6 +108,7 @@ describe("GraphBridge", () => {
       graph.trigger("edge:vertices:committed", { edge });
       await Promise.resolve();
       await Promise.resolve();
+      await vi.waitFor(() => expect(document.getTimeline().getPoints()).toHaveLength(2));
       const saved = document.getData();
       expect(source!.getRelation().getEdgeById("typed-edge")).toMatchObject({
         type,
@@ -220,13 +215,17 @@ describe("GraphBridge", () => {
     edge.setTarget({ cell: "other", port: "in" });
     graph.trigger("edge:connected", { edge });
     expect(source!.getRelation().getEdges()).toHaveLength(1);
-    expect(source!.getRelation().getEdgeById("edge")).toMatchObject({
-      targetNodeId: "other",
-      props: { label: "hello" },
-    });
+    await vi.waitFor(() =>
+      expect(source!.getRelation().getEdgeById("edge")).toMatchObject({
+        targetNodeId: "other",
+        props: { label: "hello" },
+      }),
+    );
     edge.setVertices([{ x: 40, y: 50 }]);
     graph.trigger("edge:vertices:committed", { edge });
-    expect(source!.getRelation().getEdgeById("edge")?.vertices).toEqual([{ x: 40, y: 50 }]);
+    await vi.waitFor(() =>
+      expect(source!.getRelation().getEdgeById("edge")?.vertices).toEqual([{ x: 40, y: 50 }]),
+    );
   });
 
   it("persists explicitly rerouted nonincident edges in the obstacle move's single history step", async () => {
@@ -266,6 +265,7 @@ describe("GraphBridge", () => {
       vertices: [],
       props: { label: "Preserved" },
     });
+    await vi.waitFor(() => expect(document.getTimeline().getPoints()).toHaveLength(2));
     document.getTimeline().back();
     expect(source!.getRelation().getEdgeById("remote")).toMatchObject({
       sourcePort: "in",
@@ -365,7 +365,7 @@ describe("GraphBridge", () => {
     )
       .getX6Graph()
       .trigger("node:moved", { cell });
-    expect(node!.getPosition()).toEqual({ x: 70, y: 80 });
+    await vi.waitFor(() => expect(node!.getPosition()).toEqual({ x: 70, y: 80 }));
   });
 
   it("propagates selection:changed events to the document selection", async () => {
@@ -459,7 +459,7 @@ describe("GraphBridge", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(node!.getPosition()).toEqual({ x: 70, y: 80 });
+    await vi.waitFor(() => expect(node!.getPosition()).toEqual({ x: 70, y: 80 }));
     // The adapter captures the final position; the bridge consumes that snapshot.
     // Echo suppression must prevent NodeBridge from writing the same position again
     // once the resulting deferred prop notification fires.
@@ -519,8 +519,8 @@ describe("GraphBridge", () => {
       { stencil: "fake-stencil-id" },
     );
 
-    // The temp dropped cell should be removed immediately...
-    expect(graphManager.getCellById("dropped-1")).toBeNull();
+    // The serialized editing queue removes the temporary projection before creation.
+    await vi.waitFor(() => expect(graphManager.getCellById("dropped-1")).toBeNull());
 
     // ...and replaced by a real model node once content.addNode() resolves.
     await new Promise((resolve) => setTimeout(resolve, 1));

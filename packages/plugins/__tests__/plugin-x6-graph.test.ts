@@ -1,3 +1,4 @@
+import { defineNode } from "../../engine/src/definitions";
 import { bindSkeleton } from "@flow-designer/skeleton";
 import { Editor, PluginContext, PluginManager } from "@flow-designer/core";
 import { Skeleton } from "@flow-designer/skeleton";
@@ -12,6 +13,17 @@ function createMockContext(document: Document) {
   const editor = new Editor({ registries: document.getRegistries() });
   editor.setDocument(document);
   const skeleton = new Skeleton();
+  for (const prototype of document.getRegistries().prototypes.getRegistry()) {
+    skeleton.ui.register(
+      defineNode({
+        meta: { name: prototype.getName(), typeName: prototype.getTypeName() },
+        view: { type: "node", shape: "fd-rect", ports: prototype.getPorts() },
+        schema: prototype.getSchema(),
+        editor: [],
+      }),
+      document.getRegistries().prototypes,
+    );
+  }
   bindSkeleton(editor, skeleton);
   const manager = new PluginManager(editor);
   editor.setPlugins(manager);

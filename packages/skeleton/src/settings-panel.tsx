@@ -1,5 +1,8 @@
 import { isValidElement, useEffect, useReducer } from "react";
-import { DisplayType, setterRegistry } from "@flow-designer/model";
+import { DisplayType } from "./ui-settings";
+import { UiSetting } from "./ui-setting";
+import { useMemo } from "react";
+import type { UiContributionRegistry } from "./ui-contributions";
 import type { Setting } from "@flow-designer/model";
 import type { SettingsPanelProps, SettingFieldProps } from "./types";
 import { Field } from "./field";
@@ -16,15 +19,20 @@ export function SettingsPanel(props: SettingsPanelProps) {
 
   return (
     <div className={styles.settings}>
-      {items.map((setting: Setting<any>) => (
-        <SettingField key={setting.getId()} setting={setting} />
+      {items.map((setting: Setting<unknown>) => (
+        <SettingField key={setting.getId()} setting={setting} contributions={props.contributions} />
       ))}
     </div>
   );
 }
 
 export function SettingField(props: SettingFieldProps) {
-  const { setting, className } = props;
+  const { className, contributions } = props;
+  const config = contributions?.getField(props.setting.getKey());
+  const setting = useMemo(
+    () => new UiSetting(props.setting, config ?? {}),
+    [props.setting, config],
+  );
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   useEffect(() => {
@@ -46,9 +54,11 @@ export function SettingField(props: SettingFieldProps) {
   };
 
   if (setting.isGroup()) {
-    const childSettings = setting
+    const childSettings = setting.value
       .getItems()
-      .map((item) => <SettingField key={item.getId()} setting={item} />);
+      .map((item) => (
+        <SettingField key={item.getId()} setting={item} contributions={contributions} />
+      ));
 
     return (
       <Field
@@ -75,12 +85,12 @@ export function SettingField(props: SettingFieldProps) {
       className={className}
       onBehaviorChange={changeBehavior}
     >
-      <SetterRenderer setting={setting} />
+      <SetterRenderer setting={setting} contributions={contributions} />
     </Field>
   );
 }
 
-function SetterRenderer(props: { setting: Setting<any> }) {
+function SetterRenderer(props: { setting: UiSetting; contributions?: UiContributionRegistry }) {
   const { setting } = props;
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
@@ -90,7 +100,7 @@ function SetterRenderer(props: { setting: Setting<any> }) {
     });
     const changeableProps = setting.getSetterChangeableProps();
     const detachFns = changeableProps
-      ? changeableProps.map((changeable: any) =>
+      ? changeableProps.map((changeable) =>
           changeable.listen(() => {
             forceUpdate();
           }),
@@ -110,9 +120,9 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   }
 
   const changeableProps = setting.getSetterChangeableProps();
-  const computedProps: Record<string, any> = {};
+  const computedProps: Record<string, unknown> = {};
   if (changeableProps) {
-    changeableProps.forEach((changeable: any) => {
+    changeableProps.forEach((changeable) => {
       computedProps[changeable.getName()] = changeable.getComputed();
     });
   }
@@ -120,7 +130,7 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   computedProps.prop = setting;
   computedProps.field = setting;
   computedProps.value = setting.getValue();
-  computedProps.onChange = (newValue: any) => {
+  computedProps.onChange = (newValue: unknown) => {
     setting.setValue(newValue);
   };
 
@@ -132,8 +142,12 @@ function SetterRenderer(props: { setting: Setting<any> }) {
   }
 
   if (typeof setter === "object" && setter !== null && "type" in setter) {
-    const { type, props: setterProps, ...extraProps } = setter as any;
-    const setterType = setterRegistry.getSetter(type);
+    const {
+      type,
+      props: setterProps,
+      ...extraProps
+    } = setter as { type: string; props?: Record<string, unknown> };
+    const setterType = props.contributions?.setters.getSetter(type);
     if (!setterType) {
       return null;
     }
@@ -144,7 +158,7 @@ function SetterRenderer(props: { setting: Setting<any> }) {
     });
   }
 
-  const defaultSetter = setterRegistry.getDefaultSetter();
+  const defaultSetter = props.contributions?.setters.getDefaultSetter();
   if (defaultSetter) {
     return createContent(defaultSetter, computedProps);
   }

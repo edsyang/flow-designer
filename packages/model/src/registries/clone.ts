@@ -1,6 +1,4 @@
-/** Clone owned definition/configuration data, retaining callbacks and opaque UI values.
- * P3 keeps the legacy combined definition; P6 separates its UI contribution.
- */
+/** Clone owned domain configuration, preserving callbacks and property descriptors. */
 export function cloneRegistration<T>(value: T): T {
   const seen = new WeakMap<object, object>();
   const clone = (input: unknown): unknown => {

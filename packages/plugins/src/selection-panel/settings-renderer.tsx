@@ -10,6 +10,7 @@ import {
   useEditor,
   useDocument,
   useTranslate,
+  useSkeleton,
 } from "@flow-designer/react";
 import type {
   Document as EditorDocument,
@@ -17,7 +18,6 @@ import type {
   ContentNode,
 } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/i18n";
-import { setterRegistry } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 import styles from "./settings-renderer.module.less";
 import { edgeNameField, edgeNamePatch, edgeNameValue } from "../x6-graph/commands/edge-properties";
@@ -29,6 +29,7 @@ const NodeSettingsPanel = observer(function NodeSettingsPanel({
   nodeId: string;
   locale: Locale;
 }) {
+  const contributions = useSkeleton().ui;
   const node = useNode(nodeId);
   if (!node) return <div className={styles.empty}>{t("plugin.settings.nodeMissing")}</div>;
   const typeName = node.getTypeName();
@@ -37,7 +38,7 @@ const NodeSettingsPanel = observer(function NodeSettingsPanel({
   return (
     <div className={styles.container} lang={locale}>
       <div className={styles.edgeHeader}>{title}</div>
-      <SettingsPanel node={node} />
+      <SettingsPanel node={node} contributions={contributions} />
     </div>
   );
 });
@@ -56,6 +57,7 @@ function findEdge(doc: EditorDocument, edgeId: string) {
 
 function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
   const { t, locale } = useTranslate();
+  const contributions = useSkeleton().ui;
   const graph = useGraph();
   const editor = useEditor();
   const adapter = graph ? getGraphAdapter(editor.getPlugins()) : null;
@@ -91,7 +93,7 @@ function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
       <div className={styles.edgeHeader}>{t("plugin.settings.edge")}</div>
       {typeConfig?.editor?.length ? (
         typeConfig.editor.map((field) => {
-          const setterType = setterRegistry.getSetter(field.setter);
+          const setterType = contributions.setters.getSetter(field.setter);
           if (!setterType) return null;
           const value =
             field.target === edgeNameField(typeConfig)
@@ -118,6 +120,7 @@ function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
 
 export const SettingsRenderer = observer(function SettingsRenderer() {
   const { t, locale } = useTranslate();
+  const contributions = useSkeleton().ui;
   const { keys } = useSelection();
   const graph = useGraph();
   const doc = useDocument();
@@ -130,7 +133,7 @@ export const SettingsRenderer = observer(function SettingsRenderer() {
       return (
         <div className={styles.container} lang={locale}>
           <div className={styles.edgeHeader}>{t("plugin.settings.process")}</div>
-          <SettingsPanel settings={doc.getSettings()} />
+          <SettingsPanel settings={doc.getSettings()} contributions={contributions} />
         </div>
       );
     }

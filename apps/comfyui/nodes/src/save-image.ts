@@ -1,4 +1,4 @@
-import { defineNode } from "@flow-designer/model";
+import { defineNode } from "@flow-designer/engine/definitions";
 import { t } from "@flow-designer/i18n";
 import { BuiltinSetters } from "@flow-designer/setters/constants";
 import { COMFYUI_CATEGORIES, COMFYUI_TYPE_NAMES, DATA_TYPES, DATA_TYPE_COLORS } from "./constants";

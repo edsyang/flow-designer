@@ -1,3 +1,4 @@
+import { selectRoutePlan, type RoutePlan, type RoutePolicy } from "./route-plan";
 import { DEFAULT_ROUTER } from "./graph-defaults";
 import { DEFAULT_PORT_ITEMS } from "./shapes";
 import type { Graph } from "@antv/x6";
@@ -12,9 +13,8 @@ import type {
   ResolvedConnection,
 } from "@flow-designer/core";
 import type { GraphOptions, EdgeTypeConfig } from "./contracts";
-import { findShortPortRoute, routeWithPortStubs } from "./orthogonal-routing";
 import { normalizeOrthogonalVertices } from "./edge-geometry";
-import { strictOrthogonalFallback } from "./edge-routing";
+import { strictOrthogonalFallback, geometrySceneFor } from "./edge-routing";
 const DIR_VECTORS: Record<string, { x: number; y: number }> = {
   right: { x: 1, y: 0 },
   left: { x: -1, y: 0 },
@@ -152,25 +152,39 @@ export class ConnectionCoordinator {
     pairs.sort(
       (a, b) => (geometryFirst ? 0 : Number(b.current) - Number(a.current)) || b.score - a.score,
     );
-    for (const { sp, tp } of pairs) {
-      const context: ConnectionContext = {
-        sourceNode: source.id,
-        targetNode: target.id,
-        sourcePort: this.getPortDefinition(source.id, sp),
-        targetPort: this.getPortDefinition(target.id, tp),
-      };
-      if (
-        (!this.connectionValidator || this.connectionValidator(context)) &&
-        this.hasShortConnectionRoute(context, edge.id)
-      ) {
-        if (edge.getSourcePortId() !== sp) edge.setSource({ cell: source.id, port: sp });
-        if (edge.getTargetPortId() !== tp) edge.setTarget({ cell: target.id, port: tp });
-        this.updateRouterDirections(edge);
-        this.updateConnectorDirections(edge);
-        return true;
+    const sourceId = source.id,
+      targetId = target.id;
+    const admitted = function* (this: ConnectionCoordinator) {
+      for (const { sp, tp } of pairs) {
+        const context: ConnectionContext = {
+          sourceNode: sourceId,
+          targetNode: targetId,
+          sourcePort: this.getPortDefinition(sourceId, sp),
+          targetPort: this.getPortDefinition(targetId, tp),
+        };
+        if (
+          (!this.connectionValidator || this.connectionValidator(context)) &&
+          this.hasShortConnectionRoute(context, edge.id)
+        ) {
+          const plan = this.connectionRoutePlan(
+            context,
+            edge.id,
+            [],
+            geometryFirst ? "move-geometry" : "move-current",
+          );
+          if (plan) yield { plan, sourcePriority: 0 };
+        }
       }
-    }
-    return false;
+    };
+    const winner = selectRoutePlan(admitted.call(this), "ordered-first-valid");
+    if (!winner) return false;
+    const sp = winner.source.portId,
+      tp = winner.target.portId;
+    if (sp && edge.getSourcePortId() !== sp) edge.setSource({ cell: source.id, port: sp });
+    if (tp && edge.getTargetPortId() !== tp) edge.setTarget({ cell: target.id, port: tp });
+    this.updateRouterDirections(edge);
+    this.updateConnectorDirections(edge);
+    return true;
   }
 
   pickBestPort(ports: PortDefinition[], dx: number, dy: number): PortDefinition | null {
@@ -367,23 +381,27 @@ export class ConnectionCoordinator {
         ),
       ];
     };
-    const candidates: Array<{ context: ConnectionContext; sourcePriority: number; score: number }> =
-      [];
+    const candidates: Array<{ plan: RoutePlan; sourcePriority: number }> = [];
     for (const sourcePort of choices(context.sourceNode, context.sourcePort, "source"))
       for (const targetPort of choices(context.targetNode, context.targetPort, "target")) {
         const candidate = { ...context, sourcePort, targetPort };
         if (!this.evaluateConnection(candidate, options).valid) continue;
-        const score = { value: Infinity };
-        this.hasShortConnectionRoute(candidate, options.edgeId, [], score);
+        const plan = this.connectionRoutePlan(
+          candidate,
+          options.edgeId,
+          [],
+          "drop-source-priority",
+        );
+        if (!plan) continue;
         candidates.push({
-          context: candidate,
+          plan,
           sourcePriority: id(sourcePort) === id(context.sourcePort) ? 0 : 1,
-          score: score.value,
         });
       }
-    candidates.sort((a, b) => a.sourcePriority - b.sourcePriority || a.score - b.score);
-    const best = candidates[0];
-    return best ? result(best.context) : initial;
+    const best = selectRoutePlan(candidates, "source-priority-cost");
+    return best
+      ? { valid: true, sourcePortId: best.source.portId, targetPortId: best.target.portId }
+      : initial;
   }
 
   evaluateConnectionRules(
@@ -447,44 +465,48 @@ export class ConnectionCoordinator {
     vertices: Array<{ x: number; y: number }> = [],
     score?: { value: number },
   ): boolean {
-    const graph = this.assertGraph();
+    this.assertGraph();
     const type = (edgeId ? this.edgeTypeByCellId.get(edgeId) : null) ?? this.getDefaultEdgeType();
     if (!type) return true;
-    const curved = this.edgeTypes.get(type)?.router === null;
+    const plan = this.connectionRoutePlan(context, edgeId, vertices);
+    if (score) score.value = plan?.cost ?? Infinity;
+    return plan?.status === "valid";
+  }
+
+  connectionRoutePlan(
+    context: ConnectionContext,
+    edgeId?: string,
+    vertices: Array<{ x: number; y: number }> = [],
+    policy: RoutePolicy = "explicit",
+  ): RoutePlan | null {
+    const graph = this.assertGraph();
+    const type = (edgeId ? this.edgeTypeByCellId.get(edgeId) : null) ?? this.getDefaultEdgeType();
+    const curved = !!type && this.edgeTypes.get(type)?.router === null;
+    const scene = geometrySceneFor(graph);
     const endpoint = (id: string, port: PortDefinition | null) => {
-      const node = graph.getCellById(id) as Cell | null | undefined;
-      if (!node?.isNode() || !port) return null;
+      if (!port) return null;
       const portId = port.id ?? `${port.group}-${port.position}`;
-      const actual = node.getPort(portId);
-      if (!actual?.group) return null;
-      const local = node.getPortsPosition(actual.group)[portId]?.position;
-      if (!local) return null;
-      const origin = node.position();
-      return { x: origin.x + local.x, y: origin.y + local.y };
+      return scene.endpoint(JSON.stringify([id, portId, port.position]), () => {
+        const node = graph.getCellById(id) as Cell | null | undefined;
+        if (!node?.isNode()) return null;
+        const actual = node.getPort(portId);
+        if (!actual?.group) return null;
+        const local = node.getPortsPosition(actual.group)[portId]?.position;
+        if (!local) return null;
+        const origin = node.position();
+        return {
+          nodeId: id,
+          portId,
+          point: { x: origin.x + local.x, y: origin.y + local.y },
+          side: port.position,
+        };
+      });
     };
-    const source = endpoint(context.sourceNode, context.sourcePort);
-    const target = endpoint(context.targetNode, context.targetPort);
-    if (!source || !target || !context.sourcePort || !context.targetPort) return false;
-    const boxes = graph.getNodes().map((node) => {
-      const b = node.getBBox();
-      return { x: b.x, y: b.y, width: b.width, height: b.height };
-    });
-    const route = (curved ? routeWithPortStubs : findShortPortRoute)(
-      source,
-      target,
-      context.sourcePort.position,
-      context.targetPort.position,
-      boxes,
-      vertices,
-    );
-    if (route && score)
-      score.value =
-        route.slice(1).reduce((sum, p, i) => {
-          const prev = route[i];
-          return sum + (prev ? Math.abs(p.x - prev.x) + Math.abs(p.y - prev.y) : 0);
-        }, 0) +
-        Math.max(0, route.length - 2) * 12;
-    return !!route;
+    const source = endpoint(context.sourceNode, context.sourcePort),
+      target = endpoint(context.targetNode, context.targetPort);
+    if (!source || !target) return null;
+
+    return scene.plan({ source, target, mode: curved ? "curve" : "orthogonal", vertices, policy });
   }
 
   connectionContext(edge: Edge): ConnectionContext {

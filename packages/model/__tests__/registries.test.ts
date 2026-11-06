@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
 import PrototypeRegistry from "../src/registries/prototype-registry";
-import SetterRegistry from "../src/registries/setter-registry";
 import ContentTypesRegistry from "../src/registries/content-types-registry";
 import type { ContentTransformer } from "../src/types";
 
@@ -8,9 +7,8 @@ describe("PrototypeRegistry", () => {
   it("register and retrieve by type", () => {
     const reg = new PrototypeRegistry();
     reg.register({
-      name: "Approve Node",
-      typeName: "approveNode",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Approve Node", typeName: "approveNode" },
+      schema: [],
     } as any);
     const p = reg.getPrototypeByType("approveNode");
     expect(p).not.toBeNull();
@@ -20,9 +18,8 @@ describe("PrototypeRegistry", () => {
   it("register and retrieve by name", () => {
     const reg = new PrototypeRegistry();
     reg.register({
-      name: "My Node",
-      typeName: "myNode",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "My Node", typeName: "myNode" },
+      schema: [],
     } as any);
     const p = reg.getPrototypeByName("My Node");
     expect(p).not.toBeNull();
@@ -32,14 +29,12 @@ describe("PrototypeRegistry", () => {
   it("getRegistry returns all registered prototypes", () => {
     const reg = new PrototypeRegistry();
     reg.register({
-      name: "A",
-      typeName: "a",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "A", typeName: "a" },
+      schema: [],
     } as any);
     reg.register({
-      name: "B",
-      typeName: "b",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "B", typeName: "b" },
+      schema: [],
     } as any);
     expect(reg.getRegistry()).toHaveLength(2);
   });
@@ -49,9 +44,8 @@ describe("PrototypeRegistry", () => {
     const fn = vi.fn();
     reg.onRegistryChange(fn);
     reg.register({
-      name: "X",
-      typeName: "x",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "X", typeName: "x" },
+      schema: [],
     } as any);
     expect(fn).toHaveBeenCalledTimes(1);
   });
@@ -62,9 +56,8 @@ describe("PrototypeRegistry", () => {
     const unsub = reg.onRegistryChange(fn);
     unsub();
     reg.register({
-      name: "Y",
-      typeName: "y",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Y", typeName: "y" },
+      schema: [],
     } as any);
     expect(fn).not.toHaveBeenCalled();
   });
@@ -79,48 +72,12 @@ describe("PrototypeRegistry", () => {
     const reg = new PrototypeRegistry();
     reg.register({
       meta: { name: "Task", typeName: "task", description: "A task node" },
-      view: { type: "node" },
       schema: [{ name: "label", type: "string" }],
-      editor: [],
     });
     const p = reg.getPrototypeByType("task");
     expect(p).not.toBeNull();
     expect(p!.getName()).toBe("Task");
     expect(p!.getSchema()).toHaveLength(1);
-  });
-});
-
-describe("SetterRegistry", () => {
-  it("register and getSetter", () => {
-    const reg = new SetterRegistry();
-    const setter = () => null;
-    reg.register("text", setter as any);
-    expect(reg.getSetter("text")).toBe(setter);
-  });
-
-  it("getRegistry returns all registered setters", () => {
-    const reg = new SetterRegistry();
-    const s1 = () => null;
-    const s2 = () => null;
-    reg.register("a", s1 as any);
-    reg.register("b", s2 as any);
-    expect(reg.getRegistry()).toHaveLength(2);
-    expect(reg.getRegistry()).toContain(s1);
-    expect(reg.getRegistry()).toContain(s2);
-  });
-
-  it("getDefaultSetter returns setter set as default", () => {
-    const reg = new SetterRegistry();
-    const s1 = () => null;
-    const s2 = () => null;
-    reg.register("a", s1 as any);
-    reg.register("b", s2 as any, true);
-    expect(reg.getDefaultSetter()).toBe(s2);
-  });
-
-  it("getSetter returns null for unknown type", () => {
-    const reg = new SetterRegistry();
-    expect(reg.getSetter("unknown")).toBeNull();
   });
 });
 

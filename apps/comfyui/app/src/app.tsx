@@ -28,14 +28,12 @@ async function init() {
 
   await initializeDesignerI18n(comfyuiMessages);
 
-  const { registerComfyUINodes, refreshComfyUITranslations, getDataLinkEdgeType } =
+  const { comfyuiNodeDefinitions, refreshComfyUITranslations, getDataLinkEdgeType } =
     await import("@flow-designer/comfyui-nodes");
-
-  registerComfyUINodes();
-  refreshComfyUITranslations();
 
   const designer: Designer = await createDesigner({
     container,
+    nodeDefinitions: comfyuiNodeDefinitions,
     documentType: "*",
     documentVersion: "1.0.0",
     localeMessages: comfyuiMessages,
@@ -49,7 +47,7 @@ async function init() {
   window.designer = designer;
   designer.engine.addDisposer(
     subscribeLocale(() => {
-      refreshComfyUITranslations(designer.editor.getRegistries().prototypes);
+      refreshComfyUITranslations(designer.engine.definitions);
     }),
   );
 

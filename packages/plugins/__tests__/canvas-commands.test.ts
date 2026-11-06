@@ -12,7 +12,7 @@ import type {
   ConnectionContext,
   GraphConnectionPort,
 } from "@flow-designer/core";
-import { commandRegistry, CANVAS_COMMANDS } from "@flow-designer/core";
+import { CommandRegistry, CANVAS_COMMANDS } from "@flow-designer/core";
 import {
   connectCanvasNodes,
   createCanvasNode,
@@ -31,7 +31,7 @@ function fixture(reject = false) {
     prototypeRegistry.register({
       meta: { name: "Task", typeName: "command-task" },
       schema: [],
-      view: { type: "node", shape: "fd-rect", ports: [port] },
+      connection: { ports: [port] },
     });
   const document = new Document({
     id: "command",
@@ -67,6 +67,40 @@ function fixture(reject = false) {
 }
 
 describe("shared Canvas creation commands", () => {
+  it.each(["back", "forward"] as const)(
+    "refuses %s during pending creation and records completed content normally",
+    async (navigation) => {
+      const { document, request } = fixture();
+      await document.transaction("prior", () =>
+        document.getContent().getNode("source")!.setPosition(50, 0),
+      );
+      if (navigation === "forward") {
+        document.getTimeline().back();
+        await new Promise((resolve) => setTimeout(resolve, 1));
+      }
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      document.aspect(ContentAop.NODE_ADDING, () => gate);
+      const pending = createCanvasNode({ ...request, source: undefined });
+      await Promise.resolve();
+      await Promise.resolve();
+      const cursor = document.getTimeline().getCurrentCursor();
+      expect(document.getTimeline()[navigation]()).toBe(false);
+      expect(document.getTimeline().getState() & 3).toBe(0);
+      expect(document.getTimeline().getCurrentCursor()).toBe(cursor);
+      release();
+      const created = await pending;
+      expect(document.getContent().getNode(created.nodeId)).not.toBeNull();
+      expect(document.isModified()).toBe(true);
+      expect(document.getTimeline().back()).toBe(true);
+      expect(document.getContent().getNode(created.nodeId)).toBeNull();
+      expect(document.getTimeline().forward()).toBe(true);
+      expect(document.getContent().getNode(created.nodeId)).not.toBeNull();
+    },
+  );
+
   it("persists both resolved endpoint ports for a shared connect command and document round-trip", async () => {
     const { document, graph, request } = fixture();
     vi.spyOn(graph, "getPortDefinition").mockImplementation((_id, id) => ({ ...port, id }));
@@ -261,8 +295,9 @@ describe("shared Canvas creation commands", () => {
   });
 
   it("keeps stateless registry commands alive until their last plugin owner is disposed", () => {
-    const first = registerCanvasCommands();
-    const second = registerCanvasCommands();
+    const commandRegistry = new CommandRegistry();
+    const first = registerCanvasCommands(commandRegistry);
+    const second = registerCanvasCommands(commandRegistry);
     expect(commandRegistry.hasCommand(CANVAS_COMMANDS.createNode)).toBe(true);
     first();
     first();
@@ -273,7 +308,8 @@ describe("shared Canvas creation commands", () => {
 
   it("creates node and named relation through the public registry in exactly one undo step", async () => {
     const { document, request } = fixture();
-    const dispose = registerCanvasCommands();
+    const commandRegistry = new CommandRegistry();
+    const dispose = registerCanvasCommands(commandRegistry);
     try {
       const result = (await commandRegistry.executeCommand(
         CANVAS_COMMANDS.createNode,

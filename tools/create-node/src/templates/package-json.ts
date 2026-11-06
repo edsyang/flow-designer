@@ -21,7 +21,7 @@ export function generatePackageJson(name: string): string {
       lint: "eslint src/",
     },
     peerDependencies: {
-      "@flow-designer/model": "^0.1.0",
+      "@flow-designer/engine": "^0.1.0",
       "@flow-designer/setters": "^0.1.0",
       react: "^18.3.1",
     },

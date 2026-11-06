@@ -17,7 +17,7 @@ export function pluginDelete(ctx: IPluginContext): IPluginConfig {
           const typeName = typeof node.getTypeName === "function" ? node.getTypeName() : undefined;
           if (typeName) {
             const proto = prototypeRegistry.getPrototypeByType(typeName);
-            if (proto?.getView().deletable === false) continue;
+            if (proto?.getCapabilities().deletable === false) continue;
           }
           await content.removeNode(id);
         } else {

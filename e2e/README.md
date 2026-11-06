@@ -21,6 +21,10 @@ pnpm exec playwright test e2e/e2e-verify-zoom.spec.ts --grep 'Ctrl\+wheel'
 
 The default browser remains Playwright's bundled Chromium. To use an installed Chrome browser, set `PLAYWRIGHT_CHANNEL=chrome`; for example, `PLAYWRIGHT_CHANNEL=chrome pnpm exec playwright test --workers=1`.
 
+## CI smoke
+
+`pnpm exec playwright test --config=playwright.smoke.config.mjs` runs language, edge persistence/name and same-page instance regressions. The configuration starts all three scenario servers on their fixed ports; CI installs bundled Chromium first and uploads failure diagnostics. Local runs may reuse existing servers. The complete suite and isolated production performance sampling remain separate checks.
+
 ## Suite classification
 
 | Files | Purpose / scope |

@@ -32,10 +32,13 @@ try {
   const behavior = `
     assert.equal(typeof window, 'undefined');
     assert.equal(typeof document, 'undefined');
-    for (const name of ['Document','GenericContent','defineNode','Timeline','canUsePort']) assert.equal(typeof model[name], 'function', name);
+    for (const name of ['Document','GenericContent','Timeline','canUsePort']) assert.equal(typeof model[name], 'function', name);
     for (const name of ['Editor','CommandRegistry','PluginManager']) assert.equal(typeof core[name], 'function', name);
     assert.equal('createContent' in core, false);
     assert.equal('t' in model, false);
+    for (const removed of ['defineNode','setterRegistry','getTheme','signal']) assert.equal(removed in model,false,removed);
+    assert.equal('commandRegistry' in core,false);
+    assert.equal(typeof defineNode,'function');
     const headlessEditor = new core.Editor();
     assert.equal('getSkeleton' in headlessEditor, false);
     assert.equal('setSkeleton' in headlessEditor, false);
@@ -52,8 +55,8 @@ try {
     } finally {await headlessPlugins.dispose();}
 
     model.contentTypesRegistry.register(model.GenericContent);
-    model.prototypeRegistry.register(model.defineNode({meta:{name:'Unknown',typeName:'Unknown'},view:{type:'node'},schema:[],editor:[]}));
-    model.prototypeRegistry.register(model.defineNode({meta:{name:'Task',typeName:'BaselineTask'},view:{type:'node'},schema:[],editor:[]}));
+    model.prototypeRegistry.register(defineNode({meta:{name:'Unknown',typeName:'Unknown'},view:{type:'node'},schema:[],editor:[]}).domain);
+    model.prototypeRegistry.register(defineNode({meta:{name:'Task',typeName:'BaselineTask'},view:{type:'node'},schema:[],editor:[]}).domain);
     const fixture = ${JSON.stringify(fixture)};
     const doc = new model.Document(structuredClone(fixture));
     try {
@@ -82,11 +85,31 @@ try {
   `;
   await run(
     "esm-domain-core",
-    `import assert from 'node:assert/strict';import * as model from '@flow-designer/model';import * as core from '@flow-designer/core';${behavior}`,
+    `import assert from 'node:assert/strict';import * as model from '@flow-designer/model';import * as core from '@flow-designer/core';import {defineNode} from '@flow-designer/engine/definitions';${behavior}`,
   );
   await run(
     "cjs-domain-core",
-    `const assert=require('node:assert/strict');const model=require('@flow-designer/model');const core=require('@flow-designer/core');(async()=>{${behavior}})().catch(error=>{console.error(error);process.exitCode=1;});`,
+    `const assert=require('node:assert/strict');const model=require('@flow-designer/model');const core=require('@flow-designer/core');const {defineNode}=require('@flow-designer/engine/definitions');(async()=>{${behavior}})().catch(error=>{console.error(error);process.exitCode=1;});`,
+    "cjs",
+  );
+  const modelDeclarations = await readFile(
+    path.join(root, "packages/model/dist/index.d.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    modelDeclarations,
+    /(?:from\s*["']react|React\.|ReactNode|ReactElement|ComponentType)/,
+  );
+  await run(
+    "headless-definition-loading",
+    `const assert=require('node:assert/strict');const Module=require('node:module');
+const load=Module._load;Module._load=function(id,...args){if(/^(react(?:-dom)?(?:\\/|$)|antd(?:\\/|$)|@antv\\/)/.test(id)||id.endsWith('.css'))throw new Error('Forbidden runtime dependency: '+id);return load.call(this,id,...args);};
+for(const name of ['window','document','localStorage'])Object.defineProperty(globalThis,name,{get(){throw new Error('Browser global read: '+name);},configurable:true});
+const model=require('@flow-designer/model');const core=require('@flow-designer/core');const {defineNode}=require('@flow-designer/engine/definitions');
+const bundle=defineNode({meta:{name:'Headless',typeName:'Headless'},view:{type:'node'},schema:[],editor:[]});
+const registries=model.createRegistrySet();registries.contentTypes.register(model.GenericContent);registries.prototypes.register(bundle.domain);
+const doc=new model.Document({id:'headless',documentType:'*',documentVersion:'1'},[],{registries});const editor=new core.Editor({registries});editor.setDocument(doc);doc.destroy();editor.dispose();registries.dispose();
+console.log('Domain declarations and runtime/definitions load without React, X6, CSS or browser globals PASS');`,
     "cjs",
   );
   // These are known limitations, asserted explicitly rather than counted as successful Node engine consumption.
@@ -99,7 +122,14 @@ try {
     `const assert=require('node:assert/strict');assert.throws(()=>require('@flow-designer/engine'),error=>error instanceof SyntaxError&&error.stack.includes('.css'));console.log('KNOWN LIMITATION: native Node CJS engine import cannot parse transitive CSS');`,
     "cjs",
   );
-  const consumer = `import {Document,defineNode,type DocumentData} from '@flow-designer/model';
+  const consumer = `import {Document,type DocumentData} from '@flow-designer/model';
+import {defineNode} from '@flow-designer/engine/definitions';
+// @ts-expect-error Composition helpers no longer belong to the domain.
+import {defineNode as RemovedModelDefinition} from '@flow-designer/model';
+// @ts-expect-error UI setter registration no longer belongs to model.
+import {setterRegistry as RemovedModelSetters} from '@flow-designer/model';
+// @ts-expect-error Commands are instance-owned.
+import {commandRegistry as RemovedGlobalCommands} from '@flow-designer/core';
 import {Editor,CommandRegistry,CANVAS_COMMANDS,type IPluginContext,type GraphPort,type GraphEdit,type CanvasPrototypeRequest} from '@flow-designer/core';
 import {createDesigner,type DesignerOptions,type PaneConfig as EnginePaneConfig,type ISkeleton as EngineSkeleton,type IArea as EngineArea} from '@flow-designer/engine';
 import type {PaneConfig,ISkeleton,IArea} from '@flow-designer/skeleton';
@@ -202,7 +232,7 @@ const publicUiContracts:PublicUiContracts=[true,true,true,true];void publicUiCon
       pathToFileURL(path.join(root, "tools/create-node/dist/templates", `${kind}.js`)).href
     );
     const generated = generator[exported]({ kebabName: `baseline-${kind}`, category: "tasks" });
-    assert.match(generated, /@flow-designer\/model/);
+    assert.match(generated, /@flow-designer\/engine\/definitions/);
     assert.match(generated, /@flow-designer\/setters\/constants/);
     await writeFile(path.join(temporary, `${kind}.ts`), generated);
   }
@@ -233,7 +263,7 @@ const publicUiContracts:PublicUiContracts=[true,true,true,true];void publicUiCon
     name: "scaffold-generated-consumers",
     result: "pass",
     detail:
-      "all four built generators produce strictly typed definitions consuming model and setters/constants with bundler resolution; no generated package installation/publishing claimed",
+      "all four built generators produce strictly typed definitions consuming engine/definitions and setters/constants with bundler resolution; no generated package installation/publishing claimed",
   });
   console.log(JSON.stringify({ node: process.version, results }, null, 2));
 } finally {

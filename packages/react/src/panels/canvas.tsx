@@ -273,7 +273,8 @@ export function Canvas(props: CanvasProps) {
     const refreshPrototypes = () => {
       setPrototypes(
         prototypeRegistry.getRegistry().filter((prototype) => {
-          const view = prototype.getView();
+          const view = skeleton.ui.getNode(prototype.getTypeName())?.view;
+          if (!view) return false;
           return (
             view.type === "node" && view.quickAdd !== false && Boolean(view.shape || view.component)
           );
@@ -281,8 +282,13 @@ export function Canvas(props: CanvasProps) {
       );
     };
     refreshPrototypes();
-    return prototypeRegistry.onRegistryChange(refreshPrototypes);
-  }, [prototypeRegistry]);
+    const offDomain = prototypeRegistry.onRegistryChange(refreshPrototypes);
+    const offUi = skeleton.ui.onChange(refreshPrototypes);
+    return () => {
+      offDomain();
+      offUi();
+    };
+  }, [prototypeRegistry, skeleton]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -425,7 +431,8 @@ export function Canvas(props: CanvasProps) {
   };
 
   const visiblePrototypes = prototypes.filter((prototype) => {
-    const value = `${prototype.getName()} ${prototype.getCategory()}`.toLocaleLowerCase();
+    const value =
+      `${prototype.getName()} ${skeleton.ui.getNode(prototype.getTypeName())?.meta.category ?? ""}`.toLocaleLowerCase();
     return (
       value.includes(query.trim().toLocaleLowerCase()) && canReceivePendingConnection(prototype)
     );
@@ -480,7 +487,7 @@ export function Canvas(props: CanvasProps) {
           />
           <div className={styles.canvasQuickAddList}>
             {visiblePrototypes.map((prototype) => {
-              const shape = prototype.getView().shape ?? "fd-rect";
+              const shape = skeleton.ui.getNode(prototype.getTypeName())?.view.shape ?? "fd-rect";
               return (
                 <button
                   type="button"
@@ -499,7 +506,9 @@ export function Canvas(props: CanvasProps) {
                     style={{ borderColor: getQuickAddShapeColor(shape) }}
                   />
                   <span className={styles.canvasQuickAddName}>{prototype.getName()}</span>
-                  <span className={styles.canvasQuickAddCategory}>{prototype.getCategory()}</span>
+                  <span className={styles.canvasQuickAddCategory}>
+                    {skeleton.ui.getNode(prototype.getTypeName())?.meta.category ?? ""}
+                  </span>
                 </button>
               );
             })}

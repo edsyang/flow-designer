@@ -44,9 +44,7 @@ describe("locale messages", () => {
   it("keeps prototype metadata as the display value", async () => {
     const prototype = new Prototype({
       meta: { name: "Test node", typeName: "test-node" },
-      view: { type: "node" },
       schema: [],
-      editor: [],
     });
 
     await setLocale("en-US");

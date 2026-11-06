@@ -1,3 +1,4 @@
+import type { UiContributionRegistry } from "./ui-contributions";
 import type { ReactNode } from "react";
 import type { Setting, ContentNode, Settings } from "@flow-designer/model";
 
@@ -18,11 +19,13 @@ export interface FieldProps {
 }
 
 export interface SettingsPanelProps {
+  contributions?: UiContributionRegistry;
   node?: ContentNode | null;
-  settings?: Settings<any>;
+  settings?: Settings<unknown>;
 }
 
 export interface SettingFieldProps {
-  setting: Setting<any>;
+  contributions?: UiContributionRegistry;
+  setting: Setting<unknown>;
   className?: string;
 }

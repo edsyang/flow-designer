@@ -7,13 +7,13 @@
 1. Call `initializeDesignerI18n(localeMessages)` to add scenario messages to the built-in framework catalog in the shared default i18n service and initialize its first locale from browser storage (otherwise `zh-CN`).
 2. Configure MobX actions.
 3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`, and binds the UI in skeleton before plugin registration. Fork the bootstrap model catalog unless a caller-owned registry set is supplied. Acquire locale persistence, the page-shared browser theme owner and an independent scoped shortcut adapter with disposal handles. Register option transformers in the instance catalog.
-4. Register built-in setters unless disabled.
+4. Register built-in setters in the skeleton-owned catalog unless disabled, then register the option `nodeDefinitions` bundles with that engine.
 5. Register enabled built-in plugins, passing graph options to the X6 graph plugin.
 6. Register caller-supplied plugins and explicitly requested optional plugins such as autosave or the unsaved-changes prompt.
 7. Construct the `Document` from the requested document type/version and settings.
 8. Initialize the plugin manager and return the engine, editor, document, graph, plugin proxy, and `destroy()`.
 
-Scenario registration (content types, node prototypes, edge types, and transformers) belongs in the scenario app before the runtime needs those registrations. Scenario translation catalogs are passed through `DesignerOptions.localeMessages`; the engine initializes the shared default translation service without depending on scenario packages or schemas. Applications evaluating translated metadata before creation call `initializeDesignerI18n(scenarioMessages)` before importing those definitions. The low-level `@flow-designer/i18n.initializeI18n` already includes framework text, but does not read browser preferences.
+Scenario content types, edge types and transformers must be registered before use. UI node bundles are passed through `nodeDefinitions` or registered against the target engine; pure prototypes are registered in its domain catalog. Scenario translation catalogs are passed through `DesignerOptions.localeMessages`; the engine initializes the shared default translation service without depending on scenario packages or schemas. Applications evaluating translated metadata before creation call `initializeDesignerI18n(scenarioMessages)` before importing those definitions. The low-level `@flow-designer/i18n.initializeI18n` already includes framework text, but does not read browser preferences.
 
 ## Plugin manager contract
 
@@ -60,9 +60,9 @@ Primary implementation: `packages/engine/src/create-designer.ts`, `packages/engi
 **Known gaps from static inspection:**
 
 - Canvas initialization happens later: the X6 plugin catches mount errors, emits `graph:init-failed`, and shows an error message. Such failure cannot reject an already-resolved `createDesigner()` promise; complete partial-mount rollback is not established.
-- `hotkey.init(window)` returns an idempotent disposer. Listener acquisition is reference-counted per document. Built-in copy, delete, undo/redo and zoom shortcuts use disposable scoped bindings; input, textarea, select, editable descendants, IME composition and already-handled keyboard events are ignored.
+- Each browser shortcut adapter owns its scoped listeners and returns disposable bindings. Built-in copy, delete, undo/redo and zoom shortcuts use disposable scoped bindings; input, textarea, select, editable descendants, IME composition and already-handled keyboard events are ignored.
 - Engine destruction is idempotent and disposes plugins, clears graph/container references, destroys document resources, and runs acquired disposers even when another cleanup step fails. It does not unmount the caller's React root. Area mount hooks return an unregister function, and mounted callbacks may return a resource disposer. React panels release those resources in reverse order on unmount and roll back prior callbacks if a later callback throws. The graph plugin unregisters its hook when destroyed and releases graph/bridges/registry/history applier during unmount.
-- Model catalogs, document signals, commands, notifications, shortcuts and business renderers are instance-owned. Theme and locale remain explicitly page-shared; setter/UI-definition separation is completed in P6.
+- Model catalogs, document signals, commands, notifications, shortcuts and business renderers are instance-owned. Theme and locale remain explicitly page-shared; each skeleton owns its setters and UI definitions.
 
 Plugin-manager, engine and hotkey tests cover plugin-init rollback, registration failure cleanup, option transformer disposal, repeated destruction, input-safe scope and listener ownership. Changes to readiness or disposal need mount-failure and repeated create/mount/destroy checks, including absence of callbacks into a destroyed editor.
 

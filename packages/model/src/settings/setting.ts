@@ -4,60 +4,18 @@ import type Prop from "../props/prop";
 import Formatter from "./formatter";
 import type { FormatterConfig } from "./formatter";
 import { hasOwn, uniqueId } from "../utils";
-import Changeable from "./changeable";
-import type { ChangeableConfig } from "./changeable";
-
-export type SetterComponentType = React.ComponentType<any>;
-
-export type SetterType<T = any> =
-  | string
-  | {
-      type: string;
-      props?: object;
-      formatter?: FormatterConfig<T>;
-      [key: string]: any;
-    }
-  | SetterComponentType
-  | React.ReactElement;
-
-export type Tip = { type: string; content: any } | React.ReactNode;
-
-export enum DisplayType {
-  None = "none",
-  Block = "block",
-  Plain = "plain",
-  Inline = "inline",
-  Accordion = "accordion",
-  Popup = "popup",
-  Caption = "caption",
-  Entry = "entry",
-  Tab = "tab",
-}
 
 export enum SettingType {
   Item = "item",
   Group = "group",
 }
 
-export type ReturnBoolean<T> = (ctx: Setting<T>, value?: any) => boolean;
-
-export interface BehaviorsConfig<T> {
-  [behavior: string]: ReturnBoolean<T>;
-}
-
 export interface SettingConfig<T> {
+  key?: string;
   type?: SettingType;
   target?: string | string[];
-  description?: string;
-  tip?: Tip;
-  display?: DisplayType;
-  tab?: string;
-  className?: string;
   formatter?: FormatterConfig<T>;
-  setter?: SetterType<T>;
   items?: Array<SettingConfig<T>>;
-  behaviors?: BehaviorsConfig<T>;
-  setterChangeableProps?: Array<ChangeableConfig<T>>;
 }
 
 export interface Target {
@@ -67,58 +25,6 @@ export interface Target {
   revision: number;
 }
 
-export type ChangeableProps<T> = Array<Changeable<T>>;
-
-export interface Behavior {
-  readonly value: boolean;
-  update(): boolean;
-  setValue(flag: boolean): void;
-}
-
-export interface Behaviors {
-  [key: string]: Behavior;
-}
-
-export interface BehaviorValues {
-  [behavior: string]: boolean;
-}
-
-function createBehavior<T>(
-  context: Setting<T>,
-  config: ReturnBoolean<T> | null = null,
-  defaultValue: boolean = false,
-): Behavior {
-  let ivalue = defaultValue;
-  let isettedValue: boolean | null = null;
-  const behavior = {
-    get value(): boolean {
-      if (isettedValue != null) {
-        return isettedValue;
-      }
-      return ivalue;
-    },
-    update: () => false,
-    setValue(flag: boolean): void {
-      isettedValue = flag;
-    },
-  };
-  if (typeof config === "function") {
-    behavior.update = () => {
-      const value = config(context, context.getValue());
-      if (behavior.value !== value) {
-        ivalue = value;
-        return true;
-      }
-      return false;
-    };
-    behavior.update();
-  } else if (config != null) {
-    ivalue = Boolean(config);
-  }
-
-  return behavior;
-}
-
 export default class Setting<T> {
   private uid: string = uniqueId("setting");
   private emitter: EventEmitter = new EventEmitter();
@@ -126,15 +32,7 @@ export default class Setting<T> {
   private targets!: Target[];
   private type!: SettingType;
   private items!: Array<Setting<T>>;
-  private description!: string;
-  private tip: Tip | null = null;
-  private tab: string | undefined;
-  private className?: string;
-  private display!: DisplayType;
-  private setter: SetterType<T> | null = null;
-  private setterChangeableProps!: ChangeableProps<T>;
   private formatter!: Formatter<T>;
-  private behaviors: Behaviors = {};
   private config: SettingConfig<T>;
 
   constructor(
@@ -143,19 +41,7 @@ export default class Setting<T> {
     config: SettingConfig<T>,
   ) {
     this.config = config;
-    const {
-      type,
-      target,
-      description,
-      tab,
-      className,
-      tip,
-      display,
-      setter,
-      setterChangeableProps,
-      items,
-      behaviors = {},
-    } = config;
+    const { type, target, items } = config;
 
     this.type = type || (items && items.length > 0 ? SettingType.Group : SettingType.Item);
 
@@ -179,23 +65,11 @@ export default class Setting<T> {
 
       this.formatter = new Formatter<T>(this, config);
       this.internalValue = this.formatter.formatIn(targetsData);
-
-      this.setter = setter || null;
-
-      if (setterChangeableProps) {
-        this.setterChangeableProps = setterChangeableProps.map((cnf) => {
-          return new Changeable<T>(this, cnf);
-        });
-      }
     }
-    this.description = description || "";
-    this.tip = tip ?? null;
-    this.tab = tab;
-    this.className = className;
-    this.display = display || DisplayType.Block;
-    Object.keys(behaviors).forEach((key) => {
-      this.behaviors[key] = createBehavior(this, behaviors[key], false);
-    });
+  }
+
+  getKey(): string | undefined {
+    return this.config.key;
   }
 
   isGroup(): boolean {
@@ -222,32 +96,8 @@ export default class Setting<T> {
     return this.items;
   }
 
-  getDescription(): string {
-    return this.config.description ?? this.description;
-  }
-
-  getClassName() {
-    return this.className;
-  }
-
-  getDisplay(): DisplayType {
-    return this.display;
-  }
-
-  getTip(): Tip | null {
-    return this.tip;
-  }
-
   getTargets(): Target[] {
     return this.targets;
-  }
-
-  getSetter(): SetterType<T> | null {
-    return this.setter;
-  }
-
-  getSetterChangeableProps(): ChangeableProps<T> {
-    return this.setterChangeableProps;
   }
 
   getValue(): any {
@@ -293,34 +143,6 @@ export default class Setting<T> {
     this.setValue(value);
   }
 
-  getBehaviorValue(key: string): boolean {
-    return this.getBehavior(key).value;
-  }
-
-  getBehavior(key: string): Behavior {
-    if (!hasOwn(this.behaviors, key)) {
-      this.behaviors[key] = createBehavior(this);
-    }
-    return this.behaviors[key]!;
-  }
-
-  getBehaviors(): BehaviorValues {
-    const values: BehaviorValues = {};
-    Object.keys(this.behaviors).forEach((key) => {
-      values[key] = this.getBehaviorValue(key);
-    });
-    return values;
-  }
-
-  setBehavior(key: string, flag: boolean): void {
-    this.getBehavior(key).setValue(flag);
-    this.emitter.emit("behaviorchange");
-  }
-
-  toggleCollapsed(): void {
-    this.setBehavior("collapsed", !this.getBehaviorValue("collapsed"));
-  }
-
   update(): void {
     if (this.isGroup()) {
       this.items.forEach((item) => {
@@ -328,19 +150,6 @@ export default class Setting<T> {
       });
     } else {
       this.updateTargets();
-    }
-  }
-
-  updateBehavior(): void {
-    let modified = false;
-    Object.keys(this.behaviors).forEach((key) => {
-      if (this.behaviors[key]!.update()) {
-        modified = true;
-      }
-    });
-
-    if (modified) {
-      this.emitter.emit("behaviorchange");
     }
   }
 
@@ -358,13 +167,6 @@ export default class Setting<T> {
     this.emitter.on("valuechange", fn);
     return () => {
       this.emitter.removeListener("valuechange", fn);
-    };
-  }
-
-  onBehaviorChange(fn: () => void): () => void {
-    this.emitter.on("behaviorchange", fn);
-    return () => {
-      this.emitter.removeListener("behaviorchange", fn);
     };
   }
 

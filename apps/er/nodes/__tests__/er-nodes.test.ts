@@ -1,3 +1,4 @@
+import { UiContributionRegistry } from "../../../../packages/skeleton/src/ui-contributions";
 import { describe, it, expect } from "vitest";
 import { prototypeRegistry, createRegistrySet } from "@flow-designer/model";
 import { setLocale } from "@flow-designer/i18n";
@@ -25,8 +26,12 @@ describe("ER node definitions", () => {
   it("refreshes only the registered instance labels and settings without mutating templates", async () => {
     const owned = createRegistrySet(),
       peer = createRegistrySet();
-    registerERNodes(owned.prototypes);
-    registerERNodes(peer.prototypes);
+    const ownedUi = new UiContributionRegistry(),
+      peerUi = new UiContributionRegistry();
+    const ownedDefinitions = { prototypes: owned.prototypes, ui: ownedUi };
+    const peerDefinitions = { prototypes: peer.prototypes, ui: peerUi };
+    registerERNodes(ownedDefinitions);
+    registerERNodes(peerDefinitions);
     const templateBefore = {
       name: tableDef.meta.name,
       category: tableDef.meta.categoryTitle,
@@ -35,8 +40,8 @@ describe("ER node definitions", () => {
     const peerName = peer.prototypes.getPrototypeByType("Table")?.getName();
     try {
       await setLocale("en-US");
-      refreshERTranslations(owned.prototypes);
-      const definition = owned.prototypes.getPrototypeByType("Table")?.getDefinition();
+      refreshERTranslations(ownedDefinitions);
+      const definition = ownedUi.getNode("Table");
       if (!definition) throw new Error("Registered node definition is missing");
       expect(definition.meta.name).toBe("Table");
       expect(definition.meta.categoryTitle).toBe("Entities");
@@ -49,6 +54,8 @@ describe("ER node definitions", () => {
         description: tableDef.editor[0]?.description,
       }).toEqual(templateBefore);
     } finally {
+      ownedUi.dispose();
+      peerUi.dispose();
       owned.dispose();
       peer.dispose();
       await setLocale("zh-CN");

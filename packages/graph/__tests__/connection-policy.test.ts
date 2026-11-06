@@ -118,6 +118,7 @@ describe("shared connection policy", () => {
     expect(setTarget).not.toHaveBeenCalled();
   });
   it("commits only the final fallback pair once and does not oscillate on the next reroute", () => {
+    graph.getCellById("end").position(300, 400);
     const edge = graph.addEdge({
       source: { cell: "task", port: "out-right" },
       target: { cell: "end", port: "in-left" },

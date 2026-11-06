@@ -1,6 +1,5 @@
 import * as utils from "./utils";
-import { signal } from "./signals";
-import { config, prototypeRegistry, setterRegistry, contentTypesRegistry } from "./registries";
+import { config, prototypeRegistry, contentTypesRegistry } from "./registries";
 import Workspace from "./workspace";
 import Content, { ContentSignal, ContentAop } from "./content";
 import ContentNode, { NodeSignal } from "./content/node";
@@ -14,15 +13,13 @@ import Timeline from "./document/timeline";
 import Props from "./props";
 import Prop from "./props/prop";
 import Settings from "./settings";
-import Setting, { DisplayType, SettingType } from "./settings/setting";
+import Setting, { SettingType } from "./settings/setting";
 const workspace = new Workspace();
 
 export {
   utils,
-  signal,
   config,
   prototypeRegistry,
-  setterRegistry,
   contentTypesRegistry,
   workspace,
   Content,
@@ -47,7 +44,6 @@ export {
   DocumentSignal,
   DocumentCollectionSignal,
   ContentAop,
-  DisplayType,
   SettingType,
 };
 
@@ -75,3 +71,5 @@ export { default as PrototypeRegistry } from "./registries/prototype-registry";
 export { default as ContentTypesRegistry } from "./registries/content-types-registry";
 export { default as Signal } from "./signals";
 export type { DocumentOptions } from "./document";
+
+export type { FormatterConfig } from "./settings/formatter";

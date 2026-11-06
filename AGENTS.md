@@ -13,7 +13,7 @@ These rules apply across the monorepo. Add a package-level `AGENTS.md` only for 
 ## Ownership and dependency boundaries
 
 - `packages/i18n`: UI-independent translation services and catalogs/locale subscriptions; its `/react` subpath owns the optional Provider and hook adapter. Built-in framework text lives in its internal domain catalogs; no browser storage, UI implementation imports or scenario catalogs in the service.
-- `packages/model`: document/content state, prototypes, registries, settings, and serialization; do not restore removed i18n re-exports.
+- `packages/model`: document/content state, pure node definitions, registries, settings values/codecs, and serialization. No React imports, including types, or UI compatibility re-exports.
 - `packages/core`: editor orchestration, commands, plugin lifecycle, and editor communication. No UI runtime dependencies or React runtime import exceptions. Shared React content helpers belong in `packages/skeleton`; core must not re-export UI helpers back across this boundary.
 - `packages/graph`: X6 adaptation, rendering, and interaction.
 - `packages/plugins`: reusable editor capabilities and graph/model bridges.
@@ -32,7 +32,7 @@ Shared packages must not import scenario packages or encode scenario schemas/pol
 - Register content types, prototypes, edge types, and transformers before their first consumer. Distinguish designer initialization from canvas readiness; see `.spec/runtime/engine-and-plugin-lifecycle.md`.
 - Declare plugin initialization dependencies. Every acquired observer, event listener, shortcut, timer, React root, or DOM resource needs an owning cleanup path, including partial initialization failure. Effects must release the same resources they acquire.
 - Initialization and persistence failures must remain observable through established UI messaging and logging. Do not swallow rejections or report persistence success before the underlying operation succeeds.
-- Scope DOM access and interaction to the owning editor. Same-page multi-instance isolation is not currently guaranteed; do not claim it based only on scoped selectors.
+- Scope DOM access and interaction to the owning editor. Same-page instance isolation has dedicated tests for catalogs, commands, notifications, shortcuts and renderers; do not infer arbitrary application-global isolation from scoped selectors. Theme and locale remain page-shared.
 - Framework translation catalogs belong to `packages/i18n/src/catalog/`, split by domain and included by default in every service; consumers must not manually assemble them. Applications register only scenario text or overrides; scenario catalogs, including header text, belong to scenario nodes. Engine selects the initial browser locale through `initializeDesignerI18n` and owns browser locale persistence cleanup. Independent `createI18n` services and Providers do not establish isolation of the full designer, which still uses the shared default service.
 - CSS is a runtime side effect. Changes to library styles or exports require checking built CSS and the consumer import path.
 
@@ -50,7 +50,7 @@ Shared packages must not import scenario packages or encode scenario schemas/pol
 
 - Follow the change-based matrix in [docs/verification.md](docs/verification.md). Add or update meaningful behavior tests when behavior changes; documentation-only edits do not require new runtime tests.
 - Vitest tests belong beside their owner; Playwright tests and manual browser diagnostics belong in `e2e/`. Fixture setup must explicitly establish the state being asserted.
-- CI runs the format check, lint, import-boundary assertions (`pnpm check:boundaries`), typecheck, workspace build, and package tests. Package lint only scans `src/`, so test-file lint debt is not a CI gate, and the Playwright E2E suite is not a CI gate; do not imply otherwise.
+- CI runs the format check, lint, import-boundary assertions (`pnpm check:boundaries`), typecheck, workspace build, and package tests. Package lint only scans `src/`, so test-file lint debt is not a CI gate, and CI runs the selected browser smoke configuration, not the complete E2E or production performance suite.
 - Run full E2E only with the documented apps on ports 5179, 5180, and 5181. See [e2e/README.md](e2e/README.md) for suite classification and known static concerns.
 - Never suppress failures to obtain a green result. Report commands, results, skipped checks, and whether failures are introduced, reproduced baseline failures, or unclassified. Historical pass counts are not current evidence.
 - Update the English and Chinese READMEs together when public setup or contribution guidance changes. Leave the placeholder changelog untouched until maintenance is adopted or the user requests it.

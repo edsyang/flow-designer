@@ -147,6 +147,12 @@ for (const count of [100, 300, 500]) {
     }, count);
     if (profiler) {
       const { profile } = await profiler.send("Profiler.stop");
+      const profilePath = testInfo.outputPath("initial-load.cpuprofile.json");
+      await writeFile(profilePath, JSON.stringify(profile));
+      await testInfo.attach("initial-load.cpuprofile.json", {
+        path: profilePath,
+        contentType: "application/json",
+      });
       const counts = new Map<number, number>();
       for (const id of profile.samples ?? []) counts.set(id, (counts.get(id) ?? 0) + 1);
       const hottest = profile.nodes

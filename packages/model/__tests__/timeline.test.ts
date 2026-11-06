@@ -20,6 +20,113 @@ function createTimeline(initialData: any = { v: 0 }) {
 }
 
 describe("Timeline", () => {
+  it("rejects reentrant transactions while the history applier is still running", async () => {
+    let data = { v: 0 };
+    let attempted: Promise<void> | undefined;
+    const tl = new Timeline(
+      () => data,
+      (snapshot: { v: number }) => {
+        data = snapshot;
+        attempted = tl.transaction("reentrant", () => {
+          data = { v: 99 };
+          tl.log("edit");
+        });
+      },
+    );
+    await tl.transaction("prior", () => {
+      data = { v: 1 };
+      tl.log("edit");
+    });
+    expect(tl.back()).toBe(true);
+    await expect(attempted).rejects.toThrow("history applier");
+    expect(data).toEqual({ v: 0 });
+    expect(tl.getCurrentCursor()).toBe(0);
+    expect(tl.isModified()).toBe(false);
+  });
+
+  it("records an explicit transaction started immediately after undo returns", async () => {
+    const { tl, setState, getState } = createTimeline();
+    await tl.transaction("first", () => {
+      setState({ v: 1 });
+      tl.log("edit");
+    });
+    expect(tl.back()).toBe(true);
+    await tl.transaction("immediate edit", () => {
+      setState({ v: 2 });
+      tl.log("edit");
+    });
+    expect(tl.isModified()).toBe(true);
+    expect(tl.getCurrentCursor()).toBe(1);
+    expect(tl.getPoints()[1]?.getData()).toEqual({ v: 2 });
+    expect(tl.back()).toBe(true);
+    expect(getState()).toEqual({ v: 0 });
+    expect(tl.forward()).toBe(true);
+    expect(getState()).toEqual({ v: 2 });
+  });
+
+  it("refuses undo/redo while pending and emits consistent navigation availability", async () => {
+    const { tl, setState, getState } = createTimeline();
+    for (const value of [1, 2])
+      await tl.transaction("prior", () => {
+        setState({ v: value });
+        tl.log("edit");
+      });
+    tl.back();
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    const changes = vi.fn();
+    const off = tl.onStateChange(changes);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const pending = tl.transaction("pending", async () => {
+      await gate;
+      setState({ v: 3 });
+      tl.log("edit");
+    });
+    expect(tl.getState() & 3).toBe(0);
+    expect(changes.mock.lastCall?.[0] & 3).toBe(0);
+    expect(tl.back()).toBe(false);
+    expect(tl.forward()).toBe(false);
+    expect(tl.go(0)).toBe(false);
+    expect(tl.getCurrentCursor()).toBe(1);
+    expect(getState()).toEqual({ v: 1 });
+    release();
+    await pending;
+    expect(tl.getState() & 1).toBe(1);
+    expect(changes.mock.lastCall?.[0] & 1).toBe(1);
+    expect(tl.back()).toBe(true);
+    expect(getState()).toEqual({ v: 1 });
+    expect(tl.forward()).toBe(true);
+    expect(getState()).toEqual({ v: 3 });
+    off();
+  });
+
+  it("restores undo and redo after a pending no-op transaction rejects", async () => {
+    const { tl, setState } = createTimeline();
+    for (const value of [1, 2])
+      await tl.transaction("prior", () => {
+        setState({ v: value });
+        tl.log("edit");
+      });
+    tl.back();
+    await new Promise((resolve) => setTimeout(resolve, 1));
+    const before = [...tl.getPoints()];
+    let reject!: (error: Error) => void;
+    const gate = new Promise<void>((_resolve, fail) => {
+      reject = fail;
+    });
+    const pending = tl.transaction("rejected", () => gate);
+    expect(tl.back()).toBe(false);
+    expect(tl.forward()).toBe(false);
+    reject(new Error("rejected"));
+    await expect(pending).rejects.toThrow("rejected");
+    expect(tl.getState() & 3).toBe(3);
+    expect(tl.getPoints()).toEqual(before);
+    expect(tl.back()).toBe(true);
+    expect(tl.forward()).toBe(true);
+  });
+
   it("keeps no-op nested failures clean and preserves redo checkpoints", async () => {
     const { tl, setState, getState } = createTimeline();
     await tl.transaction("real", () => {

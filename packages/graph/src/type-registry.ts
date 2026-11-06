@@ -1,4 +1,5 @@
-import type { NodeMeta, NodeView, PortDefinition } from "@flow-designer/model";
+import type { PortDefinition } from "@flow-designer/model";
+import type { NodeMeta, NodeView } from "./contracts";
 import type { EdgeTypeConfig } from "./contracts";
 /** Definitions survive graph disposal so the manager can initialize another viewport. */
 export class GraphTypeRegistry {

@@ -91,14 +91,13 @@ export interface GraphEdgeSnapshot {
   readonly vertices: readonly GraphPoint[];
 }
 
-/** Preserve current native node:moved transaction granularity in P2b.
- * edges = current connected edges UNION explicit routingEdgeIds, deduplicated by ID.
- * This does NOT add selection-box/group-transaction support.
- */
+/** A finalized gesture: all moved nodes and affected edges commit in one transaction. */
 export interface GraphNodeMoveEdit {
   readonly type: "node-moved";
   readonly nodeId: string;
   readonly position: GraphPoint;
+  /** Group gesture members; absent means the single nodeId/position pair. */
+  readonly nodes?: readonly { readonly nodeId: string; readonly position: GraphPoint }[];
   readonly edges: readonly GraphEdgeSnapshot[];
 }
 export interface GraphEdgeConnectEdit {

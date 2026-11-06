@@ -1,24 +1,26 @@
-import type Setting from "./setting";
+import type { Setting } from "@flow-designer/model";
 
 export interface ChangeableConfig<T> {
   name: string;
   listen?: (setting: Setting<T>, callback: () => void) => () => void;
-  compute(setting: Setting<T>): any;
+  compute(setting: Setting<T>): unknown;
 }
 
 export default class Changeable<T> {
-  private computed: any;
+  private computed: unknown;
 
   constructor(
     private setting: Setting<T>,
     private config: ChangeableConfig<T>,
-  ) {}
+  ) {
+    this.compute();
+  }
 
   getName(): string {
     return this.config.name;
   }
 
-  listen(fn: (computed: any) => void): () => void {
+  listen(fn: (computed: unknown) => void): () => void {
     this.compute();
     if (!this.config.listen) {
       return () => {
@@ -31,12 +33,11 @@ export default class Changeable<T> {
     });
   }
 
-  getComputed(): any {
+  getComputed(): unknown {
     return this.computed;
   }
 
   private compute(): void {
     this.computed = this.config.compute(this.setting);
-    return this.computed;
   }
 }

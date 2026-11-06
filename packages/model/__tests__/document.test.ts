@@ -14,16 +14,14 @@ function setupRegistries() {
   }
   if (!prototypeRegistry.getPrototypeByType("Unknown")) {
     prototypeRegistry.register({
-      name: "Unknown",
-      typeName: "Unknown",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Unknown", typeName: "Unknown" },
+      schema: [],
     } as any);
   }
   if (!prototypeRegistry.getPrototypeByType("task")) {
     prototypeRegistry.register({
-      name: "Task",
-      typeName: "task",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Task", typeName: "task" },
+      schema: [],
       props: [{ name: "label", defaultValue: "" }],
     } as any);
   }

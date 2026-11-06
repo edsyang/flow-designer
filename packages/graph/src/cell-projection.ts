@@ -1,3 +1,4 @@
+import { truncateNodeLabel } from "./node-label";
 import type { GraphNodePatch } from "@flow-designer/core";
 import { Markup, type Graph, type Edge, type Registry } from "@antv/x6";
 import type { ContentNode } from "@flow-designer/model";
@@ -60,7 +61,17 @@ export class GraphCellProjection {
       if (current.x !== patch.position.x || current.y !== patch.position.y)
         node.position(patch.position.x, patch.position.y);
     }
-    if (patch.label !== undefined) node.setAttrs({ label: { text: patch.label } });
+    if (patch.label !== undefined) {
+      const type = this.nodeTypeByCellId.get(patch.nodeId);
+      node.setAttrs({
+        label: {
+          text: truncateNodeLabel(
+            patch.label,
+            type ? this.types.nodes.get(type)?.view.shape : undefined,
+          ),
+        },
+      });
+    }
     for (const port of patch.portLabels ?? [])
       if (node.hasPort(port.portId)) node.setPortProp(port.portId, "attrs/title/text", port.label);
   }
@@ -96,7 +107,10 @@ export class GraphCellProjection {
         y: config.y,
         width: config.width ?? typeEntry?.view.defaultSize?.width ?? DEFAULT_NODE_WIDTH,
         height: config.height ?? typeEntry?.view.defaultSize?.height ?? DEFAULT_NODE_HEIGHT,
-        label: config.label,
+        label:
+          config.label === undefined
+            ? undefined
+            : truncateNodeLabel(config.label, typeEntry?.view.shape),
         data,
         ports,
       },

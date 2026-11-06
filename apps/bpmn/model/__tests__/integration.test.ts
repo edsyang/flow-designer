@@ -17,16 +17,15 @@ function setup() {
   }
   if (!prototypeRegistry.getPrototypeByType("Unknown")) {
     prototypeRegistry.register({
-      name: "Unknown",
-      typeName: "Unknown",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Unknown", typeName: "Unknown" },
+      schema: [],
     } as any);
   }
 
   const defs = [startEventDef, endEventDef, exclusiveGatewayDef, parallelGatewayDef, userTaskDef];
   for (const def of defs) {
     if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+      prototypeRegistry.register(def.domain);
     }
   }
 }

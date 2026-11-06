@@ -1,8 +1,10 @@
+import { UiContributionRegistry } from "./ui-contributions";
 import type { ISkeleton, PaneConfig } from "./contracts";
 
 import { Area } from "./area";
 
 export class Skeleton implements ISkeleton {
+  readonly ui = new UiContributionRegistry();
   header = new Area();
   sidebar = new Area();
   inspector = new Area();

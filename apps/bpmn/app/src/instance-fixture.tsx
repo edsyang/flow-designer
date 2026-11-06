@@ -4,8 +4,8 @@ import {
   Workbench,
   createRegistrySet,
   GenericContent,
-  defineNode,
 } from "@flow-designer/engine";
+import { defineNode } from "@flow-designer/engine/definitions";
 import type { Designer } from "@flow-designer/engine";
 
 type Fixture = { designer: Designer; destroy(): Promise<void> };
@@ -23,22 +23,21 @@ async function mount(name: string): Promise<Fixture> {
   document.getElementById("fixtures")!.append(host);
   const registries = createRegistrySet();
   registries.contentTypes.register(GenericContent);
-  registries.prototypes.register(
-    defineNode({
-      meta: { name: `${name} node`, typeName: "SameType" },
-      schema: [],
-      editor: [],
-      view: {
-        type: "node",
-        defaultSize: { width: name === "A" ? 120 : 180, height: 50 },
-        component: () => <div data-instance-renderer={name}>{name} renderer</div>,
-        ports: [{ id: "out", group: "out", position: name === "A" ? "right" : "bottom" }],
-      },
-    }),
-  );
+  const definition = defineNode({
+    meta: { name: `${name} node`, typeName: "SameType" },
+    schema: [],
+    editor: [],
+    view: {
+      type: "node",
+      defaultSize: { width: name === "A" ? 120 : 180, height: 50 },
+      component: () => <div data-instance-renderer={name}>{name} renderer</div>,
+      ports: [{ id: "out", group: "out", position: name === "A" ? "right" : "bottom" }],
+    },
+  });
   const designer = await createDesigner({
     container: host,
     registries,
+    nodeDefinitions: [definition],
     documentType: "default",
     documentVersion: "1.0.0",
   });

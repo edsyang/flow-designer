@@ -26,14 +26,12 @@ async function init() {
   if (!container) throw new Error("Root element #root not found");
 
   await initializeDesignerI18n(erMessages);
-  const { registerERNodes, refreshERTranslations, getRelationEdgeType } =
+  const { erNodeDefinitions, refreshERTranslations, getRelationEdgeType } =
     await import("@flow-designer/er-nodes");
-
-  registerERNodes();
-  refreshERTranslations();
 
   const designer: Designer = await createDesigner({
     container,
+    nodeDefinitions: erNodeDefinitions,
     documentType: "*",
     documentVersion: "1.0.0",
     localeMessages: erMessages,
@@ -52,7 +50,7 @@ async function init() {
   window.designer = designer;
   designer.engine.addDisposer(
     subscribeLocale(() => {
-      refreshERTranslations(designer.editor.getRegistries().prototypes);
+      refreshERTranslations(designer.engine.definitions);
     }),
   );
 

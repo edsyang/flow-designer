@@ -14,7 +14,7 @@ describe("typed graph adapter", () => {
     container = document.createElement("div");
     document.body.appendChild(container);
     manager = new GraphManager();
-    manager.init(container);
+    manager.init(container, { snapline: false });
     graph = manager.getX6Graph() as Graph;
     manager.registerNodeType(
       { name: "task", typeName: "business-task" },
@@ -208,7 +208,7 @@ describe("typed graph adapter", () => {
     const listener = vi.fn();
     const stop = manager.subscribeEvents(listener);
     manager.dispose();
-    manager.init(container);
+    manager.init(container, { snapline: false });
     graph = manager.getX6Graph() as Graph;
     void graph.trigger("blank:click", {});
     expect(listener).not.toHaveBeenCalled();
@@ -267,5 +267,28 @@ describe("typed graph adapter", () => {
     );
     manager.addNode({ id: "no-ports", type: "no-ports", x: 0, y: 0 });
     expect(manager.getNodePorts("no-ports")).toEqual([]);
+  });
+  it("publishes all already-supported selected-node gesture positions in one final DTO", () => {
+    addEdge(manager, "incident");
+    addEdge(manager, "remote", "c", "d");
+    manager.select(["a", "c"]);
+    const a = manager.getCellById("a") as Node,
+      c = manager.getCellById("c") as Node;
+    const edits: GraphEdit[] = [];
+    manager.subscribeEdits((edit) => edits.push(edit));
+    void graph.trigger("node:mousedown", { node: a });
+    a.position(20, 0);
+    c.position(20, 300);
+    void graph.trigger("node:moving", { node: a, e: { clientX: 400, clientY: 400 } });
+    void graph.trigger("node:moved", { node: a });
+    const moves = edits.filter((edit) => edit.type === "node-moved");
+    expect(moves).toHaveLength(1);
+    const move = moves[0];
+    if (move?.type !== "node-moved") throw new Error("Expected move");
+    expect(move.nodes).toEqual([
+      { nodeId: "a", position: { x: 20, y: 0 } },
+      { nodeId: "c", position: { x: 20, y: 300 } },
+    ]);
+    expect(move.edges.map((edge) => edge.edgeId).sort()).toEqual(["incident", "remote"]);
   });
 });

@@ -46,7 +46,7 @@ export function generateERNodeDef(opts: ERTemplateOptions): string {
     ...portConfig.outPorts.map((p) => formatPort(p, "out")),
   ].join("\n");
 
-  return `import { defineNode } from '@flow-designer/model';
+  return `import { defineNode } from '@flow-designer/engine/definitions';
 import { BuiltinSetters } from '@flow-designer/setters/constants';
 
 export const ${defName} = defineNode({
@@ -81,13 +81,13 @@ export function generateERIndex(opts: ERTemplateOptions): string {
   const defName = toDefName(kebabName);
   const registerFn = toRegisterFnName(kebabName);
 
-  return `import { prototypeRegistry } from '@flow-designer/model';
+  return `import type { NodeDefinitionRegistry } from '@flow-designer/engine/definitions';
 import { ${defName} } from './${kebabName}.js';
 
 export { ${defName} };
 
-export function ${registerFn}(): void {
-  prototypeRegistry.register(${defName});
+export function ${registerFn}(registry: NodeDefinitionRegistry): () => void {
+  return registry.ui.register(${defName}, registry.prototypes);
 }
 `;
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { prototypeRegistry } from "@flow-designer/model";
+import { createRegistrySet } from "@flow-designer/model";
+import { UiContributionRegistry } from "../../../../packages/skeleton/src/ui-contributions";
+const domain = createRegistrySet();
+const prototypeRegistry = domain.prototypes;
+const registry = { prototypes: prototypeRegistry, ui: new UiContributionRegistry() };
 import { setLocale } from "@flow-designer/i18n";
 import { BPMN_TYPE_NAMES } from "../src/constants";
 import { refreshBpmnTranslations, registerBpmnNodes } from "../src";
@@ -12,17 +16,16 @@ function registeredTypes(): string[] {
   return prototypeRegistry.getRegistry().map((prototype) => prototype.getTypeName());
 }
 
-// The registry is a process-wide singleton and this file runs in its own module
-// graph, so these tests can assert the "not registered yet" state directly.
+// This suite owns its domain and UI registrations.
 describe("BPMN node registration", () => {
   it("a translation refresh does not register nodes", () => {
-    refreshBpmnTranslations();
+    refreshBpmnTranslations(registry);
 
     expect(registeredTypes()).toHaveLength(0);
   });
 
   it("registerBpmnNodes registers every BPMN node type", () => {
-    registerBpmnNodes();
+    registerBpmnNodes(registry);
 
     expect(registeredTypes().sort()).toEqual([...NODE_TYPES].sort());
     for (const typeName of NODE_TYPES) {
@@ -31,22 +34,22 @@ describe("BPMN node registration", () => {
   });
 
   it("is idempotent and does not duplicate registry entries", () => {
-    registerBpmnNodes();
-    registerBpmnNodes();
+    registerBpmnNodes(registry);
+    registerBpmnNodes(registry);
 
     expect(registeredTypes()).toHaveLength(NODE_TYPES.length);
   });
 
   it("updates already-registered prototypes when the locale changes", async () => {
-    registerBpmnNodes();
+    registerBpmnNodes(registry);
     await setLocale("en-US");
-    refreshBpmnTranslations();
+    refreshBpmnTranslations(registry);
     expect(prototypeRegistry.getPrototypeByType(BPMN_TYPE_NAMES.START_EVENT)?.getName()).toBe(
       "Start",
     );
 
     await setLocale("zh-CN");
-    refreshBpmnTranslations();
+    refreshBpmnTranslations(registry);
     expect(prototypeRegistry.getPrototypeByType(BPMN_TYPE_NAMES.START_EVENT)?.getName()).toBe(
       "开始",
     );

@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { setterRegistry } from "@flow-designer/model";
+import { Skeleton } from "@flow-designer/skeleton";
+const skeleton = new Skeleton();
 import { registerMessages, setLocale, subscribeLocale, t } from "@flow-designer/i18n";
 import { SettingsRenderer } from "../src/selection-panel/settings-renderer";
 
@@ -16,6 +17,7 @@ vi.mock("@flow-designer/react", async (importOriginal) => {
   const original = await importOriginal<typeof import("@flow-designer/react")>();
   return {
     ...original,
+    useSkeleton: () => skeleton,
     useSelection: () => ({ keys: ["selected-edge"] }),
     useGraph: () => ({ getEdgeTypeName: () => "test-edge" }),
     useEditor: () => ({
@@ -67,7 +69,7 @@ describe("selected connection translation", () => {
     const unsubscribe = subscribeLocale(() => {
       fixture.field.description = t("test.edge.name");
     });
-    setterRegistry.register(
+    const releaseSetter = skeleton.ui.setters.register(
       "selection-language-test",
       ({ value, onChange }: { value: string; onChange: (value: string) => void }) => (
         <input
@@ -101,6 +103,7 @@ describe("selected connection translation", () => {
       expect(fixture.edge.props.name).toBe("Custom edge name");
     } finally {
       unsubscribe();
+      releaseSetter();
     }
   });
 });

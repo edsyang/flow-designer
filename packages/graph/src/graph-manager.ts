@@ -29,7 +29,8 @@ import { Keyboard } from "@antv/x6-plugin-keyboard";
 import "@antv/x6-plugin-stencil/dist/index.css";
 import { canUsePort } from "@flow-designer/model";
 import { subscribeTheme } from "@flow-designer/core";
-import type { NodeMeta, NodeView, PortDefinition } from "@flow-designer/model";
+import type { PortDefinition } from "@flow-designer/model";
+import type { NodeMeta, NodeView } from "./contracts";
 import type {
   NodeConfig,
   EdgeConfig,

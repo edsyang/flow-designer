@@ -37,6 +37,48 @@ describe("Relation", () => {
 });
 
 describe("GenericRelation", () => {
+  it("rolls back only its own edge revision and preserves unrelated edits", () => {
+    const { content, node } = mockContentAndNode();
+    const relation = new GenericRelation(content, node);
+    const handle = relation.mutateOwnedEdge(
+      "owned",
+      { id: "owned", targetNodeId: "n2" },
+      () => undefined,
+    );
+    relation.addEdge({ id: "external", targetNodeId: "n3" });
+    expect(handle.rollback()).toBe(true);
+    expect(handle.rollback()).toBe(false);
+    expect(relation.getEdges()).toEqual([{ id: "external", targetNodeId: "n3" }]);
+  });
+
+  it("does not undo an external replacement even when the replacement has identical data", () => {
+    const { content, node } = mockContentAndNode();
+    const relation = new GenericRelation(content, node);
+    const edge = { id: "owned", targetNodeId: "n2" };
+    const handle = relation.mutateOwnedEdge(edge.id, edge, () => undefined);
+    relation.addEdge(edge);
+    expect(handle.rollback()).toBe(false);
+    expect(relation.getEdgeById(edge.id)).toEqual(edge);
+  });
+
+  it("makes ownership available before a throwing observer and restores a removed edge", () => {
+    const { content, node } = mockContentAndNode();
+    const edge = { id: "owned", targetNodeId: "n2" };
+    const relation = new GenericRelation(content, node, [edge]);
+    let rollback: (() => boolean) | undefined;
+    const off = relation.onChange(() => {
+      throw new Error("projection failed");
+    });
+    expect(() =>
+      relation.mutateOwnedEdge(edge.id, null, (handle) => {
+        rollback = handle.rollback;
+      }),
+    ).toThrow("projection failed");
+    off();
+    expect(rollback?.()).toBe(true);
+    expect(relation.getEdgeById(edge.id)).toEqual(edge);
+  });
+
   it("isolates input and output snapshots and logs endpoint updates", () => {
     const { content, node } = mockContentAndNode();
     const edge = { id: "e1", targetNodeId: "n2", props: { label: "old" } };

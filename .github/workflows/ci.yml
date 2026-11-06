@@ -49,11 +49,31 @@ jobs:
       - name: Format check
         run: pnpm turbo run //#format:check
 
+      - name: Build workspace dependencies
+        run: pnpm build
+
       - name: Lint
         run: pnpm turbo run lint
 
       - name: Import boundaries
         run: pnpm check:boundaries
 
-      - name: Typecheck, Build and Test
-        run: pnpm turbo run typecheck build test
+      - name: Typecheck and Test
+        run: pnpm turbo run typecheck test
+
+      - name: Built consumer contracts
+        run: pnpm check:core-baseline
+
+      - name: Install browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Browser smoke
+        run: pnpm exec playwright test --config=playwright.smoke.config.mjs
+
+      - name: Upload browser diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-diagnostics
+          path: test-results/
+          retention-days: 7

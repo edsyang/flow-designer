@@ -22,18 +22,16 @@ async function init() {
   await initializeDesignerI18n(bpmnMessages);
 
   const {
-    registerBpmnNodes,
+    bpmnNodeDefinitions,
     refreshBpmnTranslations,
     getSequenceFlowEdgeType,
     getProcessGlobalSettings,
     isValidBpmnConnection,
   } = await import("@flow-designer/bpmn-nodes");
 
-  registerBpmnNodes();
-  refreshBpmnTranslations();
-
   const designer: Designer = await createDesigner({
     container,
+    nodeDefinitions: bpmnNodeDefinitions,
     documentType: "process",
     documentVersion: "1.0.0",
     docSettings: getProcessGlobalSettings(),
@@ -48,7 +46,7 @@ async function init() {
   window.designer = designer;
   designer.engine.addDisposer(
     subscribeLocale(() => {
-      refreshBpmnTranslations(designer.editor.getRegistries().prototypes);
+      refreshBpmnTranslations(designer.engine.definitions);
     }),
   );
 

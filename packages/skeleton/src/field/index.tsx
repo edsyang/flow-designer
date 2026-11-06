@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DisplayType } from "@flow-designer/model";
+import { DisplayType } from "../ui-settings";
 import type { FieldProps, FieldBehaviors } from "../types";
 import { InlineField } from "./inline";
 import { BlockField } from "./block";

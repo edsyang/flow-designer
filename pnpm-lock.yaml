@@ -133,6 +133,9 @@ importers:
       '@flow-designer/core':
         specifier: workspace:*
         version: link:../../../packages/core
+      '@flow-designer/engine':
+        specifier: workspace:*
+        version: link:../../../packages/engine
       '@flow-designer/graph':
         specifier: workspace:*
         version: link:../../../packages/graph
@@ -200,6 +203,9 @@ importers:
 
   apps/comfyui/nodes:
     dependencies:
+      '@flow-designer/engine':
+        specifier: workspace:*
+        version: link:../../../packages/engine
       '@flow-designer/graph':
         specifier: workspace:*
         version: link:../../../packages/graph
@@ -270,6 +276,9 @@ importers:
 
   apps/er/nodes:
     dependencies:
+      '@flow-designer/engine':
+        specifier: workspace:*
+        version: link:../../../packages/engine
       '@flow-designer/graph':
         specifier: workspace:*
         version: link:../../../packages/graph
@@ -427,9 +436,6 @@ importers:
       '@flow-designer/i18n':
         specifier: workspace:*
         version: link:../i18n
-      '@types/react':
-        specifier: 'catalog:'
-        version: 18.3.31
       '@types/semver':
         specifier: ^7.7.1
         version: 7.7.1
@@ -531,6 +537,9 @@ importers:
       '@flow-designer/model':
         specifier: workspace:*
         version: link:../model
+      '@flow-designer/skeleton':
+        specifier: workspace:*
+        version: link:../skeleton
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -550,6 +559,9 @@ importers:
       '@flow-designer/core':
         specifier: workspace:*
         version: link:../core
+      '@flow-designer/graph':
+        specifier: workspace:*
+        version: link:../graph
       '@flow-designer/i18n':
         specifier: workspace:*
         version: link:../i18n

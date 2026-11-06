@@ -1,4 +1,5 @@
 import { defaultRegistries } from "@flow-designer/model";
+import type { NodeDefinitionBundle } from "@flow-designer/skeleton";
 import type { RegistrySet } from "@flow-designer/model";
 import type { ResourceDisposer } from "@flow-designer/core";
 import { Editor, PluginManager, DisposableScope, CleanupError } from "@flow-designer/core";
@@ -23,9 +24,22 @@ export class Engine {
       this.editor.dispose();
     });
     this.skeleton = new Skeleton();
+    this.addDisposer(() => {
+      this.skeleton.ui.dispose();
+    });
     this.addDisposer(bindSkeleton(this.editor, this.skeleton));
     this.plugins = new PluginManager(this.editor);
     this.editor.setPlugins(this.plugins);
+  }
+
+  get definitions() {
+    return { prototypes: this.registries.prototypes, ui: this.skeleton.ui };
+  }
+
+  registerNodeDefinition(bundle: NodeDefinitionBundle): () => void {
+    const release = this.skeleton.ui.register(bundle, this.registries.prototypes);
+    this.addDisposer(release);
+    return release;
   }
 
   addDisposer(dispose: ResourceDisposer): () => Promise<void> {

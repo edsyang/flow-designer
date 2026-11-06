@@ -442,9 +442,10 @@ export class GraphInteractionSessions {
       });
       const node = movingNode(args);
       if (node) {
+        const members = initial?.positions.map((item) => item.node) ?? [node];
         const edges = new Map(
           [
-            ...graph.getConnectedEdges(node),
+            ...members.flatMap((member) => graph.getConnectedEdges(member)),
             ...(args.routingEdgeIds ?? [])
               .map((id): Cell | null | undefined => graph.getCellById(id))
               .filter((cell): cell is Edge => !!cell && cell.isEdge()),
@@ -453,6 +454,10 @@ export class GraphInteractionSessions {
         const position = node.position();
         this.notifications.publishEdit({
           type: "node-moved",
+          nodes: members.map((member) => ({
+            nodeId: member.id,
+            position: { ...member.position() },
+          })),
           nodeId: node.id,
           position: { x: position.x, y: position.y },
           edges: [...edges.values()].map((edge) => this.notifications.edgeSnapshot(edge)),

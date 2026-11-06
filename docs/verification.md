@@ -382,3 +382,37 @@ Document catalogs/signals and editor commands/notifications/shortcuts now have e
 Evidence: `/tmp/flow-p3-build-final.log`, `/tmp/flow-p3-check-final.log`, `/tmp/flow-p3-consumer.log`, `/tmp/flow-p3-boundaries.log`, `/tmp/flow-p3-e2e-final.log`. Reports remain outside the repository.
 
 P3 frozen-source complete Chrome suite: **83/83 passed**, including the new same-page instance regression.
+
+## P4–P6 editing, route plans and pure definitions (2026-11-06)
+
+Finalized graph edits now share the per-document editing service; node-group positions and relation ports/vertices commit together. Revision-owned compensation and targeted projection recovery preserve external replacements. Timeline rejects navigation while transactions are pending and records explicit edits immediately after navigation; both race directions have regression tests.
+
+Graph admission, preview and rendering share GeometryScene versions and RoutePlan results. Tests cover real search-budget exhaustion, explicit degraded legacy routes, invalidation and cache reuse. Curve checks include the final interval, safe rounded corners and direct-route blocker dependencies. Node definitions/settings are separated into pure model data and instance-owned skeleton UI contributions; the lightweight engine definitions entry preserves convenient composition.
+
+- Build: 20/20 tasks passed. Final workspace gate: 75/75 tasks, **648 unit tests** passed.
+- Import boundaries: **61/61**. Built public consumer checks: **7 groups** passed, including headless definition loading and all four generated node presets. Full native Node engine imports still require a CSS-aware bundler; this existing limitation is explicitly tested, not presented as headless support.
+- Warning ceilings reduced: model 362→305, skeleton 46→32, setters 8→7. Graph remains 188, core 47, React 12, engine 0. No budget was raised to accommodate the migration.
+- Initial integrated failures identified an unnameable public return declaration and unmigrated test fixtures using legacy prototype/UI registration. The declaration was fixed and fixtures migrated without removing behavioral assertions. Final gates above passed.
+- An initial browser attempt stopped at app loading because long-running Vite servers returned `Outdated Optimize Dep` after workspace dependency changes. All three servers were restarted with forced dependency optimization before the final browser run. That interrupted run is not counted as a pass.
+
+Logs: `/tmp/flow-p456-build-complete.log`, `/tmp/flow-p456-check-complete.log`, `/tmp/flow-p6-consumer-final.log`, `/tmp/flow-p6-boundaries-final.log`. Final browser, smoke and isolated production performance evidence follows below when completed.
+
+The first isolated production matrix passed all nine samples with drag/fit P95 16.7–16.8ms, but exposed slower initial rendering at 500 nodes (2015.1–2234.3ms versus the prior 1736.5–1757.2ms P2b range). A full initial-load CPU profile identified obstacle-array scans, not node/edge insertion, as the regression. Microbenchmarks traced it to V8's slow scanning of frozen arrays. The candidate correction keeps public snapshots and obstacle records frozen while giving the internal solver its own readonly plain array, built once per geometry revision. Final candidate measurements are recorded separately rather than discarding this initial matrix.
+
+Final delivery build passed 20/20; workspace checks passed 75/75 with **649 unit tests** (including the added immutable-public-snapshot/fast-private-solver regression). Six smoke tests passed with `CI=1`, starting all three servers from closed ports. Frozen-lockfile offline installation passed without changes. Hosted GitHub Actions itself has not run in this local task.
+
+Final isolated production matrix: **9/9**, 100/300/500 nodes and 200/600/1000 edges, three samples each:
+
+| Nodes / edges | Initial final-render range | Ordinary drag P95 | Fit drag P95 |
+| ------------- | -------------------------- | ----------------- | ------------ |
+| 100 / 200     | 907.5–963.0ms              | 16.8ms            | 16.7–16.8ms  |
+| 300 / 600     | 2951.6–2987.9ms            | 16.8ms            | 16.7–16.8ms  |
+| 500 / 1000    | 1785.8–1963.8ms            | 16.7–16.8ms       | 16.7–16.8ms  |
+
+Every sample retained all edges, zero routing failures/error elements, 30 ordinary-drag position events/126 route passes, 60 fit-drag position events/240 route passes, actual 300px pointer movement and no cell removal on undo. Existing legacy-warning counts remain 101/309/517; the refactor does not hide or fix all legacy layouts. The 500-node initial-render samples overlap the P3 profiled observation (1833.3ms), while some remain above the earlier P2b range; initial cost is reported separately from the stable interaction result. These measurements establish the target in this environment, not a universal 60fps guarantee.
+
+The CPU investigation saved full initial-load and real-drag profiles. Admission-inclusive samples decreased from 222 to 23 in the compared drag captures; sample counts are observations, not exact function-call counts. The slower frozen-array candidate and its profiles remain available for comparison.
+
+Final evidence: `/tmp/flow-p456-build-delivery.log`, `/tmp/flow-p456-check-delivery.log`, `/tmp/flow-p456-performance-delivery/`, `/tmp/flow-p6-smoke.log`, `/tmp/flow-p6-frozen-install.log`, `/tmp/flow-p456-consumer-complete.log`. Diagnostic profiles: `/tmp/flow-p456-profile-initial/`; initial slower matrix: `/tmp/flow-p456-performance/`. Artifacts are outside the repository.
+
+Final frozen-runtime Chrome rerun after the solver-array correction: **83/83 passed** (`/tmp/flow-p456-e2e-delivery.log`). Final whole-repository formatting and diff checks passed. Subsequent changes are documentation, a registry-clone comment and test whitespace only. P0–P6 are complete within the agreed scope; no remote push was performed.

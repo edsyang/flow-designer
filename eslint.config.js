@@ -189,6 +189,18 @@ export default tseslint.config(
             ...scenarioImports,
             coreUIImports,
             {
+              group: [
+                "react",
+                "react/**",
+                "react-dom",
+                "react-dom/**",
+                "@types/react",
+                "@types/react/**",
+              ],
+              message:
+                "Domain contracts must not contain React implementation or UI type dependencies.",
+            },
+            {
               group: ["@flow-designer/core", "@flow-designer/core/**", "**/core/src/**"],
               message: "Model cannot depend on application contracts or compatibility re-exports.",
             },

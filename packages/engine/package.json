@@ -11,6 +11,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
+    },
+    "./definitions": {
+      "source": "./src/definitions.ts",
+      "types": "./dist/definitions.d.ts",
+      "import": "./dist/definitions.mjs",
+      "require": "./dist/definitions.cjs"
     }
   },
   "files": [

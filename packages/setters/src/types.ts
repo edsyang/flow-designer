@@ -1,10 +1,11 @@
 import type { ComponentType } from "react";
-import type { Setting, ContentNode } from "@flow-designer/model";
+import type { ContentNode } from "@flow-designer/model";
+import type { UiSetting } from "@flow-designer/skeleton";
 
 export interface SetterProps<V = unknown> {
   value: V;
   onChange: (value: V) => void;
-  field: Setting<ContentNode>;
+  field: UiSetting<ContentNode>;
   disabled?: boolean;
 }
 

@@ -1,5 +1,5 @@
-import type { ComponentType } from "react";
-import type { NodeMeta, NodeView, PortDefinition } from "@flow-designer/model";
+import type { ComponentType, ReactElement } from "react";
+import type { ContentNode, PortDefinition } from "@flow-designer/model";
 import type {
   GraphPort,
   ConnectionValidator,
@@ -148,3 +148,29 @@ export interface GraphAdapterPort extends GraphPort {
 }
 /** Compatibility name for the concrete graph adapter, not a core application port. */
 export type IGraphManager = GraphAdapterPort;
+
+/** Renderer metadata belongs to the graph contribution, not the domain prototype. */
+export interface NodeMeta {
+  name: string;
+  typeName: string;
+  description?: string;
+  icon?: string | ReactElement;
+  category?: string;
+  categoryTitle?: string;
+}
+export interface NodeComponentProps {
+  node: ContentNode;
+  selected: boolean;
+  data: Record<string, unknown>;
+}
+export interface NodeView {
+  type: "node" | "edge";
+  quickAdd?: boolean;
+  draggable?: boolean;
+  deletable?: boolean;
+  copyable?: boolean;
+  component?: ComponentType<NodeComponentProps>;
+  defaultSize?: { width: number; height: number };
+  ports?: PortDefinition[];
+  shape?: string;
+}

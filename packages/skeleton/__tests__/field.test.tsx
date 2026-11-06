@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import { DisplayType } from "@flow-designer/model";
+import { DisplayType } from "../src/ui-settings";
 import { Field } from "../src/field";
 
 describe("Field", () => {

@@ -1,4 +1,5 @@
-import type { NodeDefinition, PrototypeConfig } from "@flow-designer/model";
+import { getSkeleton } from "@flow-designer/skeleton";
+import type { NodeDefinitionBundle } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 
 const DEFAULT_PORTS = [8080];
@@ -52,10 +53,17 @@ export function pluginDebugLoader(ctx: IPluginContext): IPluginConfig {
             /* @vite-ignore */ `http://localhost:${String(port)}/src/index.ts`
           );
           const proto = (mod as Record<string, unknown>).default ?? mod;
-          if (proto && typeof proto === "object" && "name" in proto && "view" in proto) {
-            ctx.editor
-              .getRegistries()
-              .prototypes.register(proto as NodeDefinition | PrototypeConfig);
+          if (
+            proto &&
+            typeof proto === "object" &&
+            "meta" in proto &&
+            "view" in proto &&
+            "domain" in proto
+          ) {
+            getSkeleton(ctx.editor).ui.register(
+              proto as NodeDefinitionBundle,
+              ctx.editor.getRegistries().prototypes,
+            );
           }
         } catch {
           // debug component load failure is non-fatal

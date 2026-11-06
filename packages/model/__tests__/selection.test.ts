@@ -13,9 +13,8 @@ function setup() {
   }
   if (!prototypeRegistry.getPrototypeByType("Unknown")) {
     prototypeRegistry.register({
-      name: "Unknown",
-      typeName: "Unknown",
-      view: { type: "node", pulled: false, shape: () => null },
+      meta: { name: "Unknown", typeName: "Unknown" },
+      schema: [],
     } as any);
   }
 }

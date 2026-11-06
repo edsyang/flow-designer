@@ -16,9 +16,8 @@ describe("mutation commands", () => {
     contentTypesRegistry.register(GenericContent);
     if (!prototypeRegistry.getPrototypeByType("transaction-task")) {
       prototypeRegistry.register({
-        name: "Task",
-        typeName: "transaction-task",
-        view: { type: "node", pulled: false, shape: () => null },
+        meta: { name: "Task", typeName: "transaction-task" },
+        schema: [],
       });
     }
     const doc = new Document({

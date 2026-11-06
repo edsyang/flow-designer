@@ -1,8 +1,10 @@
+import type { UiContributionRegistry } from "./ui-contributions";
 import type { ComponentType, ReactElement } from "react";
 
 export type AreaMountCallback = (container: HTMLElement) => void | (() => void);
 
 export interface ISkeleton {
+  ui: UiContributionRegistry;
   header: IArea;
   sidebar: IArea;
   inspector: IArea;

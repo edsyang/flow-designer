@@ -44,5 +44,3 @@ export class CommandRegistry {
     this.registry.clear();
   }
 }
-/** Legacy bootstrap command bus. Designer commands use their owning editor. */
-export const commandRegistry = new CommandRegistry();

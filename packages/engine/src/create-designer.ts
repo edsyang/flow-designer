@@ -2,7 +2,7 @@ import { createBrowserShortcuts, acquireBrowserTheme } from "@flow-designer/reac
 import { initializeDesignerI18n, persistLocalePreference } from "./i18n";
 import { configure } from "mobx";
 import { getLogger } from "@flow-designer/core";
-import { Document, setterRegistry } from "@flow-designer/model";
+import { Document } from "@flow-designer/model";
 import {
   registerBuiltinPlugins,
   getGraphAdapter,
@@ -36,8 +36,11 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
     }
 
     if (!options.disableBuiltinSetters) {
-      registerBuiltinSetters(setterRegistry);
+      registerBuiltinSetters(engine.skeleton.ui.setters);
     }
+
+    for (const definition of options.nodeDefinitions ?? [])
+      engine.registerNodeDefinition(definition);
 
     await registerBuiltinPlugins(
       plugins.toProxy(),
@@ -66,7 +69,7 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
         documentType: options.documentType,
         documentVersion: options.documentVersion,
       },
-      options.docSettings,
+      engine.skeleton.ui.compileSettings(options.docSettings ?? [], "document"),
       { registries: engine.registries },
     );
     editor.setDocument(doc);

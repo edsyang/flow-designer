@@ -1,8 +1,7 @@
-import type { PrototypeRegistry } from "@flow-designer/model";
-import { prototypeRegistry } from "@flow-designer/model";
+import type { NodeDefinitionRegistry } from "@flow-designer/engine/definitions";
 import { t } from "@flow-designer/i18n";
 export { erMessages } from "./i18n";
-import type { NodeDefinition } from "@flow-designer/model";
+import type { NodeDefinition } from "@flow-designer/engine/definitions";
 import { tableDef } from "./table";
 import { viewDef } from "./view";
 import { enumDef } from "./enum";
@@ -13,7 +12,7 @@ export { enumDef } from "./enum";
 export { ER_CATEGORIES, ER_TYPE_NAMES, ER_DATA_TYPES, ER_DATA_TYPE_COLORS } from "./constants";
 export { relationConfig, RELATION_TYPE, getRelationEdgeType } from "./relation";
 
-const allDefs: NodeDefinition[] = [tableDef, viewDef, enumDef];
+export const erNodeDefinitions: NodeDefinition[] = [tableDef, viewDef, enumDef];
 
 /**
  * Registers the ER node definitions in the global prototype registry.
@@ -21,10 +20,10 @@ const allDefs: NodeDefinition[] = [tableDef, viewDef, enumDef];
  * Idempotent: already-registered types are left to `refreshERTranslations()`,
  * which owns locale updates. Registering an absent type is this function's job.
  */
-export function registerERNodes(registry: PrototypeRegistry = prototypeRegistry): void {
-  for (const def of allDefs) {
-    if (!registry.getPrototypeByType(def.meta.typeName)) {
-      registry.register(def);
+export function registerERNodes(registry: NodeDefinitionRegistry): void {
+  for (const def of erNodeDefinitions) {
+    if (!registry.prototypes.getPrototypeByType(def.meta.typeName)) {
+      registry.ui.register(def, registry.prototypes);
     }
   }
 }
@@ -34,7 +33,7 @@ export function registerERNodes(registry: PrototypeRegistry = prototypeRegistry)
  * the types that are already present. It never registers a new type: a
  * translation refresh must not create nodes as a side effect.
  */
-export function refreshERTranslations(registry: PrototypeRegistry = prototypeRegistry): void {
+export function refreshERTranslations(registry: NodeDefinitionRegistry): void {
   const names: Record<string, string> = {
     Table: "er.node.table",
     View: "er.node.view",
@@ -54,8 +53,9 @@ export function refreshERTranslations(registry: PrototypeRegistry = prototypeReg
     enums: "er.category.enums",
   };
 
-  for (const template of allDefs) {
-    const def = registry.getPrototypeByType(template.meta.typeName)?.getDefinition() ?? template;
+  for (const template of erNodeDefinitions) {
+    const def = registry.ui.getNode(template.meta.typeName);
+    if (!def) continue;
     def.meta.name = t(names[def.meta.typeName]!);
     if (def.meta.category && categoryTitles[def.meta.category]) {
       def.meta.categoryTitle = t(categoryTitles[def.meta.category]!);
@@ -65,8 +65,8 @@ export function refreshERTranslations(registry: PrototypeRegistry = prototypeReg
         field.description = t(descriptions[field.target]!);
       }
     }
-    if (registry.getPrototypeByType(def.meta.typeName)) {
-      registry.replace(def);
+    if (registry.prototypes.getPrototypeByType(def.meta.typeName)) {
+      registry.ui.replace(def, registry.prototypes);
     }
   }
 }

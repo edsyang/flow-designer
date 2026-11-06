@@ -1,14 +1,10 @@
+import { defineNode } from "../../engine/src/definitions";
 import type { GraphApplicationEvent, ConnectionRejectionReason } from "@flow-designer/core";
 import type { ConnectionContext, ConnectionCheckOptions, GraphPort } from "@flow-designer/core";
 import { bindSkeleton } from "@flow-designer/skeleton";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import {
-  Document,
-  GenericContent,
-  contentTypesRegistry,
-  prototypeRegistry,
-} from "@flow-designer/model";
+import { Document, GenericContent, contentTypesRegistry } from "@flow-designer/model";
 import { CANVAS_COMMANDS } from "@flow-designer/core";
 import { initializeI18n } from "@flow-designer/i18n";
 import type { GenericRelation, PortDefinition } from "@flow-designer/model";
@@ -37,20 +33,24 @@ async function setup(rejectCommit = false) {
     { id: "source-only", group: "in", position: "top", connectionDirection: "out" },
     { id: "bidirectional", group: "out", position: "right", connectionDirection: "both" },
   ];
-  prototypeRegistry.register({
+  const targetDefinition = defineNode({
     meta: { name: `Target ${id}`, typeName: `canvas-target-${id}` },
     schema: [],
+    editor: [],
     view: { type: "node", shape: "fd-rect", ports },
   });
-  prototypeRegistry.register({
+  const sourceDefinition = defineNode({
     meta: { name: `Source ${id}`, typeName: `canvas-source-${id}` },
     schema: [],
+    editor: [],
     view: { type: "node", shape: "fd-rect", quickAdd: false, ports },
   });
   const doc = new Document({ id: `canvas-${id}`, documentType: "*", documentVersion: "1.0.0" });
-  const source = await doc.getContent().addNode({ type: `canvas-source-${id}` });
-  const editor = new Editor();
   const skeleton = new Skeleton();
+  skeleton.ui.register(targetDefinition, doc.getRegistries().prototypes);
+  skeleton.ui.register(sourceDefinition, doc.getRegistries().prototypes);
+  const source = await doc.getContent().addNode({ type: `canvas-source-${id}` });
+  const editor = new Editor({ registries: doc.getRegistries() });
   editor.setDocument(doc);
   commandDisposers.push(registerCanvasCommands(editor.commands));
   bindSkeleton(editor, skeleton);

@@ -20,7 +20,7 @@ function fixture() {
   ] as const) {
     prototypeRegistry.register({
       meta: { typeName, name },
-      view: { type: "node", shape: "fd-rect", copyable },
+      capabilities: { copyable },
       schema: [],
     });
   }
@@ -39,7 +39,7 @@ function fixture() {
       { id: "edge", typeName: "link", sourceRef: "allowed", targetRef: "blocked", props: {} },
     ],
   });
-  const editor = new Editor();
+  const editor = new Editor({ registries: doc.getRegistries() });
   editor.setDocument(doc);
   editor.notifications.bindSink(({ level, message }) => {
     if (level === "warning") messages.warning(message);

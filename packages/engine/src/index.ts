@@ -12,3 +12,6 @@ export type { DesignerOptions, Designer } from "./types";
 
 export * from "@flow-designer/i18n";
 export { coreMessages, initializeDesignerI18n, getInitialLocale } from "./i18n";
+
+export { defineNode } from "./definitions";
+export type { NodeDefinitionBundle, NodeDefinitionInput } from "./definitions";

@@ -1,3 +1,4 @@
+import { UiContributionRegistry } from "../../../../packages/skeleton/src/ui-contributions";
 import { describe, it, expect } from "vitest";
 import { prototypeRegistry, createRegistrySet } from "@flow-designer/model";
 import { setLocale } from "@flow-designer/i18n";
@@ -29,8 +30,12 @@ describe("ComfyUI node definitions", () => {
   it("refreshes only the registered instance labels and settings without mutating templates", async () => {
     const owned = createRegistrySet(),
       peer = createRegistrySet();
-    registerComfyUINodes(owned.prototypes);
-    registerComfyUINodes(peer.prototypes);
+    const ownedUi = new UiContributionRegistry(),
+      peerUi = new UiContributionRegistry();
+    const ownedDefinitions = { prototypes: owned.prototypes, ui: ownedUi };
+    const peerDefinitions = { prototypes: peer.prototypes, ui: peerUi };
+    registerComfyUINodes(ownedDefinitions);
+    registerComfyUINodes(peerDefinitions);
     const templateBefore = {
       name: checkpointLoaderDef.meta.name,
       category: checkpointLoaderDef.meta.categoryTitle,
@@ -39,10 +44,8 @@ describe("ComfyUI node definitions", () => {
     const peerName = peer.prototypes.getPrototypeByType("CheckpointLoaderSimple")?.getName();
     try {
       await setLocale("en-US");
-      refreshComfyUITranslations(owned.prototypes);
-      const definition = owned.prototypes
-        .getPrototypeByType("CheckpointLoaderSimple")
-        ?.getDefinition();
+      refreshComfyUITranslations(ownedDefinitions);
+      const definition = ownedUi.getNode("CheckpointLoaderSimple");
       if (!definition) throw new Error("Registered node definition is missing");
       expect(definition.meta.name).toBe("Checkpoint Loader");
       expect(definition.meta.categoryTitle).toBe("Loaders");
@@ -60,6 +63,8 @@ describe("ComfyUI node definitions", () => {
         description: checkpointLoaderDef.editor[0]?.description,
       }).toEqual(templateBefore);
     } finally {
+      ownedUi.dispose();
+      peerUi.dispose();
       owned.dispose();
       peer.dispose();
       await setLocale("zh-CN");

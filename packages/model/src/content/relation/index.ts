@@ -61,7 +61,55 @@ export default class Relation {
   }
 }
 
+export interface OwnedRelationMutation {
+  rollback(): boolean;
+  release(): void;
+}
+
 export class GenericRelation extends Relation {
+  private revisions = new Map<string, object>();
+
+  /** Capture ownership before notifying observers, which may throw or replace the edge. */
+  mutateOwnedEdge(
+    edgeId: string,
+    next: SerializedRelation | null,
+    allocated: (ownership: OwnedRelationMutation) => void,
+  ): OwnedRelationMutation {
+    const previous = this.getEdgeById(edgeId);
+    if (JSON.stringify(previous) === JSON.stringify(next)) {
+      const unchanged = { rollback: () => false, release: () => undefined };
+      allocated(unchanged);
+      return unchanged;
+    }
+    const token = {};
+    let active = true;
+    const ownership: OwnedRelationMutation = {
+      release: () => {
+        active = false;
+      },
+      rollback: () => {
+        if (!active || this.revisions.get(edgeId) !== token) return false;
+        active = false;
+        this.replaceEdge(edgeId, previous);
+        return true;
+      },
+    };
+    allocated(ownership);
+    this.revisions.set(edgeId, token);
+    this.edges = this.edges.filter((edge) => edge.id !== edgeId);
+    if (next) this.edges.push(structuredClone(next));
+    this.getDocument().timelineLog("Edit edge");
+    this.emitChange();
+    return ownership;
+  }
+
+  private replaceEdge(edgeId: string, edge: SerializedRelation | null): void {
+    this.revisions.set(edgeId, {});
+    this.edges = this.edges.filter((item) => item.id !== edgeId);
+    if (edge) this.edges.push(structuredClone(edge));
+    this.getDocument().timelineLog("Edit edge");
+    this.emitChange();
+  }
   private edges: SerializedRelation[];
 
   constructor(content: Content<any>, node: ContentNode<any>, edges: SerializedRelation[] = []) {
@@ -70,6 +118,7 @@ export class GenericRelation extends Relation {
   }
 
   addEdge(edge: SerializedRelation): void {
+    this.revisions.set(edge.id, {});
     this.edges = [...this.edges.filter((item) => item.id !== edge.id), structuredClone(edge)];
     this.getDocument().timelineLog("Add edge");
     this.emitChange();
@@ -77,6 +126,8 @@ export class GenericRelation extends Relation {
 
   removeEdge(targetNodeId: string): void {
     if (!this.edges.some((edge) => edge.targetNodeId === targetNodeId)) return;
+    for (const edge of this.edges)
+      if (edge.targetNodeId === targetNodeId) this.revisions.set(edge.id, {});
     this.edges = this.edges.filter((e) => e.targetNodeId !== targetNodeId);
     this.getDocument().timelineLog("Remove edge");
     this.emitChange();
@@ -84,6 +135,7 @@ export class GenericRelation extends Relation {
 
   removeEdgeById(edgeId: string): void {
     if (!this.edges.some((edge) => edge.id === edgeId)) return;
+    this.revisions.set(edgeId, {});
     this.edges = this.edges.filter((e) => e.id !== edgeId);
     this.getDocument().timelineLog("Remove edge");
     this.emitChange();
@@ -110,6 +162,13 @@ export class GenericRelation extends Relation {
 
   setEdges(edges: SerializedRelation[]): void {
     if (JSON.stringify(this.edges) !== JSON.stringify(edges)) {
+      for (const id of new Set([...this.edges, ...edges].map((edge) => edge.id))) {
+        if (
+          JSON.stringify(this.edges.find((edge) => edge.id === id)) !==
+          JSON.stringify(edges.find((edge) => edge.id === id))
+        )
+          this.revisions.set(id, {});
+      }
       this.edges = structuredClone(edges);
       this.emitChange();
     }

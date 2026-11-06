@@ -161,46 +161,38 @@ import "@flow-designer/react/style.css";
 import "@flow-designer/skeleton/style.css";
 import "@flow-designer/plugins/style.css";
 import { createRoot } from "react-dom/client";
-import {
-  BuiltinSetters,
-  contentTypesRegistry,
-  createDesigner,
-  defineNode,
-  GenericContent,
-  prototypeRegistry,
-  Workbench,
-} from "@flow-designer/engine";
+import { BuiltinSetters, contentTypesRegistry, createDesigner, GenericContent, Workbench } from "@flow-designer/engine";
+import { defineNode } from "@flow-designer/engine/definitions";
 
 const mount = document.getElementById("root");
 if (!mount) throw new Error("Missing #root element");
 
 contentTypesRegistry.register(GenericContent);
-prototypeRegistry.register(
-  defineNode({
-    meta: {
-      name: "my-node",
-      typeName: "MyNode",
-      category: "basic",
-      icon: "box",
-    },
-    view: {
-      type: "node",
-      shape: "fd-rect",
-      defaultSize: { width: 200, height: 60 },
-      ports: [
-        { group: "in", position: "left" },
-        { group: "out", position: "right" },
-      ],
-    },
-    schema: [{ name: "name", type: "string", defaultValue: "" }],
-    editor: [{ target: "name", description: "Name", setter: BuiltinSetters.String }],
-  }),
-);
+const myNode = defineNode({
+  meta: {
+    name: "my-node",
+    typeName: "MyNode",
+    category: "basic",
+    icon: "box",
+  },
+  view: {
+    type: "node",
+    shape: "fd-rect",
+    defaultSize: { width: 200, height: 60 },
+    ports: [
+      { group: "in", position: "left" },
+      { group: "out", position: "right" },
+    ],
+  },
+  schema: [{ name: "name", type: "string", defaultValue: "" }],
+  editor: [{ target: "name", description: "Name", setter: BuiltinSetters.String }],
+});
 
 const designer = await createDesigner({
   container: mount,
   documentType: "*",
   documentVersion: "1.0.0",
+  nodeDefinitions: [myNode],
 });
 
 createRoot(mount).render(<Workbench engine={designer.engine} />);
@@ -208,7 +200,7 @@ createRoot(mount).render(<Workbench engine={designer.engine} />);
 
 External consumers must import the three published stylesheets shown above; JavaScript library imports do not automatically load their extracted CSS. Keep these imports in the application entry point.
 
-This example requires React 18 and a JSX-capable build setup. Scenario apps should register their own nodes, content types, and transformers before creating the designer. See the [feature specification index](./.spec/README.md) for behavior and architecture details.
+This example requires React 18 and a JSX-capable build setup. Pass UI node bundles in `nodeDefinitions`; dynamic contributions use `designer.engine.registerNodeDefinition(bundle)`. Pure model consumers use `bundle.domain`. Content types and transformers belong to the intended registry set. See the [feature specification index](./.spec/README.md) for behavior and architecture details.
 
 ### Schema-only setter identifiers
 
