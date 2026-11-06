@@ -1,7 +1,8 @@
+import type { IArea, PaneConfig } from "@flow-designer/skeleton";
 import { useRef, useEffect, useState, useId } from "react";
 import { observer } from "mobx-react-lite";
 import { createContent } from "@flow-designer/skeleton";
-import type { IArea, PaneConfig } from "@flow-designer/model";
+
 import { t } from "@flow-designer/i18n";
 import type { Locale } from "@flow-designer/i18n";
 import { mountArea } from "./mount-area";

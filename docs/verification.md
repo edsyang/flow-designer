@@ -339,3 +339,16 @@ Framework messages now live in i18n's internal catalog and are copied into every
 - Chrome targeted browser suite: 14/14 passed across language switching/reload in BPMN, ER and ComfyUI, edge-name inspector and workbench UI. Full browser and performance suites were not rerun for this catalog-only runtime change.
 
 Logs: `/tmp/flow-i18n-unified-check.log`, `/tmp/flow-i18n-unified-consumer.log`, `/tmp/flow-i18n-unified-e2e.log`, `/private/tmp/flow-i18n-unified-boundaries.log`.
+
+## P2a UI contract ownership (2026-11-06)
+
+ISkeleton/IArea/PaneConfig now belong to skeleton; core Editor and PluginContext no longer hold UI. Engine owns an identity-bound skeleton binding, released after plugin cleanup. UI plugins retain the acquired skeleton and React uses its provider context.
+
+- Build: 20/20 tasks passed. Subsequent test/typecheck/lint gate: 75/75 tasks passed (including build dependencies), 571 unit tests.
+- Binding tests cover duplicate registration, independent editor keys, idempotent/old cleanup, rebinding, plugin cleanup after rebinding, initialization failure and cleanup failure. This validates UI binding ownership, not complete multi-designer isolation.
+- Complete serial Chrome browser suite: 82/82 passed, with all three documented scenario servers running.
+- Six built public consumer groups passed, including skeleton/engine UI type exports, removed model UI exports, headless core plugin initialization, and four generated packages. Existing engine native-Node CSS limitation remains explicitly characterized.
+- Boundary checks: 50/50 passed; diff and changed-file formatting checks passed. Model lint budget lowered from 397 to 394; skeleton budget unchanged.
+- Initial combined build+lint attempt failed because lint read declarations while build rewrote dist (React reported unresolved-type warnings). No rule or assertion was relaxed; the final run built first, then checked stable outputs.
+
+Logs: `/tmp/flow-core-p2a-build.log`, `/tmp/flow-core-p2a-check-final.log`, `/tmp/flow-core-p2a-e2e.log`, `/tmp/flow-core-p2a-consumer.log`, `/tmp/flow-core-p2a-boundaries.log`. No routing/performance runtime changed, so performance sampling was not repeated. P2b graph/application contracts remain pending.

@@ -1,9 +1,8 @@
-import type { ISkeleton, IGraphManager } from "@flow-designer/model";
+import type { IGraphManager } from "@flow-designer/model";
 import type { Editor } from "../editor";
 import type { Logger } from "../utils";
 
 export interface IPluginContext {
-  skeleton: ISkeleton;
   editor: Editor;
   plugins: IPluginManager;
   graph: IGraphManager | null;

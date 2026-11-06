@@ -6,7 +6,7 @@
 
 1. Call `initializeDesignerI18n(localeMessages)` to add scenario messages to the built-in framework catalog in the shared default i18n service and initialize its first locale from browser storage (otherwise `zh-CN`).
 2. Configure MobX actions.
-3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`. Acquire the locale-persistence subscription with an engine-owned disposer. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
+3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`, and binds the UI in skeleton before plugin registration. Acquire the locale-persistence subscription with an engine-owned disposer. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
 4. Register built-in setters unless disabled.
 5. Register enabled built-in plugins, passing graph options to the X6 graph plugin.
 6. Register caller-supplied plugins and explicitly requested optional plugins such as autosave or the unsaved-changes prompt.
@@ -73,3 +73,7 @@ The pure service lives in `@flow-designer/i18n`, with `createI18n()` for indepen
 Every service starts with copies of all built-in framework messages from `packages/i18n/src/catalog/{graph,plugins,workbench,setters,skeleton}.ts`. Applications add only their own messages or explicit overrides; scenario header messages remain in each nodes package's `src/i18n.ts`. Engine no longer aggregates consumer catalogs or tracks first registration. `coreMessages` remains exported by i18n and engine for compatibility; the former consumer-package message exports are removed. Built-ins seed a service once: pre-init application registrations override them, initialization messages override earlier same-key registrations, and subsequent registrations override prior values without resetting unrelated keys or the selected language. Repeated initialization does not reinstall defaults or erase application overrides. `createDesigner` subscribes to actual locale changes for browser persistence, avoids storage writes on catalog-only changes, and disposes the subscription during destruction or failed setup. Calling the initializer alone does not install a persistence subscription. Storage is optional; failure must not prevent initialization.
 
 The full designer still uses the shared default service, not a service passed through a Provider. Independent service/Provider isolation must not be described as complete multi-designer isolation. Translation API/type imports formerly obtained from model move to `@flow-designer/i18n`; model has no compatibility re-export.
+
+## UI ownership cleanup
+
+The engine's UI binding is its first acquired disposer and is released after plugin disposal, document cleanup and later-acquired disposers. UI plugins capture their bound skeleton when created; they remove contributions from that same object even if an external owner later unbinds/rebinds the editor. Failed initialization and failed plugin destruction still release the engine binding. Core has no skeleton ownership and can register, initialize and dispose non-UI plugins without any binding.

@@ -1,3 +1,6 @@
+import { bindSkeleton } from "@flow-designer/skeleton";
+import type { Editor } from "@flow-designer/core";
+import type { ISkeleton } from "@flow-designer/skeleton";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
@@ -28,6 +31,7 @@ function createMockContext(document: Document) {
     },
     editor,
   };
+  bindSkeleton(editor as unknown as Editor, ctx.skeleton as unknown as ISkeleton);
   return {
     ctx: ctx as unknown as IPluginContext,
     triggerMount: (container: HTMLElement) => mountCallback?.(container),

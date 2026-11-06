@@ -1,3 +1,4 @@
+import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
 import { prototypeRegistry, signal } from "@flow-designer/model";
@@ -26,6 +27,7 @@ function showInitError(container: HTMLElement): void {
 }
 
 export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): IPluginConfig {
+  const skeleton = getSkeleton(ctx.editor);
   const graphManager = new GraphManager();
   let graphBridge: GraphBridge | null = null;
   let destroyed = false;
@@ -46,7 +48,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
     init() {
       releaseCommands = registerCanvasCommands();
       try {
-        unregisterMount = ctx.skeleton.canvas.hooks.didMount((container) => {
+        unregisterMount = skeleton.canvas.hooks.didMount((container) => {
           if (destroyed) return;
           cleanupMount?.();
           const doc = ctx.editor.getDocument();

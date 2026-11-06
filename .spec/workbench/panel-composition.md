@@ -8,7 +8,7 @@ Apps and plugins extend the shell by adding keyed pane configurations to a named
 
 ## Responsibilities
 
-- `packages/skeleton` owns areas, pane configuration, and reusable field/settings surfaces.
+- `packages/skeleton` owns `ISkeleton`, `IArea`, `PaneConfig`, editor UI bindings, areas, and reusable field/settings surfaces.
 - `packages/react` owns provider/context, hooks, panel rendering, workbench composition, and React error boundaries.
 - `packages/setters` supplies reusable property editors registered against model schemas.
 - Plugins may contribute controls to extension areas through skeleton APIs.

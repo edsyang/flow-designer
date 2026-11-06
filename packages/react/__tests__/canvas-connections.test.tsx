@@ -1,3 +1,4 @@
+import { bindSkeleton } from "@flow-designer/skeleton";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -57,7 +58,7 @@ async function setup(rejectCommit = false) {
   const editor = new Editor();
   const skeleton = new Skeleton();
   editor.setDocument(doc);
-  editor.setSkeleton(skeleton);
+  bindSkeleton(editor, skeleton);
   const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
   const evaluateConnection = vi.fn(
     (context: ConnectionContext, options?: ConnectionCheckOptions) => {

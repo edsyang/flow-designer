@@ -1,4 +1,5 @@
-import type { IArea } from "@flow-designer/model";
+import type { IArea } from "@flow-designer/skeleton";
+
 import { getLogger } from "@flow-designer/core";
 const logger = getLogger({ level: "error", bizName: "workbench:mount" });
 

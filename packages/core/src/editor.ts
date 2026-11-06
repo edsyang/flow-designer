@@ -1,4 +1,3 @@
-import type { ISkeleton } from "@flow-designer/model";
 import type { IGraphManager } from "@flow-designer/model";
 import type { Document } from "@flow-designer/model";
 import type { PluginManager } from "./plugins/plugin-manager";
@@ -6,7 +5,6 @@ import { EventEmitter } from "eventemitter3";
 import { makeObservable, observable, action } from "mobx";
 
 export class Editor extends EventEmitter {
-  private skeleton!: ISkeleton;
   private document!: Document;
   private plugins!: PluginManager;
   private graphView = new GraphView();
@@ -20,14 +18,6 @@ export class Editor extends EventEmitter {
       graph: observable.ref,
       setGraph: action,
     });
-  }
-
-  setSkeleton(skeleton: ISkeleton) {
-    this.skeleton = skeleton;
-  }
-
-  getSkeleton() {
-    return this.skeleton;
   }
 
   setDocument(document: Document) {

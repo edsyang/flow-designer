@@ -49,19 +49,10 @@ describe("GraphView", () => {
 });
 
 describe("Editor", () => {
-  it("get/set skeleton", () => {
+  it("has no UI ownership API", () => {
     const editor = new Editor();
-    const skeleton = {
-      header: {},
-      sidebar: {},
-      inspector: {},
-      canvasToolbar: {},
-      canvas: {},
-      add() {},
-      remove() {},
-    } as any;
-    editor.setSkeleton(skeleton);
-    expect(editor.getSkeleton()).toBe(skeleton);
+    expect("getSkeleton" in editor).toBe(false);
+    expect("setSkeleton" in editor).toBe(false);
   });
 
   it("getGraphView returns GraphView instance", () => {

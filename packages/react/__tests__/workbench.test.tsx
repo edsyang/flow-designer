@@ -1,3 +1,4 @@
+import { bindSkeleton } from "@flow-designer/skeleton";
 import { useEffect } from "react";
 import { act, render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -44,7 +45,7 @@ afterEach(cleanup);
 function fixture() {
   const editor = new Editor();
   const skeleton = new Skeleton();
-  editor.setSkeleton(skeleton);
+  bindSkeleton(editor, skeleton);
   const doc = new Document({ id: "test", documentType: "*", documentVersion: "1.0.0" });
   editor.setDocument(doc);
   return { editor, skeleton, doc };

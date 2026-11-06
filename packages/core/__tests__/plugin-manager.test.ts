@@ -5,15 +5,6 @@ import type { IPluginContext, IPluginConfig } from "../src/plugins/types";
 
 function createEditor(): Editor {
   const editor = new Editor();
-  editor.setSkeleton({
-    header: {} as any,
-    sidebar: {} as any,
-    inspector: {} as any,
-    canvasToolbar: {} as any,
-    canvas: {} as any,
-    add() {},
-    remove() {},
-  });
   return editor;
 }
 
@@ -26,6 +17,17 @@ function pluginCreator(name: string, dep: string[] = [], initFn?: () => void) {
 }
 
 describe("PluginManager", () => {
+  it("initializes and disposes plugins without binding a UI", async () => {
+    const manager = new PluginManager(new Editor());
+    const destroy = vi.fn();
+    await manager.register((context) => {
+      expect("skeleton" in context).toBe(false);
+      return { name: "headless", destroy };
+    });
+    await manager.init();
+    await manager.dispose();
+    expect(destroy).toHaveBeenCalledOnce();
+  });
   it("register adds a plugin", async () => {
     const pm = new PluginManager(createEditor());
     await pm.register(pluginCreator("a"));

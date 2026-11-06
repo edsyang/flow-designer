@@ -277,6 +277,10 @@ pnpm test:e2e
 
 [AGENTS.md](./AGENTS.md) 规定贡献者与 Agent 的工作约束；[验证指南](./docs/verification.md) 按变更类型列出检查要求；[E2E 清单](./e2e/README.md) 说明浏览器测试准备与已知问题。[docs/plans](./docs/plans/README.md) 中的文件是历史资料，不是当前执行指令。
 
+## UI 契约导入迁移
+
+`ISkeleton`、`IArea`、`PaneConfig` 从 model 迁至 `@flow-designer/skeleton`。UI 插件通过 skeleton 的 `getSkeleton(ctx.editor)` 获取 UI；core Editor/PluginContext 不再持有 UI。engine 自动绑定和释放 skeleton，聚合入口仍导出这些类型。独立组合 UI 时使用 `bindSkeleton(editor, skeleton)` 并释放其 disposer；有效绑定存在时拒绝重复绑定。React 组件继续使用 `useSkeleton()`。
+
 ## License
 
 本项目采用 [MIT License](./LICENSE)。

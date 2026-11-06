@@ -1,3 +1,4 @@
+import type { IArea } from "@flow-designer/skeleton";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Input } from "antd";
 import { CANVAS_COMMANDS, prototypeRegistry } from "@flow-designer/model";
@@ -9,11 +10,10 @@ import type {
   Document as EditorDocument,
   CanvasPrototypeRequest,
   CreateCanvasNodeRequest,
-  IArea,
   IGraphManager,
   Prototype,
 } from "@flow-designer/model";
-import { useEditor } from "../hooks";
+import { useEditor, useSkeleton } from "../hooks";
 import { commandRegistry } from "@flow-designer/core";
 import { getMessageApi } from "../message-holder";
 import { mountArea } from "./mount-area";
@@ -70,6 +70,7 @@ function getQuickAddShapeColor(shape: string): string {
 export function Canvas(props: CanvasProps) {
   const { area } = props;
   const editor = useEditor();
+  const skeleton = useSkeleton();
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLElement | null>(null);
@@ -90,8 +91,8 @@ export function Canvas(props: CanvasProps) {
     setMenu(null);
     // The panel stays mounted between selections; the inspector itself decides
     // whether it shows a body or the collapsed strip.
-    editor.getSkeleton().inspector.setVisible(true);
-  }, [editor, graph]);
+    skeleton.inspector.setVisible(true);
+  }, [skeleton, graph]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -145,7 +146,7 @@ export function Canvas(props: CanvasProps) {
       setError(null);
       // The pending-connection picker takes over the canvas: the inspector would
       // otherwise keep describing the node the drag started from.
-      if (pendingSource) editor.getSkeleton().inspector.setVisible(false);
+      if (pendingSource) skeleton.inspector.setVisible(false);
       setMenu({
         anchorLeft: clientPoint.x - rect.left,
         anchorTop: clientPoint.y - rect.top,
@@ -261,7 +262,7 @@ export function Canvas(props: CanvasProps) {
         releaseContainer();
       }
     };
-  }, [area, editor]);
+  }, [area, editor, skeleton]);
 
   useEffect(() => {
     const refreshPrototypes = () => {

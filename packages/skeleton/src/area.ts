@@ -1,8 +1,9 @@
-import type { IArea, PaneConfig } from "@flow-designer/model";
+import type { IArea, PaneConfig, AreaMountCallback } from "./contracts";
+
 import { makeAutoObservable, observable, action } from "mobx";
 
 export class Area implements IArea {
-  private didMountCallbacks: Array<(container: HTMLElement) => void | (() => void)> = [];
+  private didMountCallbacks: AreaMountCallback[] = [];
   private items: PaneConfig[] = [];
   private visible = true;
 
@@ -11,7 +12,7 @@ export class Area implements IArea {
   }
 
   hooks = {
-    didMount: (cb: (container: HTMLElement) => void | (() => void)) => {
+    didMount: (cb: AreaMountCallback) => {
       this.didMountCallbacks.push(cb);
       return action(() => {
         this.didMountCallbacks = this.didMountCallbacks.filter((callback) => callback !== cb);

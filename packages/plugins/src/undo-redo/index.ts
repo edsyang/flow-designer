@@ -1,9 +1,11 @@
+import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { commandRegistry } from "@flow-designer/core";
 import { utils } from "@flow-designer/model";
 import { UndoRedoButtons } from "./undo-redo-buttons";
 
 export function pluginUndoRedo(ctx: IPluginContext): IPluginConfig {
+  const skeleton = getSkeleton(ctx.editor);
   const shortcutDisposers: Array<() => void> = [];
   function getTimeline() {
     return ctx.editor.getDocument().getTimeline();
@@ -57,7 +59,7 @@ export function pluginUndoRedo(ctx: IPluginContext): IPluginConfig {
         ),
       );
 
-      ctx.skeleton.canvasToolbar.add({
+      skeleton.canvasToolbar.add({
         key: "undo-redo",
         area: "canvasToolbar",
         content: UndoRedoButtons,
@@ -70,7 +72,7 @@ export function pluginUndoRedo(ctx: IPluginContext): IPluginConfig {
       });
       commandRegistry.unregister("undo");
       commandRegistry.unregister("redo");
-      ctx.skeleton.canvasToolbar.remove("undo-redo");
+      skeleton.canvasToolbar.remove("undo-redo");
     },
   };
 }

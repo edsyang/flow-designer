@@ -1,3 +1,4 @@
+import { bindSkeleton } from "@flow-designer/skeleton";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Document, GenericContent, contentTypesRegistry } from "@flow-designer/model";
@@ -38,10 +39,10 @@ afterEach(cleanup);
 function fixture() {
   const editor = new Editor();
   const skeleton = new Skeleton();
-  editor.setSkeleton(skeleton);
+  bindSkeleton(editor, skeleton);
   const doc = new Document({ id: "test", documentType: "*", documentVersion: "1.0.0" });
   editor.setDocument(doc);
-  const ctx = { editor, skeleton } as IPluginContext;
+  const ctx = { editor } as IPluginContext;
   const help = pluginCanvasHelp(ctx);
   const language = pluginLanguageSwitcher(ctx);
   help.init?.();
@@ -58,6 +59,21 @@ function fixture() {
 }
 
 describe("plugin header actions", () => {
+  it("cleans the acquired skeleton even after its editor is rebound", () => {
+    const editor = new Editor();
+    const original = new Skeleton(),
+      replacement = new Skeleton();
+    const release = bindSkeleton(editor, original);
+    const plugin = pluginLanguageSwitcher({ editor } as IPluginContext);
+    plugin.init?.();
+    release();
+    const releaseReplacement = bindSkeleton(editor, replacement);
+    replacement.header.add({ key: "workbench-language", area: "header", content: "replacement" });
+    plugin.destroy?.();
+    expect(original.header.getItems()).toEqual([]);
+    expect(replacement.header.getItems()).toHaveLength(1);
+    releaseReplacement();
+  });
   it("switches the workbench language through the independently registered language plugin", async () => {
     const engine = fixture();
     await setLocale("zh-CN");

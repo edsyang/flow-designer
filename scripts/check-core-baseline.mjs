@@ -22,7 +22,7 @@ async function run(name, code, extension = "mjs") {
 }
 try {
   await mkdir(path.join(temporary, "node_modules/@flow-designer"), { recursive: true });
-  for (const name of ["model", "core", "engine", "setters"]) {
+  for (const name of ["model", "core", "engine", "setters", "skeleton"]) {
     await symlink(
       path.join(root, "packages", name),
       path.join(temporary, "node_modules/@flow-designer", name),
@@ -36,6 +36,21 @@ try {
     for (const name of ['Editor','CommandRegistry','PluginManager']) assert.equal(typeof core[name], 'function', name);
     assert.equal('createContent' in core, false);
     assert.equal('t' in model, false);
+    const headlessEditor = new core.Editor();
+    assert.equal('getSkeleton' in headlessEditor, false);
+    assert.equal('setSkeleton' in headlessEditor, false);
+    const headlessPlugins = new core.PluginManager(headlessEditor);
+    let headlessInitialized = false;
+    try {
+      await headlessPlugins.register(ctx => {
+        assert.equal(ctx.editor, headlessEditor);
+        assert.equal('skeleton' in ctx, false);
+        return {name:'headless-consumer',init(){headlessInitialized=true;}};
+      });
+      await headlessPlugins.init();
+      assert.equal(headlessInitialized, true);
+    } finally {await headlessPlugins.dispose();}
+
     model.contentTypesRegistry.register(model.GenericContent);
     model.prototypeRegistry.register(model.defineNode({meta:{name:'Unknown',typeName:'Unknown'},view:{type:'node'},schema:[],editor:[]}));
     model.prototypeRegistry.register(model.defineNode({meta:{name:'Task',typeName:'BaselineTask'},view:{type:'node'},schema:[],editor:[]}));
@@ -62,7 +77,7 @@ try {
       const restored=new model.Document(structuredClone(fixture));
       try {restored.load(saved);assert.deepEqual(restored.getData(),changed);assert.equal(restored.getTimeline().isModified(),false);assert.equal(restored.getTimeline().getPoints().length,1);}finally{restored.destroy();}
       const commands=new core.CommandRegistry();const answer=Promise.resolve('result');commands.register('baseline',()=>answer);assert.equal(commands.executeCommand('baseline'),answer);assert.equal(await answer,'result');
-      console.log('public exports, serialization, transient selection, gesture undo/redo, detached snapshots, save/load, command promise PASS');
+      console.log('public exports, headless plugin lifecycle, serialization, transient selection, gesture undo/redo, detached snapshots, save/load, command promise PASS');
     } finally {doc.destroy();}
   `;
   await run(
@@ -85,12 +100,43 @@ try {
     "cjs",
   );
   const consumer = `import {Document,defineNode,type DocumentData} from '@flow-designer/model';
-import {Editor,CommandRegistry} from '@flow-designer/core';
-import {createDesigner,type DesignerOptions} from '@flow-designer/engine';
+import {Editor,CommandRegistry,type IPluginContext} from '@flow-designer/core';
+import {createDesigner,type DesignerOptions,type PaneConfig as EnginePaneConfig,type ISkeleton as EngineSkeleton,type IArea as EngineArea} from '@flow-designer/engine';
+import type {PaneConfig,ISkeleton,IArea} from '@flow-designer/skeleton';
+// @ts-expect-error UI contracts no longer belong to the document model.
+import type {PaneConfig as RemovedModelPane} from '@flow-designer/model';
+// @ts-expect-error Check each removed export independently.
+import type {ISkeleton as RemovedModelSkeleton} from '@flow-designer/model';
+// @ts-expect-error Check each removed export independently.
+import type {IArea as RemovedModelArea} from '@flow-designer/model';
 import {BuiltinSetters} from '@flow-designer/setters/constants';
 const data:DocumentData={id:'test',documentType:'*',documentVersion:'1'};
 void [Document,defineNode,Editor,CommandRegistry,createDesigner,BuiltinSetters,data];
-const options:DesignerOptions={documentType:"*",documentVersion:"1"};void options;`;
+const options:DesignerOptions={documentType:"*",documentVersion:"1"};void options;
+const pane = {key:'consumer-pane',area:'header',content:'Panel',contentProps:{title:'Consumer'}} satisfies PaneConfig;
+declare const skeleton:ISkeleton;
+const area:IArea=skeleton.header;
+area.add(pane);
+const unregister:()=>void=area.hooks.didMount(container=>{
+  const element:HTMLElement=container;void element;
+  return ()=>{};
+});void unregister;
+const enginePane:EnginePaneConfig=pane;
+const engineSkeleton:EngineSkeleton=skeleton;
+const engineArea:EngineArea=area;
+const directPane:PaneConfig=enginePane;
+const directSkeleton:ISkeleton=engineSkeleton;
+const directArea:IArea=engineArea;
+void [directPane,directSkeleton,directArea];
+type Assert<T extends true>=T;
+// Structural assignments alone would accept a mistakenly emitted any export.
+type PublicUiContracts=[
+  Assert<0 extends (1 & PaneConfig) ? false : true>,
+  Assert<0 extends (1 & ISkeleton) ? false : true>,
+  Assert<0 extends (1 & IArea) ? false : true>,
+  Assert<'skeleton' extends keyof IPluginContext ? false : true>
+];
+const publicUiContracts:PublicUiContracts=[true,true,true,true];void publicUiContracts;`;
   await writeFile(path.join(temporary, "consumer.mts"), consumer);
   await writeFile(path.join(temporary, "consumer.cts"), consumer);
   await writeFile(
@@ -120,7 +166,7 @@ const options:DesignerOptions={documentType:"*",documentVersion:"1"};void option
     name: "public-types-nodenext",
     result: "pass",
     detail:
-      "ESM/CJS consumers; skipLibCheck=true characterizes consumer exports, not dependency declaration correctness",
+      "ESM/CJS consumers; skeleton UI contracts and engine facade, removed model UI exports, headless core context; skipLibCheck=true characterizes consumer exports, not dependency declaration correctness",
   });
   const generators = {
     generic: "generateGenericNodeDef",

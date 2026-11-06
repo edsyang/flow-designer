@@ -1,3 +1,4 @@
+import { bindSkeleton } from "@flow-designer/skeleton";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { createElement } from "react";
@@ -25,7 +26,7 @@ beforeAll(() => {
 function createTestEngine() {
   const editor = new Editor();
   const skeleton = new Skeleton();
-  editor.setSkeleton(skeleton);
+  bindSkeleton(editor, skeleton);
 
   const doc = new Document({
     id: "test",

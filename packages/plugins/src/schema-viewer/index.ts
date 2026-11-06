@@ -1,12 +1,14 @@
+import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { SchemaViewerButton } from "./schema-viewer-button";
 
 export function pluginSchemaViewer(ctx: IPluginContext): IPluginConfig {
+  const skeleton = getSkeleton(ctx.editor);
   return {
     name: "plugin-schema-viewer",
     dep: [],
     init() {
-      ctx.skeleton.header.add({
+      skeleton.header.add({
         key: "schema-viewer",
         area: "header",
         align: "right",
@@ -21,7 +23,7 @@ export function pluginSchemaViewer(ctx: IPluginContext): IPluginConfig {
       });
     },
     destroy() {
-      ctx.skeleton.header.remove("schema-viewer");
+      skeleton.header.remove("schema-viewer");
     },
   };
 }

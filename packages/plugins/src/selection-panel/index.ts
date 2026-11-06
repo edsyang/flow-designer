@@ -1,19 +1,21 @@
+import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { SettingsRenderer } from "./settings-renderer";
 
 export function pluginSelectionPanel(ctx: IPluginContext): IPluginConfig {
+  const skeleton = getSkeleton(ctx.editor);
   return {
     name: "plugin-selection-panel",
     dep: ["plugin-x6-graph"],
     init() {
-      ctx.skeleton.inspector.add({
+      skeleton.inspector.add({
         key: "selection-panel",
         area: "inspector",
         content: SettingsRenderer,
       });
     },
     destroy() {
-      ctx.skeleton.inspector.remove("selection-panel");
+      skeleton.inspector.remove("selection-panel");
     },
   };
 }

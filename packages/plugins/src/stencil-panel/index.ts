@@ -1,9 +1,11 @@
+import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import type { GraphManager } from "@flow-designer/graph";
 import { signal } from "@flow-designer/model";
 import { StencilContainer } from "./stencil-container";
 
 export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
+  const skeleton = getSkeleton(ctx.editor);
   let unsubGraphReady: (() => void) | null = null;
 
   return {
@@ -19,7 +21,7 @@ export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
       };
 
       const addPanel = () => {
-        ctx.skeleton.sidebar.add({
+        skeleton.sidebar.add({
           key: "stencil-panel",
           area: "sidebar",
           content: StencilContainer,
@@ -41,7 +43,7 @@ export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
     destroy() {
       unsubGraphReady?.();
       unsubGraphReady = null;
-      ctx.skeleton.sidebar.remove("stencil-panel");
+      skeleton.sidebar.remove("stencil-panel");
     },
   };
 }

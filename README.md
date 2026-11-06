@@ -277,6 +277,10 @@ Issues and pull requests are welcome. Before submitting a change, run tests and 
 
 See [AGENTS.md](./AGENTS.md) for contributor/agent constraints, the [verification guide](./docs/verification.md) for checks by change type, and the [E2E inventory](./e2e/README.md) for browser test setup and known concerns. Files in [docs/plans](./docs/plans/README.md) are historical context, not current execution instructions.
 
+## UI contract import migration
+
+Import `ISkeleton`, `IArea`, and `PaneConfig` from `@flow-designer/skeleton` instead of model. UI plugins acquire `getSkeleton(ctx.editor)` from skeleton; core Editor/PluginContext no longer own the UI. Engine binds and releases its skeleton automatically and retains the type exports through its facade. Standalone UI composition uses `bindSkeleton(editor, skeleton)` and its disposer; duplicate active bindings are rejected. React components continue using `useSkeleton()`.
+
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).

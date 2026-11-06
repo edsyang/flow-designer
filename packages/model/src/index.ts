@@ -77,10 +77,7 @@ export type {
   PropsChangeFn,
 } from "./types";
 export type {
-  ISkeleton,
-  IArea,
   IGraphManager,
-  PaneConfig,
   GraphOptions,
   GridConfig,
   ConnectionValidator,

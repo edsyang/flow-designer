@@ -1,3 +1,4 @@
+import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { commandRegistry } from "@flow-designer/core";
 import { utils } from "@flow-designer/model";
@@ -6,6 +7,7 @@ import { ZoomControl } from "./zoom-control";
 const ZOOM_STEP = 0.1;
 
 export function pluginZoom(ctx: IPluginContext): IPluginConfig {
+  const skeleton = getSkeleton(ctx.editor);
   const shortcutDisposers: Array<() => void> = [];
   function zoomIn() {
     const graph = ctx.graph;
@@ -53,7 +55,7 @@ export function pluginZoom(ctx: IPluginContext): IPluginConfig {
         ),
       );
 
-      ctx.skeleton.canvasToolbar.add({
+      skeleton.canvasToolbar.add({
         key: "zoom-control",
         area: "canvasToolbar",
         content: ZoomControl,
@@ -85,7 +87,7 @@ export function pluginZoom(ctx: IPluginContext): IPluginConfig {
       commandRegistry.unregister("zoomIn");
       commandRegistry.unregister("zoomOut");
       commandRegistry.unregister("resetZoom");
-      ctx.skeleton.canvasToolbar.remove("zoom-control");
+      skeleton.canvasToolbar.remove("zoom-control");
     },
   };
 }

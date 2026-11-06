@@ -1,4 +1,5 @@
-import type { ISkeleton, PaneConfig } from "@flow-designer/model";
+import type { ISkeleton, PaneConfig } from "./contracts";
+
 import { Area } from "./area";
 
 export class Skeleton implements ISkeleton {

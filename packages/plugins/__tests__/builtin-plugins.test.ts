@@ -1,3 +1,5 @@
+import { bindSkeleton } from "@flow-designer/skeleton";
+import type { Editor } from "@flow-designer/core";
 import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 
 vi.mock("antd", () => ({
@@ -33,7 +35,7 @@ beforeAll(() => {
 import { commandRegistry } from "@flow-designer/core";
 
 function createMockContext(overrides: Record<string, any> = {}) {
-  return {
+  const ctx = {
     graph: {
       getZoom: vi.fn(() => 1),
       zoomTo: vi.fn(),
@@ -84,6 +86,8 @@ function createMockContext(overrides: Record<string, any> = {}) {
     },
     ...overrides,
   };
+  bindSkeleton(ctx.editor as unknown as Editor, ctx.skeleton);
+  return ctx;
 }
 
 describe("pluginZoom", () => {

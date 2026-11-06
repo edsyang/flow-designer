@@ -1,5 +1,5 @@
 import { Editor, PluginManager } from "@flow-designer/core";
-import { Skeleton } from "@flow-designer/skeleton";
+import { Skeleton, bindSkeleton } from "@flow-designer/skeleton";
 
 export class Engine {
   readonly editor: Editor;
@@ -11,9 +11,8 @@ export class Engine {
   constructor() {
     this.editor = new Editor();
     this.skeleton = new Skeleton();
+    this.addDisposer(bindSkeleton(this.editor, this.skeleton));
     this.plugins = new PluginManager(this.editor);
-
-    this.editor.setSkeleton(this.skeleton);
     this.editor.setPlugins(this.plugins);
   }
 
