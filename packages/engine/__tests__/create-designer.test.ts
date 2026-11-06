@@ -1,3 +1,4 @@
+import { GraphManager } from "@flow-designer/graph";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createDesigner } from "../src/create-designer";
 import { contentTypesRegistry, GenericContent, utils } from "@flow-designer/model";
@@ -153,6 +154,29 @@ describe("createDesigner", () => {
 });
 
 describe("designer resource ownership", () => {
+  it("exposes only the initialized adapter matching the mounted core port", async () => {
+    const adapter = new GraphManager();
+    const designer = await createDesigner({
+      documentType: "default",
+      documentVersion: "1",
+      disableBuiltinPlugins: ALL_DISABLED,
+      plugins: [() => ({ name: "plugin-x6-graph", exports: () => ({ graphManager: adapter }) })],
+    });
+    try {
+      expect(designer.graph).toBeNull();
+      designer.editor.setGraph(adapter);
+      expect(designer.graph).toBe(adapter);
+      designer.editor.setGraph(new GraphManager());
+      expect(designer.graph).toBeNull();
+      designer.editor.setGraph(adapter);
+      await designer.engine.plugins.delete("plugin-x6-graph");
+      expect(designer.graph).toBeNull();
+    } finally {
+      await designer.destroy();
+    }
+    expect(designer.graph).toBeNull();
+  });
+
   it("passes the container to plugins without mounting and exposes the current graph", async () => {
     const container = document.createElement("div");
     const designer = await createDesigner({

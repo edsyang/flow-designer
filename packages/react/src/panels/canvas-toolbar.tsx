@@ -28,10 +28,9 @@ export const CanvasToolbar = observer(function CanvasToolbar(props: CanvasToolba
       setMode(graph.getInteractionMode());
     };
     sync();
-    graph.on("interaction:change", sync);
-    return () => {
-      graph.off("interaction:change", sync);
-    };
+    return graph.subscribeEvents((event) => {
+      if (event.type === "interaction-changed") setMode(event.mode);
+    });
   }, [graph]);
   const containerRef = useRef<HTMLDivElement>(null);
   const center = useToolbarCenter(containerRef);

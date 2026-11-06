@@ -2,7 +2,7 @@ import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { commandRegistry } from "@flow-designer/core";
 import { prototypeRegistry, utils } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
-import type { ContentNode, GenericRelation } from "@flow-designer/model";
+import type { ContentNode } from "@flow-designer/model";
 import { getMessageApi } from "@flow-designer/react";
 
 export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
@@ -12,80 +12,54 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
     props: Record<string, unknown>;
     pos: { x: number; y: number };
   }> = [];
-  function isCopyable(cell: any): boolean {
-    if (typeof cell.isEdge === "function" && cell.isEdge()) return false;
-    if (typeof cell.isNode !== "function" || !cell.isNode()) return true;
-    const nodeId = cell.id;
-    const content = ctx.editor.getDocument().getContent();
-    const contentNode = content.getNode(nodeId) as ContentNode<GenericRelation> | null;
-    if (!contentNode) return true;
-    const typeName = contentNode.getTypeName();
-    const proto = prototypeRegistry.getPrototypeByType(typeName);
-    if (!proto) return true;
-    return proto.getView().copyable !== false;
-  }
-
-  function getNodeDisplayName(cell: any): string | null {
-    if (typeof cell.isEdge === "function" && cell.isEdge()) return t("common.edge");
-    if (typeof cell.isNode !== "function" || !cell.isNode()) return null;
-    const content = ctx.editor.getDocument().getContent();
-    const contentNode = content.getNode(cell.id) as ContentNode<GenericRelation> | null;
-    if (!contentNode) return null;
-    const typeName = contentNode.getTypeName();
-    const proto = prototypeRegistry.getPrototypeByType(typeName);
-    return proto?.getName() ?? typeName;
-  }
-
   function copy() {
-    const graph = ctx.graph?.getX6Graph() as any;
+    const graph = ctx.graph;
     if (!graph) return;
-    const cells = graph.getSelectedCells?.();
-    if (!cells?.length) return;
-    const copyableCells = cells.filter(isCopyable);
-    if (copyableCells.length < cells.length) {
-      const blocked = cells.filter((c: any) => !isCopyable(c));
-      const names = [...new Set(blocked.map(getNodeDisplayName).filter(Boolean))];
-      getMessageApi()?.warning(t("plugin.copy.unsupported", { names: names.join("、") }));
-    }
-    if (copyableCells.length) {
-      clipboard = copyableCells.flatMap((cell: any) => {
-        const node = ctx.editor.getDocument().getContent().getNode(cell.id);
-        return node
-          ? [
-              {
-                type: node.getTypeName(),
-                props: node.getProps().getData(),
-                pos: node.getPosition(),
-              },
-            ]
-          : [];
-      });
-      const savedContentNodes = new Map<string, unknown>();
-      for (const cell of copyableCells) {
-        if (cell.isNode?.()) {
-          const data = cell.getData?.() ?? {};
-          if (data.contentNode) {
-            savedContentNodes.set(cell.id, data.contentNode);
-            cell.setData({ ...data, contentNode: null }, { overwrite: true, silent: true });
-          }
-        }
+    const ids = graph.getSelection();
+    if (!ids.length) return;
+    const content = ctx.editor.getDocument().getContent();
+    const nodes: ContentNode[] = [];
+    const blockedNames: string[] = [];
+    for (const id of ids) {
+      const node = content.getNode(id);
+      if (!node) {
+        blockedNames.push(t("common.edge"));
+        continue;
       }
-      try {
-        graph.copy(copyableCells);
-      } finally {
-        for (const [id, cn] of savedContentNodes) {
-          const c = graph.getCellById(id);
-          if (c) c.setData({ ...c.getData(), contentNode: cn }, { overwrite: true, silent: true });
-        }
+      const prototype = prototypeRegistry.getPrototypeByType(node.getTypeName());
+      if (prototype?.getView().copyable === false) {
+        blockedNames.push(prototype.getName());
+      } else {
+        nodes.push(node);
       }
-      const names = [...new Set(copyableCells.map(getNodeDisplayName).filter(Boolean))];
-      getMessageApi()?.success(t("plugin.copy.success", { names: names.join("、") }));
     }
+    if (blockedNames.length) {
+      getMessageApi()?.warning(
+        t("plugin.copy.unsupported", {
+          names: [...new Set(blockedNames)].join("、"),
+        }),
+      );
+    }
+    if (!nodes.length) return;
+    clipboard = nodes.map((node) => ({
+      type: node.getTypeName(),
+      props: node.getProps().getData() as Record<string, unknown>,
+      pos: node.getPosition(),
+    }));
+    const names = [
+      ...new Set(
+        nodes.map(
+          (node) =>
+            prototypeRegistry.getPrototypeByType(node.getTypeName())?.getName() ??
+            node.getTypeName(),
+        ),
+      ),
+    ];
+    getMessageApi()?.success(t("plugin.copy.success", { names: names.join("、") }));
   }
 
   async function paste() {
-    const graph = ctx.graph?.getX6Graph() as any;
-    if (!graph) return;
+    if (!ctx.graph) return;
     if (clipboard.length) {
       const doc = ctx.editor.getDocument();
       const ids: string[] = [];
@@ -126,7 +100,7 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
           "mod+v",
           (e) => {
             e.preventDefault();
-            void paste().catch((error) => {
+            void paste().catch((error: unknown) => {
               ctx.logger.error("Paste failed:", error);
             });
           },

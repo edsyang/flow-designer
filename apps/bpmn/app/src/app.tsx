@@ -3,7 +3,7 @@ import { createDesigner, Workbench, initializeDesignerI18n, signal } from "@flow
 import { subscribeLocale, t } from "@flow-designer/i18n";
 import { registerProcessContentType } from "@flow-designer/bpmn-model";
 import { bpmnMessages } from "@flow-designer/bpmn-nodes/i18n";
-import type { Designer, IGraphManager } from "@flow-designer/engine";
+import type { Designer, GraphAdapterPort } from "@flow-designer/engine";
 import styles from "./app.module.less";
 
 declare global {
@@ -70,7 +70,7 @@ async function init() {
     contentProps: {},
   });
 
-  signal.onceSignal("graph:ready", (graphManager: IGraphManager) => {
+  signal.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
     const edgeType = getSequenceFlowEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });

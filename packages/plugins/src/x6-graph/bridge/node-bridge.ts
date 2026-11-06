@@ -1,17 +1,9 @@
 import type { ContentNode } from "@flow-designer/model";
 import { prototypeRegistry } from "@flow-designer/model";
 import { subscribeLocale } from "@flow-designer/i18n";
-import type { GraphManager } from "@flow-designer/graph";
+import type { GraphPort } from "@flow-designer/core";
 import type { GraphBridge } from "./graph-bridge";
 import { truncateLabel } from "./graph-bridge";
-
-interface X6NodeHandle {
-  isNode(): boolean;
-  position(): { x: number; y: number };
-  position(x: number, y: number): void;
-  setAttrs(attrs: Record<string, unknown>): void;
-  setPortProp(portId: string, path: string, value: unknown): void;
-}
 
 export class NodeBridge {
   private unsubscribe: () => void;
@@ -19,7 +11,7 @@ export class NodeBridge {
   private label: string;
 
   constructor(
-    private graphManager: GraphManager,
+    private graphManager: GraphPort,
     private node: ContentNode,
     private bridge: GraphBridge,
   ) {
@@ -31,17 +23,12 @@ export class NodeBridge {
           this.bridge.consumePositionEcho(node.getId());
         if (!isEcho) {
           const { x, y } = node.getPosition();
-          const cell = this.graphManager.getCellById(node.getId()) as X6NodeHandle | null;
-          if (cell?.isNode?.()) {
-            const current = cell.position();
-            if (current.x !== x || current.y !== y) cell.position(x, y);
-          }
+          this.graphManager.patchNode({ nodeId: node.getId(), position: { x, y } });
         }
       }
       if (changing.has("name")) {
         const label = this.getLabel();
-        const cell = this.graphManager.getCellById(node.getId()) as X6NodeHandle | null;
-        if (cell?.isNode?.() && this.label !== label) cell.setAttrs({ label: { text: label } });
+        if (this.label !== label) this.graphManager.patchNode({ nodeId: node.getId(), label });
         this.label = label;
       }
       if ([...changing].some((key) => key !== "__position")) {
@@ -54,17 +41,16 @@ export class NodeBridge {
   }
 
   refresh(): void {
-    const cell = this.graphManager.getCellById(this.node.getId()) as X6NodeHandle | null;
-    if (!cell?.isNode?.()) return;
-    const { x, y } = this.node.getPosition();
-    const current = cell.position();
-    if (current.x !== x || current.y !== y) cell.position(x, y);
     const prototype = prototypeRegistry.getPrototypeByType(this.node.getTypeName());
-    for (const port of prototype?.getView().ports ?? []) {
-      if (port.id && port.label) cell.setPortProp(port.id, "attrs/title/text", port.label);
-    }
     const label = this.getLabel();
-    if (this.label !== label) cell.setAttrs({ label: { text: label } });
+    this.graphManager.patchNode({
+      nodeId: this.node.getId(),
+      position: this.node.getPosition(),
+      ...(this.label !== label ? { label } : {}),
+      portLabels: (prototype?.getView().ports ?? []).flatMap((port) =>
+        port.id && port.label ? [{ portId: port.id, label: port.label }] : [],
+      ),
+    });
     this.label = label;
   }
 

@@ -10,7 +10,7 @@ import {
 import { subscribeLocale, t } from "@flow-designer/i18n";
 import { comfyuiMessages } from "@flow-designer/comfyui-nodes/i18n";
 import { comfyuiTransformer } from "@flow-designer/comfyui-utils";
-import type { Designer, IGraphManager } from "@flow-designer/engine";
+import type { Designer, GraphAdapterPort } from "@flow-designer/engine";
 import styles from "./app.module.less";
 
 contentTypesRegistry.register(GenericContent);
@@ -45,7 +45,7 @@ async function init() {
     localeMessages: comfyuiMessages,
   });
 
-  signal.onceSignal("graph:ready", (graphManager: IGraphManager) => {
+  signal.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
     const edgeType = getDataLinkEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });

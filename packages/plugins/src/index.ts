@@ -14,3 +14,6 @@ export { pluginAutoSave } from "./auto-save";
 export type { AutoSaveExports } from "./auto-save";
 export { pluginUnsavedPrompt } from "./unsaved-prompt";
 export { registerBuiltinPlugins } from "./register-builtin-plugins";
+
+export { getGraphAdapter } from "./x6-graph/adapter";
+export type { X6GraphPluginExports } from "./x6-graph/adapter";

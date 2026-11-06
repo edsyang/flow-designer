@@ -1,12 +1,12 @@
-import type { EdgeTypeConfig } from "@flow-designer/model";
+import type { GraphEdgeTypeMetadata } from "@flow-designer/core";
 
 /** Resolve the property inspector field without projecting connection names onto the canvas. */
-export function edgeNameField(config: EdgeTypeConfig | null): "name" | "label" {
+export function edgeNameField(config: GraphEdgeTypeMetadata | null): "name" | "label" {
   return config?.schema?.some((field) => field.name === "name") ? "name" : "label";
 }
 export function edgeNameValue(
   props: Record<string, unknown> | undefined,
-  config: EdgeTypeConfig | null = null,
+  config: GraphEdgeTypeMetadata | null = null,
 ): string {
   const field = edgeNameField(config);
   const value = props?.[field];
@@ -15,7 +15,7 @@ export function edgeNameValue(
 }
 export function edgeNamePatch(
   props: Record<string, unknown> | undefined,
-  config: EdgeTypeConfig | null,
+  config: GraphEdgeTypeMetadata | null,
   value: string,
 ): Record<string, unknown> {
   const field = edgeNameField(config);
@@ -27,7 +27,7 @@ export function edgeNamePatch(
   };
 }
 export function edgeDefaultProps(
-  config: EdgeTypeConfig | null,
+  config: GraphEdgeTypeMetadata | null,
   supplied: Record<string, unknown> = {},
 ): Record<string, unknown> {
   const props: Record<string, unknown> = {};

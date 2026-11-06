@@ -1,5 +1,5 @@
-import type Document from "./document";
-import type { IGraphManager, ConnectionValidationResult } from "./interfaces";
+import type { Document } from "@flow-designer/model";
+import type { GraphConnectionPort, ConnectionValidationResult } from "./graph-contracts";
 
 export const CANVAS_COMMANDS = {
   createNode: "canvas.createNode",
@@ -9,7 +9,7 @@ export const CANVAS_COMMANDS = {
 
 export interface CanvasCommandContext {
   document: Document;
-  graph: IGraphManager;
+  graph: GraphConnectionPort;
 }
 export interface CanvasConnectionSource {
   nodeId: string;

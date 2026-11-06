@@ -17,9 +17,23 @@ vi.mock("@flow-designer/react", async (importOriginal) => {
   return {
     ...original,
     useSelection: () => ({ keys: ["selected-edge"] }),
-    useGraph: () => ({
-      getEdgeTypeName: () => "test-edge",
-      getEdgeTypeConfig: () => ({ editor: [fixture.field] }),
+    useGraph: () => ({ getEdgeTypeName: () => "test-edge" }),
+    useEditor: () => ({
+      getPlugins: () => ({
+        get: () => ({
+          isInited: () => true,
+          disabled: false,
+          toProxy: () => ({
+            graphManager: {
+              getEdgeTypeName: () => "test-edge",
+              getEdgeTypeConfig: () => ({ editor: [fixture.field] }),
+              getStencilNodeGroups: () => [],
+              startNodeDrag: () => {},
+              subscribeEvents: () => () => {},
+            },
+          }),
+        }),
+      }),
     }),
     useDocument: () => ({
       getSettings: () => ({ getItems: () => [] }),

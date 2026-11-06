@@ -4,7 +4,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { Document, GenericContent, contentTypesRegistry } from "@flow-designer/model";
 import { setLocale } from "@flow-designer/i18n";
 import { Editor } from "@flow-designer/core";
-import type { IPluginContext } from "@flow-designer/core";
+import type { GraphApplicationEvent, IPluginContext } from "@flow-designer/core";
 import { Skeleton } from "@flow-designer/skeleton";
 import { Workbench } from "@flow-designer/react";
 import type { WorkbenchProps } from "@flow-designer/react";
@@ -101,11 +101,14 @@ describe("plugin header actions", () => {
     const engine = fixture();
     const { unmount } = render(<Workbench engine={engine.engine} />);
     expect(screen.queryByRole("button", { name: "操作帮助" })).toBeNull();
+    const listeners = new Set<(event: GraphApplicationEvent) => void>();
     act(() => {
       engine.editor.setGraph({
         getInteractionMode: () => "select",
-        on: vi.fn(),
-        off: vi.fn(),
+        subscribeEvents: (listener: (event: GraphApplicationEvent) => void) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
       } as unknown as NonNullable<ReturnType<Editor["getGraph"]>>);
     });
     const help = await screen.findByRole("button", { name: "操作帮助" });
@@ -118,8 +121,10 @@ describe("plugin header actions", () => {
     fireEvent.keyDown(dialog, { key: "Escape", keyCode: 27 });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(help));
+    expect(listeners.size).toBeGreaterThan(0);
 
     unmount();
+    expect(listeners.size).toBe(0);
     engine.destroyPlugins();
   });
 });

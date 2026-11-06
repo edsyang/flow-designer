@@ -1,6 +1,6 @@
 import type { Graph, Cell, Edge, Node as X6Node, Registry } from "@antv/x6";
 import { getTheme } from "@flow-designer/model";
-import type { GridConfig } from "@flow-designer/model";
+import type { GridConfig } from "./contracts";
 type ThemeColor = Registry.Attr.ComplexAttrValue;
 /** Owns transient paint and theme bookkeeping, never model state. */
 export class GraphPresentation {

@@ -1,5 +1,5 @@
 import { canUsePort } from "@flow-designer/model";
-import type { ConnectionContext } from "@flow-designer/model";
+import type { ConnectionContext } from "@flow-designer/core";
 type Ports = Pick<ConnectionContext, "sourcePort" | "targetPort">;
 const sameDataType = (ctx: Ports): boolean =>
   ctx.sourcePort?.dataType != null && ctx.sourcePort.dataType === ctx.targetPort?.dataType;

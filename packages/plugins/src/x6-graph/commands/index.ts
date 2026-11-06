@@ -1,20 +1,17 @@
-import { commandRegistry } from "@flow-designer/core";
-import { CANVAS_COMMANDS, canUsePort, prototypeRegistry } from "@flow-designer/model";
+import { commandRegistry, CANVAS_COMMANDS } from "@flow-designer/core";
+import { canUsePort, prototypeRegistry } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
+import type { ContentNode, Document, GenericRelation, PortDefinition } from "@flow-designer/model";
 import type {
   CanvasPrototypeRequest,
   CanvasPrototypeResult,
   ConnectCanvasNodesRequest,
   CreateCanvasNodeRequest,
   CreatedCanvasNode,
-  ContentNode,
-  Document,
-  GenericRelation,
-  PortDefinition,
   ConnectionRejectionReason,
   ConnectionContext,
   ResolvedConnection,
-} from "@flow-designer/model";
+} from "@flow-designer/core";
 import { edgeDefaultProps } from "./edge-properties";
 
 export class CanvasConnectionError extends Error {
@@ -127,7 +124,7 @@ export function commitCanvasConnection(request: ConnectCanvasNodesRequest): stri
   )
     throw new Error(`Edge already exists: ${edgeId}`);
   const type = request.edgeType ?? graph.getDefaultEdgeType() ?? undefined;
-  const props = edgeDefaultProps(type ? graph.getEdgeTypeConfig(type) : null, request.props);
+  const props = edgeDefaultProps(type ? graph.getEdgeTypeMetadata(type) : null, request.props);
   try {
     relation(sourceNode).addEdge({
       id: edgeId,

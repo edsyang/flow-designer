@@ -1,5 +1,6 @@
+import type { GraphOptions } from "@flow-designer/graph";
 import type { IPluginManager, PluginCreator } from "@flow-designer/core";
-import type { GraphOptions } from "@flow-designer/model";
+
 import { pluginX6Graph } from "./x6-graph";
 import { pluginZoom } from "./zoom";
 import { pluginUndoRedo } from "./undo-redo";

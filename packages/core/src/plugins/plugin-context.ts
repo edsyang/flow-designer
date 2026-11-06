@@ -1,5 +1,5 @@
 import type { IPluginContext, IPluginManager, IPluginConfig } from "./types";
-import type { IGraphManager } from "@flow-designer/model";
+import type { GraphPort } from "../graph-contracts";
 import type { Editor } from "../editor";
 import type { Logger } from "../utils";
 import { getLogger } from "../utils";
@@ -22,7 +22,7 @@ export class PluginContext implements IPluginContext {
     return this.editor.getContainer();
   }
 
-  get graph(): IGraphManager | null {
+  get graph(): GraphPort | null {
     return this.editor.getGraph();
   }
 

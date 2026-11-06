@@ -3,7 +3,8 @@ import type { Graph, Node as X6Node } from "@antv/x6";
 import { register } from "@antv/x6-react-shape";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ContentNode, EdgeTypeConfig, NodeMeta, NodeView } from "@flow-designer/model";
+import type { ContentNode, NodeMeta, NodeView } from "@flow-designer/model";
+import type { EdgeTypeConfig } from "./contracts";
 import { wrapWithErrorBoundary } from "./node-error-boundary";
 import { translatePorts } from "./port-projection";
 

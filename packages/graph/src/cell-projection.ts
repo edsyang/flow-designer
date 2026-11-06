@@ -1,5 +1,8 @@
+import type { GraphNodePatch } from "@flow-designer/core";
 import { Markup, type Graph, type Edge, type Registry } from "@antv/x6";
-import type { ContentNode, NodeConfig, EdgeConfig, GraphData, PortRef } from "@flow-designer/model";
+import type { ContentNode } from "@flow-designer/model";
+import type { NodeConfig, EdgeConfig, PortRef } from "@flow-designer/core";
+import type { GraphData } from "./contracts";
 import type { GraphTypeRegistry } from "./type-registry";
 import type { GraphPresentation } from "./graph-presentation";
 import { translatePorts } from "./port-projection";
@@ -47,6 +50,18 @@ export class GraphCellProjection {
     const graph = this.graph;
     if (!graph) throw new Error("GraphManager has not been initialized. Call init() first.");
     return graph;
+  }
+  patchNode(patch: GraphNodePatch): void {
+    const node = this.graph?.getCellById(patch.nodeId);
+    if (!node?.isNode()) return;
+    if (patch.position) {
+      const current = node.position();
+      if (current.x !== patch.position.x || current.y !== patch.position.y)
+        node.position(patch.position.x, patch.position.y);
+    }
+    if (patch.label !== undefined) node.setAttrs({ label: { text: patch.label } });
+    for (const port of patch.portLabels ?? [])
+      if (node.hasPort(port.portId)) node.setPortProp(port.portId, "attrs/title/text", port.label);
   }
   setEdgeTypeName(id: string, type: string): void {
     this.edgeTypeByCellId.set(id, type);

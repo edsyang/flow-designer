@@ -22,7 +22,7 @@ async function run(name, code, extension = "mjs") {
 }
 try {
   await mkdir(path.join(temporary, "node_modules/@flow-designer"), { recursive: true });
-  for (const name of ["model", "core", "engine", "setters", "skeleton"]) {
+  for (const name of ["model", "core", "engine", "setters", "skeleton", "graph"]) {
     await symlink(
       path.join(root, "packages", name),
       path.join(temporary, "node_modules/@flow-designer", name),
@@ -100,9 +100,32 @@ try {
     "cjs",
   );
   const consumer = `import {Document,defineNode,type DocumentData} from '@flow-designer/model';
-import {Editor,CommandRegistry,type IPluginContext} from '@flow-designer/core';
+import {Editor,CommandRegistry,CANVAS_COMMANDS,type IPluginContext,type GraphPort,type GraphEdit,type CanvasPrototypeRequest} from '@flow-designer/core';
 import {createDesigner,type DesignerOptions,type PaneConfig as EnginePaneConfig,type ISkeleton as EngineSkeleton,type IArea as EngineArea} from '@flow-designer/engine';
 import type {PaneConfig,ISkeleton,IArea} from '@flow-designer/skeleton';
+import type {GraphAdapterPort,GraphOptions,IGraphManager} from '@flow-designer/graph';
+import type {Designer} from '@flow-designer/engine';
+// @ts-expect-error Application commands now belong to core.
+import {CANVAS_COMMANDS as RemovedModelCommands} from '@flow-designer/model';
+// @ts-expect-error Application and adapter contracts are no longer model exports.
+import type {IGraphManager as RemovedModelGraph} from '@flow-designer/model';
+// @ts-expect-error Renderer configuration belongs to the graph adapter.
+import type {GraphOptions as RemovedModelOptions} from '@flow-designer/model';
+// @ts-expect-error Core must not expose renderer configuration.
+import type {GraphOptions as ForbiddenCoreOptions} from '@flow-designer/core';
+declare const adapter:GraphAdapterPort;
+const graphPort:GraphPort=adapter;
+const legacyAdapter:IGraphManager=adapter;
+declare const designer:Designer;
+const facadeAdapter:GraphAdapterPort|null=designer.graph;
+const graphOptions:GraphOptions={connecting:{allowLoop:false}};
+const request:CanvasPrototypeRequest={document:designer.document,graph:graphPort,typeName:'Task',source:{nodeId:'a',portId:null}};
+const detach=graphPort.subscribeEdits((edit:GraphEdit)=>{if(edit.type==='node-moved'){const x:number=edit.position.x;void x;}});
+// @ts-expect-error Core consumers cannot escape into a mutable native graph.
+graphPort.getX6Graph();
+// @ts-expect-error Renderer type configuration is not part of the application port.
+graphPort.getEdgeTypeConfig('flow');
+void [CANVAS_COMMANDS,legacyAdapter,facadeAdapter,graphOptions,request,detach];
 // @ts-expect-error UI contracts no longer belong to the document model.
 import type {PaneConfig as RemovedModelPane} from '@flow-designer/model';
 // @ts-expect-error Check each removed export independently.

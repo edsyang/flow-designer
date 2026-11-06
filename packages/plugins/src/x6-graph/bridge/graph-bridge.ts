@@ -1,7 +1,12 @@
 import { autorun } from "mobx";
 import type { Document, ContentNode, GenericRelation } from "@flow-designer/model";
-import { prototypeRegistry } from "@flow-designer/model";
-import type { GraphManager } from "@flow-designer/graph";
+import { prototypeRegistry, canUsePort } from "@flow-designer/model";
+import type {
+  GraphPort,
+  GraphEdgeSnapshot,
+  GraphEdit,
+  GraphApplicationEvent,
+} from "@flow-designer/core";
 import { NodeBridge } from "./node-bridge";
 import { EdgeBridge } from "./edge-bridge";
 import { CanvasConnectionError, commitCanvasConnection } from "../commands";
@@ -38,20 +43,6 @@ interface NodeBridgeEntry {
   edge: EdgeBridge;
 }
 
-interface X6EdgeHandle {
-  id: string;
-  getSourceCellId(): string;
-  getSourcePortId(): string | undefined;
-  getTargetCellId(): string;
-  getTargetPortId(): string | undefined;
-  getVertices(): Array<{ x: number; y: number }>;
-}
-
-interface X6NodeHandle {
-  id: string;
-  position(): { x: number; y: number };
-}
-
 export class GraphBridge {
   private syncDirection: SyncDirection = "idle";
   private isResetting = false;
@@ -62,7 +53,7 @@ export class GraphBridge {
   private pendingPositionEchoes: Set<string> = new Set();
 
   constructor(
-    private graphManager: GraphManager,
+    private graphManager: GraphPort,
     private document: Document,
     private reportError: (error: unknown) => void = (error) => {
       console.error(error);
@@ -250,236 +241,173 @@ export class GraphBridge {
   }
 
   private getFirstPortOfGroup(nodeId: string, group: string) {
-    return this.graphManager.getFirstPortOfGroup(nodeId, group);
+    return (
+      this.graphManager
+        .getNodePorts(nodeId)
+        .find((port) =>
+          group === "in" || group === "out"
+            ? canUsePort(port, group === "in" ? "target" : "source")
+            : port.group === group,
+        ) ?? null
+    );
   }
 
   private bindGraphEvents(): void {
-    const onNodeMoved = (...args: unknown[]) => {
-      const payload = args[0] as
-        { cell?: X6NodeHandle; node?: X6NodeHandle; routingEdgeIds?: string[] } | undefined;
-      const cell = payload?.cell ?? payload?.node;
-      if (!cell) return;
+    this.eventOffs.push(this.graphManager.subscribeEdits((edit) => this.applyGraphEdit(edit)));
+    this.eventOffs.push(this.graphManager.subscribeEvents((event) => this.applyGraphEvent(event)));
+  }
+
+  private applyGraphEvent(event: GraphApplicationEvent): void {
+    if (event.type === "selection-changed") {
+      this.document.getSelection().setKeys([...event.ids]);
+    } else if (event.type === "edge-clicked") {
+      this.graphManager.select([event.edgeId]);
+    }
+  }
+
+  private applyGraphEdit(edit: GraphEdit): void {
+    if (edit.type === "node-moved") {
+      const node = this.document.getContent().getNode(edit.nodeId);
+      if (!node) return;
       this.syncDirection = "graph-to-model";
       try {
-        const contentNode = this.document.getContent().getNode(cell.id);
-        if (contentNode) {
-          const pos = cell.position();
-          this.markPositionEcho(cell.id);
-          void this.document.transaction("Move node", () => {
-            contentNode.setPosition(pos.x, pos.y);
-            const graph = this.graphManager.getX6Graph() as {
-              getCellById(id: string): X6NodeHandle | X6EdgeHandle | null;
-              getConnectedEdges(node: X6NodeHandle): X6EdgeHandle[];
-            } | null;
-            const graphNode = graph?.getCellById(cell.id) as X6NodeHandle | null | undefined;
-            const routingIds = new Set(payload?.routingEdgeIds ?? []);
-            const connected = graph && graphNode ? graph.getConnectedEdges(graphNode) : [];
-            const rerouted = [...routingIds]
-              .map((id) => graph?.getCellById(id) as X6EdgeHandle | null | undefined)
-              .filter((edge): edge is X6EdgeHandle => Boolean(edge));
-            const edges = new Map([...connected, ...rerouted].map((edge) => [edge.id, edge]));
-            for (const edge of edges.values()) {
-              if (
-                edge.getSourceCellId() !== cell.id &&
-                edge.getTargetCellId() !== cell.id &&
-                !routingIds.has(edge.id)
-              )
-                continue;
+        this.markPositionEcho(edit.nodeId);
+        void this.document
+          .transaction("Move node", () => {
+            node.setPosition(edit.position.x, edit.position.y);
+            for (const edge of edit.edges) {
               const source = this.document
                 .getContent()
-                .getNode(edge.getSourceCellId()) as ContentNode<GenericRelation> | null;
+                .getNode(edge.sourceNodeId) as ContentNode<GenericRelation> | null;
               const relation = source?.getRelation();
-              if (relation?.getEdgeById(edge.id))
-                relation.updateEdge(edge.id, {
-                  sourcePort: edge.getSourcePortId(),
-                  targetPort: edge.getTargetPortId(),
-                  vertices: edge.getVertices(),
+              if (relation?.getEdgeById(edge.edgeId))
+                relation.updateEdge(edge.edgeId, {
+                  sourcePort: edge.sourcePortId,
+                  targetPort: edge.targetPortId,
+                  vertices: edge.vertices.map((point) => ({ ...point })),
                 });
             }
-          });
-        }
+          })
+          .catch(this.reportError);
       } finally {
         this.syncDirection = "idle";
       }
-    };
-    this.graphManager.on("node:moved", onNodeMoved);
-    this.eventOffs.push(() => {
-      this.graphManager.off("node:moved", onNodeMoved);
-    });
-
-    const onSelectionChanged = () => {
-      this.document.getSelection().setKeys(this.graphManager.getSelection());
-    };
-    this.graphManager.on("selection:changed", onSelectionChanged);
-    this.eventOffs.push(() => {
-      this.graphManager.off("selection:changed", onSelectionChanged);
-    });
-
-    const onEdgeClick = (...args: unknown[]) => {
-      const payload = args[0] as { edge?: { id: string } } | undefined;
-      const edge = payload?.edge;
-      if (!edge) return;
-      this.graphManager.select([edge.id]);
-    };
-    this.graphManager.on("edge:click", onEdgeClick);
-    this.eventOffs.push(() => {
-      this.graphManager.off("edge:click", onEdgeClick);
-    });
-
-    const onEdgeConnected = (...args: unknown[]) => {
-      const payload = args[0] as { edge?: X6EdgeHandle } | undefined;
-      const edge = payload?.edge;
-      if (!edge) return;
-      // Drops over empty canvas never carry a target cell; the workbench turns
-      // them into `connection:blank` instead of persisting a dangling relation.
-      if (!edge.getTargetCellId()) return;
-      this.syncDirection = "graph-to-model";
-      try {
-        const sourceNode = this.document
-          .getContent()
-          .getNode(edge.getSourceCellId()) as ContentNode<GenericRelation> | null;
-        if (sourceNode) {
-          const nodes = this.document.getContent().getNodes() as Array<
-            ContentNode<GenericRelation>
-          >;
-          const previous = nodes.find((node) => node.getRelation().getEdgeById(edge.id));
-          const existing = previous?.getRelation().getEdgeById(edge.id);
-          if (existing && previous) {
-            const patch = {
-              targetNodeId: edge.getTargetCellId(),
-              sourcePort: edge.getSourcePortId(),
-              targetPort: edge.getTargetPortId(),
-            };
-            if (previous.getId() === sourceNode.getId()) {
-              previous.getRelation().updateEdge(edge.id, patch);
-            } else {
-              void this.document.transaction("Reconnect edge", () => {
-                previous.getRelation().removeEdgeById(edge.id);
-                sourceNode.getRelation().addEdge({ ...existing, ...patch });
-              });
-            }
-            this.graphManager.select([edge.id]);
-            return;
-          }
-          const edgeTypeName =
-            this.graphManager.getEdgeTypeName(edge.id) ??
-            this.graphManager.getDefaultEdgeType() ??
-            undefined;
-          void this.document
-            .transaction("Create connection", () => {
-              try {
-                commitCanvasConnection({
-                  document: this.document,
-                  graph: this.graphManager,
-                  edgeId: edge.id,
-                  edgeType: edgeTypeName,
-                  source: {
-                    nodeId: edge.getSourceCellId(),
-                    portId: edge.getSourcePortId() ?? null,
-                  },
-                  target: {
-                    nodeId: edge.getTargetCellId(),
-                    portId: edge.getTargetPortId() ?? null,
-                  },
-                  vertices: edge.getVertices(),
-                });
-                const created = sourceNode.getRelation().getEdgeById(edge.id);
-                this.graphManager.updateEdge({
-                  id: edge.id,
-                  type: edgeTypeName,
-                  source: edge.getSourcePortId()
-                    ? { cell: sourceNode.getId(), port: edge.getSourcePortId() as string }
-                    : sourceNode.getId(),
-                  target: edge.getTargetPortId()
-                    ? { cell: edge.getTargetCellId(), port: edge.getTargetPortId() as string }
-                    : edge.getTargetCellId(),
-                  vertices: edge.getVertices(),
-                  data: created?.props,
-                  labels: [],
-                });
-                if (edgeTypeName) this.graphManager.setEdgeTypeName(edge.id, edgeTypeName);
-              } catch (error) {
-                sourceNode.getRelation().removeEdgeById(edge.id);
-                throw error;
-              }
-            })
-            .then(() => {
-              if (this.disposeAutorun) this.graphManager.select([edge.id]);
-            })
-            .catch((error: unknown) => {
-              this.graphManager.removeCell(edge.id);
-              const graph = this.graphManager.getX6Graph() as {
-                trigger(name: string, payload: unknown): unknown;
-              } | null;
-              void graph?.trigger("connection:rejected", {
-                valid: false,
-                reason:
-                  error instanceof CanvasConnectionError
-                    ? error.reason
-                    : "workbench.connection.incompatible",
-                sourceNode: edge.getSourceCellId(),
-                targetNode: edge.getTargetCellId(),
-              });
-              if (!(error instanceof CanvasConnectionError)) this.reportError(error);
-            });
-          return;
-        }
-        this.graphManager.select([edge.id]);
-      } finally {
-        this.syncDirection = "idle";
-      }
-    };
-    const onEdgeMouseUp = (...args: unknown[]) => {
-      const edge = (args[0] as { edge?: X6EdgeHandle } | undefined)?.edge;
-      if (!edge) return;
+    } else if (edit.type === "edge-connected") {
+      this.applyConnection(edit.edge);
+    } else if (edit.type === "edge-vertices-edited") {
       const nodes = this.document.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
       const relation = nodes
         .map((node) => node.getRelation())
-        .find((item) => item.getEdgeById(edge.id));
-      const existing = relation?.getEdgeById(edge.id);
-      const vertices = edge.getVertices();
-      if (existing && JSON.stringify(existing.vertices ?? []) !== JSON.stringify(vertices)) {
-        void this.document.transaction("Edit edge vertices", () => {
-          relation?.updateEdge(edge.id, { vertices });
-        });
+        .find((item) => item.getEdgeById(edit.edgeId));
+      const existing = relation?.getEdgeById(edit.edgeId);
+      if (existing && JSON.stringify(existing.vertices ?? []) !== JSON.stringify(edit.vertices)) {
+        void this.document
+          .transaction("Edit edge vertices", () => {
+            relation?.updateEdge(edit.edgeId, {
+              vertices: edit.vertices.map((point) => ({ ...point })),
+            });
+          })
+          .catch(this.reportError);
       }
-    };
-    this.graphManager.on("edge:vertices:committed", onEdgeMouseUp);
-    this.eventOffs.push(() => {
-      this.graphManager.off("edge:vertices:committed", onEdgeMouseUp);
-    });
+    } else {
+      this.graphManager.removeCell(edit.temporaryNodeId);
+      if (!edit.nodeType) return;
+      void this.document
+        .transaction("Create node", async () => {
+          const newNode = await this.document
+            .getContent()
+            .addNode({ type: edit.nodeType, props: { __position: { ...edit.position } } });
+          if (newNode && this.disposeAutorun) {
+            this.graphManager.select([newNode.getId()]);
+            this.document.getSelection().setKeys([newNode.getId()]);
+          }
+        })
+        .catch(this.reportError);
+    }
+  }
 
-    this.graphManager.on("edge:connected", onEdgeConnected);
-    this.eventOffs.push(() => {
-      this.graphManager.off("edge:connected", onEdgeConnected);
-    });
-
-    const onNodeAddedByStencil = (...args: unknown[]) => {
-      const payload = args[0] as
-        { cell?: X6NodeHandle & { getData<T = Record<string, unknown>>(): T } } | undefined;
-      const cell = payload?.cell;
-      if (!cell) return;
-      const pos = cell.position();
-      const nodeType = (cell.getData<{ __nodeType?: string }>() ?? {}).__nodeType;
-      // The dropped cell is a bare X6 clone from the stencil's mini-graph, not yet backed
-      // by a Model node; remove it and let the normal Model->Graph sync path (autorun in
-      // syncModelToGraph) create the real cell once content.addNode() resolves, avoiding
-      // an id collision between the temp drop and the model-driven cell.
-      this.graphManager.removeCell(cell.id);
-      if (!nodeType) return;
-      void this.document.transaction("Create node", async () => {
-        const newNode = await this.document
-          .getContent()
-          .addNode({ type: nodeType, props: { __position: pos } });
-        if (newNode && this.disposeAutorun) {
-          this.graphManager.select([newNode.getId()]);
-          this.document.getSelection().setKeys([newNode.getId()]);
-        }
-      });
-    };
-    this.graphManager.on("node:added-by-stencil", onNodeAddedByStencil);
-    this.eventOffs.push(() => {
-      this.graphManager.off("node:added-by-stencil", onNodeAddedByStencil);
-    });
+  private applyConnection(edge: GraphEdgeSnapshot): void {
+    if (!edge.targetNodeId) return;
+    this.syncDirection = "graph-to-model";
+    try {
+      const sourceNode = this.document
+        .getContent()
+        .getNode(edge.sourceNodeId) as ContentNode<GenericRelation> | null;
+      if (!sourceNode) {
+        this.graphManager.select([edge.edgeId]);
+        return;
+      }
+      const nodes = this.document.getContent().getNodes() as Array<ContentNode<GenericRelation>>;
+      const previous = nodes.find((node) => node.getRelation().getEdgeById(edge.edgeId));
+      const existing = previous?.getRelation().getEdgeById(edge.edgeId);
+      if (existing && previous) {
+        const patch = {
+          targetNodeId: edge.targetNodeId,
+          sourcePort: edge.sourcePortId,
+          targetPort: edge.targetPortId,
+        };
+        if (previous.getId() === sourceNode.getId())
+          previous.getRelation().updateEdge(edge.edgeId, patch);
+        else
+          void this.document
+            .transaction("Reconnect edge", () => {
+              previous.getRelation().removeEdgeById(edge.edgeId);
+              sourceNode.getRelation().addEdge({ ...existing, ...patch });
+            })
+            .catch(this.reportError);
+        this.graphManager.select([edge.edgeId]);
+        return;
+      }
+      const edgeTypeName = edge.edgeType ?? this.graphManager.getDefaultEdgeType() ?? undefined;
+      void this.document
+        .transaction("Create connection", () => {
+          try {
+            commitCanvasConnection({
+              document: this.document,
+              graph: this.graphManager,
+              edgeId: edge.edgeId,
+              edgeType: edgeTypeName,
+              source: { nodeId: edge.sourceNodeId, portId: edge.sourcePortId ?? null },
+              target: { nodeId: edge.targetNodeId, portId: edge.targetPortId ?? null },
+              vertices: edge.vertices.map((point) => ({ ...point })),
+            });
+            const created = sourceNode.getRelation().getEdgeById(edge.edgeId);
+            this.graphManager.updateEdge({
+              id: edge.edgeId,
+              type: edgeTypeName,
+              source: edge.sourcePortId
+                ? { cell: edge.sourceNodeId, port: edge.sourcePortId }
+                : edge.sourceNodeId,
+              target: edge.targetPortId
+                ? { cell: edge.targetNodeId, port: edge.targetPortId }
+                : edge.targetNodeId,
+              vertices: edge.vertices.map((point) => ({ ...point })),
+              data: created?.props,
+              labels: [],
+            });
+          } catch (error) {
+            sourceNode.getRelation().removeEdgeById(edge.edgeId);
+            throw error;
+          }
+        })
+        .then(() => {
+          if (this.disposeAutorun) this.graphManager.select([edge.edgeId]);
+        })
+        .catch((error: unknown) => {
+          this.graphManager.removeCell(edge.edgeId);
+          this.graphManager.notifyConnectionRejected({
+            valid: false,
+            reason:
+              error instanceof CanvasConnectionError
+                ? error.reason
+                : "workbench.connection.incompatible",
+            sourceNode: edge.sourceNodeId,
+            targetNode: edge.targetNodeId,
+          });
+          if (!(error instanceof CanvasConnectionError)) this.reportError(error);
+        });
+    } finally {
+      this.syncDirection = "idle";
+    }
   }
 }

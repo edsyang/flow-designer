@@ -3,16 +3,15 @@ import { DEFAULT_PORT_ITEMS } from "./shapes";
 import type { Graph } from "@antv/x6";
 import { type Cell, type Edge, type Node as X6Node } from "@antv/x6";
 import { canUsePort } from "@flow-designer/model";
+import type { PortDefinition } from "@flow-designer/model";
 import type {
-  GraphOptions,
   ConnectionContext,
   ConnectionCheckOptions,
   ConnectionValidationResult,
   ConnectionRejectedEvent,
   ResolvedConnection,
-  PortDefinition,
-  EdgeTypeConfig,
-} from "@flow-designer/model";
+} from "@flow-designer/core";
+import type { GraphOptions, EdgeTypeConfig } from "./contracts";
 import { findShortPortRoute, routeWithPortStubs } from "./orthogonal-routing";
 import { normalizeOrthogonalVertices } from "./edge-geometry";
 import { strictOrthogonalFallback } from "./edge-routing";

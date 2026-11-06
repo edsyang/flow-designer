@@ -1,6 +1,6 @@
 import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
-import type { GraphManager } from "@flow-designer/graph";
+import { getGraphAdapter } from "../x6-graph/adapter";
 import { signal } from "@flow-designer/model";
 import { StencilContainer } from "./stencil-container";
 
@@ -12,8 +12,8 @@ export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
     name: "plugin-stencil-panel",
     dep: ["plugin-x6-graph"],
     init() {
-      const graphManager = (ctx.plugins["plugin-x6-graph"] as { graphManager: GraphManager })
-        .graphManager;
+      const graphManager = getGraphAdapter(ctx.plugins);
+      if (!graphManager) throw new Error("The graph plugin must be registered before the stencil");
 
       const getNodeGroups = () => graphManager.getStencilNodeGroups();
       const startDrag = (nodeType: string, event: MouseEvent) => {

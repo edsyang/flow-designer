@@ -68,14 +68,11 @@ export function pluginZoom(ctx: IPluginContext): IPluginConfig {
           },
           onResetZoom: resetZoom,
           subscribe: (cb: () => void) => {
-            const handler = () => {
-              cb();
-            };
-            const graph = ctx.graph;
-            graph?.on("scale", handler);
-            return () => {
-              graph?.off("scale", handler);
-            };
+            return (
+              ctx.graph?.subscribeEvents((event) => {
+                if (event.type === "zoom-changed") cb();
+              }) ?? (() => {})
+            );
           },
         },
       });

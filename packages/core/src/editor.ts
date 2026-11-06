@@ -1,4 +1,4 @@
-import type { IGraphManager } from "@flow-designer/model";
+import type { GraphPort } from "./graph-contracts";
 import type { Document } from "@flow-designer/model";
 import type { PluginManager } from "./plugins/plugin-manager";
 import { EventEmitter } from "eventemitter3";
@@ -8,7 +8,7 @@ export class Editor extends EventEmitter {
   private document!: Document;
   private plugins!: PluginManager;
   private graphView = new GraphView();
-  private graph: IGraphManager | null = null;
+  private graph: GraphPort | null = null;
   private container: HTMLElement | null = null;
 
   constructor() {
@@ -48,11 +48,11 @@ export class Editor extends EventEmitter {
     return this.container;
   }
 
-  setGraph(graph: IGraphManager | null) {
+  setGraph(graph: GraphPort | null) {
     this.graph = graph;
   }
 
-  getGraph(): IGraphManager | null {
+  getGraph(): GraphPort | null {
     return this.graph;
   }
 }

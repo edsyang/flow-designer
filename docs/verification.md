@@ -352,3 +352,17 @@ ISkeleton/IArea/PaneConfig now belong to skeleton; core Editor and PluginContext
 - Initial combined build+lint attempt failed because lint read declarations while build rewrote dist (React reported unresolved-type warnings). No rule or assertion was relaxed; the final run built first, then checked stable outputs.
 
 Logs: `/tmp/flow-core-p2a-build.log`, `/tmp/flow-core-p2a-check-final.log`, `/tmp/flow-core-p2a-e2e.log`, `/tmp/flow-core-p2a-consumer.log`, `/tmp/flow-core-p2a-boundaries.log`. No routing/performance runtime changed, so performance sampling was not repeated. P2b graph/application contracts remain pending.
+
+## P2b graph/application contract boundary (2026-11-06)
+
+Core now owns GraphPort, canvas commands and immutable final edit DTOs; graph owns X6-specific configuration and GraphAdapterPort. Model no longer exports application/UI contracts. Bridges consume typed snapshots, while Designer.graph retains its adapter facade. Metadata queries preserve constant-time edge-type lookup. Native adapter APIs, routing policy and serialization remain compatible.
+
+- Build: 20/20 passed. Final workspace test/typecheck/lint gate: 75/75 tasks, 592 unit tests. Graph has 130 tests, including snapshot isolation, remote affected edges, late notifications and exceptional disposal.
+- Complete serial Chrome E2E: 82/82 passed across the three scenarios. Six built consumer groups and 57 import-boundary assertions passed, including negative checks for removed model exports and native capabilities on GraphPort.
+- First workspace run exposed one outdated help-dialog graph fixture using on/off. It now uses subscribeEvents and verifies unmount cleanup; original readiness, dialog, Escape and focus assertions remain. Final gate passed without weakening assertions or raising lint budgets.
+- Production performance: 9/9 runs passed (100/300/500 nodes, 200/600/1000 edges, three runs each). Ordinary and fit-drag P95 remained 16.7–16.8ms. Final render ranges: 100 nodes 954.3–980.3ms; 300 nodes 3117.6–3155.1ms; 500 nodes 1736.5–1757.2ms. These overlap the P0/P1 ranges and are not a universal frame-rate guarantee.
+- All samples retained every edge, zero routing failure events/error elements, the existing 101/309/517 legacy warning elements, 126 ordinary / 240 fit routing passes, and no cell removal on undo. Legacy warnings have not been fixed or hidden by this refactor.
+- Known inherited boundary: existing-relation reconnection still updates endpoints/ports without consuming final snapshot vertices, matching the prior bridge. P4 must unify that edit semantic; P2 does not claim unified editing services or complete multi-instance isolation.
+- Offline lockfile synchronization changed workspace importers only, with no dependency version updates. Changed-file formatting and diff checks passed. Browser/performance sampling preceded only a test-fixture correction and whitespace formatting, with no later runtime semantic edits.
+
+Logs: `/tmp/flow-core-p2b-build.log`, `/tmp/flow-core-p2b-check-final.log`, `/tmp/flow-core-p2b-e2e.log`, `/tmp/flow-core-p2b-consumer.log`, `/tmp/flow-core-p2b-boundaries.log`, `/tmp/flow-core-p2b-performance/`. Reports remain outside the repository. P3–P6 remain outstanding.

@@ -1,9 +1,11 @@
+import type { X6GraphPluginExports } from "./adapter";
+import type { GraphOptions } from "@flow-designer/graph";
 import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
 import { prototypeRegistry, signal } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
-import type { NodeMeta, GraphOptions, Prototype } from "@flow-designer/model";
+import type { NodeMeta, Prototype } from "@flow-designer/model";
 import { GraphBridge } from "./bridge/graph-bridge";
 import { registerCanvasCommands } from "./commands";
 
@@ -126,7 +128,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
       unregisterMount = undefined;
       cleanupMount?.();
     },
-    exports() {
+    exports(): X6GraphPluginExports {
       return { graphManager };
     },
   };

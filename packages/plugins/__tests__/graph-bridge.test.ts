@@ -460,9 +460,9 @@ describe("GraphBridge", () => {
     await Promise.resolve();
 
     expect(node!.getPosition()).toEqual({ x: 70, y: 80 });
-    // onNodeMoved itself reads the position once (a getter call, 0 args) to sync it to
-    // the model; the echo-suppression must prevent NodeBridge from calling it again as
-    // a setter (2 args) once the resulting prop change notification fires.
+    // The adapter captures the final position; the bridge consumes that snapshot.
+    // Echo suppression must prevent NodeBridge from writing the same position again
+    // once the resulting deferred prop notification fires.
     const setterCalls = positionSpy.mock.calls.filter((args) => args.length > 0);
     expect(setterCalls).toHaveLength(0);
     positionSpy.mockRestore();

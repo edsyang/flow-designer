@@ -48,8 +48,7 @@ function createMockContext(overrides: Record<string, any> = {}) {
         copy: vi.fn(),
         paste: vi.fn(),
       })),
-      on: vi.fn(),
-      off: vi.fn(),
+      subscribeEvents: vi.fn(() => () => {}),
     },
     skeleton: {
       header: { add: vi.fn(), remove: vi.fn() },
@@ -91,6 +90,32 @@ function createMockContext(overrides: Record<string, any> = {}) {
 }
 
 describe("pluginZoom", () => {
+  it("subscribes only to typed zoom changes and releases the listener", async () => {
+    const { pluginZoom } = await import("../src/zoom");
+    const listeners = new Set<(event: { type: string }) => void>();
+    const ctx = createMockContext({
+      graph: {
+        ...createMockContext().graph,
+        subscribeEvents: (listener: (event: { type: string }) => void) => {
+          listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
+      },
+    });
+    const config = pluginZoom(ctx as any);
+    config.init!();
+    const contribution = ctx.skeleton.canvasToolbar.add.mock.calls[0][0];
+    const callback = vi.fn();
+    const stop = contribution.contentProps.subscribe(callback);
+    listeners.forEach((listener) => listener({ type: "interaction-changed" }));
+    expect(callback).not.toHaveBeenCalled();
+    listeners.forEach((listener) => listener({ type: "zoom-changed" }));
+    expect(callback).toHaveBeenCalledOnce();
+    stop();
+    expect(listeners.size).toBe(0);
+    config.destroy!();
+  });
+
   beforeEach(() => {
     commandRegistry.unregister("zoomIn");
     commandRegistry.unregister("zoomOut");
@@ -202,24 +227,33 @@ describe("pluginCopyPaste", () => {
     expect(commandRegistry.hasCommand("paste")).toBe(true);
   });
 
-  it("copy copies selected cells via X6", async () => {
+  it("copies selected model data without a native clipboard", async () => {
     const { pluginCopyPaste } = await import("../src/copy-paste");
-    const cells = [{ id: "n1" }];
-    const copyFn = vi.fn();
+    const addNode = vi.fn(async () => ({ getId: () => "pasted" }));
+    const node = {
+      getTypeName: () => "copy-fixture",
+      getProps: () => ({ getData: () => ({ label: "Copy" }) }),
+      getPosition: () => ({ x: 10, y: 20 }),
+    };
     const ctx = createMockContext({
-      graph: {
-        ...createMockContext().graph,
-        getX6Graph: () => ({
-          getSelectedCells: () => cells,
-          copy: copyFn,
-          paste: vi.fn(),
+      graph: { ...createMockContext().graph, getSelection: () => ["n1"], select: vi.fn() },
+      editor: {
+        getDocument: () => ({
+          transaction: async (_label: string, operation: () => Promise<void>) => operation(),
+          getContent: () => ({ getNode: () => node, addNode }),
         }),
       },
     });
     const config = pluginCopyPaste(ctx as any);
     config.init!();
     commandRegistry.executeCommand("copy");
-    expect(copyFn).toHaveBeenCalledWith(cells);
+    await commandRegistry.executeCommand("paste");
+    expect(addNode).toHaveBeenCalledWith({
+      type: "copy-fixture",
+      props: { label: "Copy", __position: { x: 40, y: 50 } },
+    });
+    expect(ctx.graph.select).toHaveBeenCalledWith(["pasted"]);
+    config.destroy!();
   });
 });
 
@@ -311,7 +345,21 @@ describe("pluginStencilPanel", () => {
     const getStencilNodeGroups = vi.fn(() => []);
     const startNodeDrag = vi.fn();
     const ctx = createMockContext({
-      plugins: { "plugin-x6-graph": { graphManager: { getStencilNodeGroups, startNodeDrag } } },
+      plugins: {
+        get: () => ({
+          isInited: () => true,
+          disabled: false,
+          toProxy: () => ({
+            graphManager: {
+              getStencilNodeGroups,
+              startNodeDrag,
+              getEdgeTypeName: () => null,
+              getEdgeTypeConfig: () => null,
+              subscribeEvents: () => () => {},
+            },
+          }),
+        }),
+      },
       editor: {
         ...createMockContext().editor,
         getGraph: vi.fn(() => ({})),

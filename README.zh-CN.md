@@ -281,6 +281,10 @@ pnpm test:e2e
 
 `ISkeleton`、`IArea`、`PaneConfig` 从 model 迁至 `@flow-designer/skeleton`。UI 插件通过 skeleton 的 `getSkeleton(ctx.editor)` 获取 UI；core Editor/PluginContext 不再持有 UI。engine 自动绑定和释放 skeleton，聚合入口仍导出这些类型。独立组合 UI 时使用 `bindSkeleton(editor, skeleton)` 并释放其 disposer；有效绑定存在时拒绝重复绑定。React 组件继续使用 `useSkeleton()`。
 
+## Graph 契约导入迁移
+
+`GraphPort`、画布命令契约与连接决策类型迁至 `@flow-designer/core`；`IGraphManager`/`GraphAdapterPort`、`GraphOptions`、渲染配置和原生事件类型迁至 `@flow-designer/graph`，model 不再导出这些类型。Editor/插件上下文仅暴露 core 应用端口。engine 门面继续聚合所属包；原生 adapter API 与最终编辑快照订阅相互独立。
+
 ## License
 
 本项目采用 [MIT License](./LICENSE)。

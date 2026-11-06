@@ -33,7 +33,8 @@
   "peerDependencies": {
     "@flow-designer/model": "workspace:*",
     "@flow-designer/setters": "workspace:*",
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "@flow-designer/graph": "workspace:*"
   },
   "dependencies": {
     "@flow-designer/i18n": "workspace:*"

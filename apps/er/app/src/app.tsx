@@ -10,7 +10,7 @@ import {
 } from "@flow-designer/engine";
 import { subscribeLocale, t } from "@flow-designer/i18n";
 import { erMessages } from "@flow-designer/er-nodes/i18n";
-import type { Designer, IGraphManager } from "@flow-designer/engine";
+import type { Designer, GraphAdapterPort } from "@flow-designer/engine";
 import styles from "./app.module.less";
 
 contentTypesRegistry.register(GenericContent);
@@ -48,7 +48,7 @@ async function init() {
     },
   });
 
-  signal.onceSignal("graph:ready", (graphManager: IGraphManager) => {
+  signal.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
     const edgeType = getRelationEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });

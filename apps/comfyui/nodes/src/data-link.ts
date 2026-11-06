@@ -1,4 +1,4 @@
-import type { EdgeTypeConfig } from "@flow-designer/model";
+import type { EdgeTypeConfig } from "@flow-designer/graph";
 
 export const dataLinkConfig: EdgeTypeConfig = {
   defaultAttrs: {

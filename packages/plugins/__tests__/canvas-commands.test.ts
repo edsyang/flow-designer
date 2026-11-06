@@ -1,19 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  CANVAS_COMMANDS,
   ContentAop,
   Document,
   GenericContent,
   contentTypesRegistry,
   prototypeRegistry,
 } from "@flow-designer/model";
+import type { GenericRelation } from "@flow-designer/model";
 import type {
   ConnectionCheckOptions,
   ConnectionContext,
-  GenericRelation,
-  IGraphManager,
-} from "@flow-designer/model";
-import { commandRegistry } from "@flow-designer/core";
+  GraphConnectionPort,
+} from "@flow-designer/core";
+import { commandRegistry, CANVAS_COMMANDS } from "@flow-designer/core";
 import {
   connectCanvasNodes,
   createCanvasNode,
@@ -53,10 +52,10 @@ function fixture(reject = false) {
     ),
     resolveConnection: vi.fn(() => ({ valid: true })),
     getDefaultEdgeType: () => "Sequence",
-    getEdgeTypeConfig: () => ({
+    getEdgeTypeMetadata: () => ({
       schema: [{ name: "name", type: "string", defaultValue: "Default name" }],
     }),
-  } as unknown as IGraphManager;
+  } as unknown as GraphConnectionPort;
   const request = {
     document,
     graph,

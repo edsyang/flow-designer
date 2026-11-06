@@ -1,11 +1,11 @@
-import type { IGraphManager } from "@flow-designer/model";
+import type { GraphPort } from "../graph-contracts";
 import type { Editor } from "../editor";
 import type { Logger } from "../utils";
 
 export interface IPluginContext {
   editor: Editor;
   plugins: IPluginManager;
-  graph: IGraphManager | null;
+  graph: GraphPort | null;
   container: HTMLElement | null;
   options: Record<string, unknown>;
   logger: Logger;

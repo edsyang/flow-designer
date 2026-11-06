@@ -28,6 +28,9 @@ const baseImports = [
 ];
 const coreUIImports = {
   group: [
+    "@flow-designer/graph",
+    "@flow-designer/graph/**",
+    "**/graph/src/**",
     "@flow-designer/i18n/react",
     "@flow-designer/react",
     "@flow-designer/react/**",
@@ -172,6 +175,25 @@ export default tseslint.config(
       "@typescript-eslint/no-restricted-imports": [
         "error",
         { patterns: [...baseImports, ...scenarioImports] },
+      ],
+    },
+  },
+  {
+    files: ["packages/model/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...baseImports,
+            ...scenarioImports,
+            coreUIImports,
+            {
+              group: ["@flow-designer/core", "@flow-designer/core/**", "**/core/src/**"],
+              message: "Model cannot depend on application contracts or compatibility re-exports.",
+            },
+          ],
+        },
       ],
     },
   },

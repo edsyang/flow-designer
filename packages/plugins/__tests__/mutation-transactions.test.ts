@@ -44,19 +44,9 @@ describe("mutation commands", () => {
     });
     const selected = ["first", "second"];
     const select = vi.fn();
-    const x6 = {
-      getSelectedCells: () =>
-        selected.map((id) => ({
-          id,
-          isNode: () => true,
-          isEdge: () => false,
-          getData: () => ({}),
-        })),
-      copy: vi.fn(),
-    };
     const ctx = {
       editor: { getDocument: () => doc },
-      graph: { getX6Graph: () => x6, select, getSelection: () => selected, removeCell: vi.fn() },
+      graph: { select, getSelection: () => selected, removeCell: vi.fn() },
       container: document.createElement("div"),
       logger: { error: vi.fn() },
     } as unknown as IPluginContext;

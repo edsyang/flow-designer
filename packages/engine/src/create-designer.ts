@@ -4,6 +4,7 @@ import { getLogger } from "@flow-designer/core";
 import { Document, setterRegistry, contentTypesRegistry, utils } from "@flow-designer/model";
 import {
   registerBuiltinPlugins,
+  getGraphAdapter,
   pluginAutoSave,
   pluginUnsavedPrompt,
 } from "@flow-designer/plugins";
@@ -70,7 +71,8 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
       editor,
       document: doc,
       get graph() {
-        return editor.getGraph();
+        const adapter = getGraphAdapter(plugins);
+        return adapter && editor.getGraph() === adapter ? adapter : null;
       },
       plugins: plugins.toProxy(),
       destroy: () => engine.destroy(),

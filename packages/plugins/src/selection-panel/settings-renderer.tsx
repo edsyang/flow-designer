@@ -1,12 +1,20 @@
+import { getGraphAdapter } from "../x6-graph/adapter";
+import type { EdgeTypeConfig } from "@flow-designer/graph";
 import { createElement, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { SettingsPanel } from "@flow-designer/skeleton";
-import { useSelection, useNode, useGraph, useDocument, useTranslate } from "@flow-designer/react";
+import {
+  useSelection,
+  useNode,
+  useGraph,
+  useEditor,
+  useDocument,
+  useTranslate,
+} from "@flow-designer/react";
 import type {
   Document as EditorDocument,
   GenericRelation,
   ContentNode,
-  EdgeTypeConfig,
 } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/i18n";
 import { prototypeRegistry, setterRegistry } from "@flow-designer/model";
@@ -49,11 +57,13 @@ function findEdge(doc: EditorDocument, edgeId: string) {
 function EdgeSettingsPanel({ edgeId }: { edgeId: string }) {
   const { t, locale } = useTranslate();
   const graph = useGraph();
+  const editor = useEditor();
+  const adapter = graph ? getGraphAdapter(editor.getPlugins()) : null;
   const doc = useDocument();
   const [, forceUpdate] = useState(0);
-  const typeName = graph ? graph.getEdgeTypeName(edgeId) : null;
+  const typeName = graph?.getEdgeTypeName(edgeId) ?? null;
   const typeConfig: EdgeTypeConfig | null =
-    graph && typeName ? graph.getEdgeTypeConfig(typeName) : null;
+    adapter && typeName ? adapter.getEdgeTypeConfig(typeName) : null;
   const found = doc ? findEdge(doc, edgeId) : null;
 
   if (!found) {

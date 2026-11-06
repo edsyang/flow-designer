@@ -3,3 +3,5 @@ export type { StencilGroupConfig, StencilNodeItem, StencilNodeGroup } from "./gr
 export { ConnectionValidators } from "./validators";
 export { registerShape } from "./shapes";
 export type { ShapeDefinition } from "./shapes";
+
+export type * from "./contracts";

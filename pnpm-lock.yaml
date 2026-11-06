@@ -130,6 +130,12 @@ importers:
 
   apps/bpmn/nodes:
     dependencies:
+      '@flow-designer/core':
+        specifier: workspace:*
+        version: link:../../../packages/core
+      '@flow-designer/graph':
+        specifier: workspace:*
+        version: link:../../../packages/graph
       '@flow-designer/i18n':
         specifier: workspace:*
         version: link:../../../packages/i18n
@@ -194,6 +200,9 @@ importers:
 
   apps/comfyui/nodes:
     dependencies:
+      '@flow-designer/graph':
+        specifier: workspace:*
+        version: link:../../../packages/graph
       '@flow-designer/i18n':
         specifier: workspace:*
         version: link:../../../packages/i18n
@@ -261,6 +270,9 @@ importers:
 
   apps/er/nodes:
     dependencies:
+      '@flow-designer/graph':
+        specifier: workspace:*
+        version: link:../../../packages/graph
       '@flow-designer/i18n':
         specifier: workspace:*
         version: link:../../../packages/i18n
@@ -364,6 +376,9 @@ importers:
       '@antv/x6-react-shape':
         specifier: ^2.2.3
         version: 2.2.3(@antv/x6@2.19.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@flow-designer/core':
+        specifier: workspace:*
+        version: link:../core
       '@flow-designer/i18n':
         specifier: workspace:*
         version: link:../i18n

@@ -1,5 +1,5 @@
 import type { ContentNode, GenericRelation } from "@flow-designer/model";
-import type { GraphManager } from "@flow-designer/graph";
+import type { GraphPort } from "@flow-designer/core";
 import type { GraphBridge } from "./graph-bridge";
 
 export class EdgeBridge {
@@ -8,7 +8,7 @@ export class EdgeBridge {
   private snapshots = new Map<string, string>();
 
   constructor(
-    private graphManager: GraphManager,
+    private graphManager: GraphPort,
     private node: ContentNode<GenericRelation>,
     private bridge: GraphBridge,
   ) {

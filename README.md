@@ -281,6 +281,10 @@ See [AGENTS.md](./AGENTS.md) for contributor/agent constraints, the [verificatio
 
 Import `ISkeleton`, `IArea`, and `PaneConfig` from `@flow-designer/skeleton` instead of model. UI plugins acquire `getSkeleton(ctx.editor)` from skeleton; core Editor/PluginContext no longer own the UI. Engine binds and releases its skeleton automatically and retains the type exports through its facade. Standalone UI composition uses `bindSkeleton(editor, skeleton)` and its disposer; duplicate active bindings are rejected. React components continue using `useSkeleton()`.
 
+## Graph contract import migration
+
+Import `GraphPort`, canvas command contracts and connection decision types from `@flow-designer/core`. Import `IGraphManager`/`GraphAdapterPort`, `GraphOptions`, renderer configs and native event types from `@flow-designer/graph`; these former model exports are removed. Editor/plugin contexts expose the core application port. The engine facade continues aggregating the owning packages; native adapter APIs remain distinct from typed finalized edit subscriptions.
+
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).

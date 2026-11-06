@@ -1,3 +1,12 @@
+import { GraphNotifications } from "./graph-notifications";
+import type {
+  GraphEdit,
+  GraphApplicationEvent,
+  GraphNodePatch,
+  GraphEdgeTypeMetadata,
+  GraphConnectionRejection,
+  Unsubscribe,
+} from "@flow-designer/core";
 import { runCleanupTasks } from "./cleanup-tasks";
 import { GraphTypeRegistry } from "./type-registry";
 import { GraphCellProjection } from "./cell-projection";
@@ -19,24 +28,24 @@ import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import "@antv/x6-plugin-stencil/dist/index.css";
 import { canUsePort, subscribeTheme } from "@flow-designer/model";
+import type { NodeMeta, NodeView, PortDefinition } from "@flow-designer/model";
 import type {
-  IGraphManager,
-  GraphOptions,
-  GridConfig,
   NodeConfig,
   EdgeConfig,
-  GraphEvent,
-  GraphEventHandler,
-  GraphData,
-  EdgeTypeConfig,
   ConnectionContext,
   ConnectionCheckOptions,
   ConnectionValidationResult,
   ResolvedConnection,
-  NodeMeta,
-  NodeView,
-  PortDefinition,
-} from "@flow-designer/model";
+} from "@flow-designer/core";
+import type {
+  GraphAdapterPort,
+  GraphOptions,
+  GridConfig,
+  GraphEvent,
+  GraphEventHandler,
+  GraphData,
+  EdgeTypeConfig,
+} from "./contracts";
 import { GraphReactRendering } from "./react-rendering";
 import { installViewportCulling } from "./viewport-culling";
 import { registerRoutedSegments } from "./safe-segments";
@@ -47,11 +56,11 @@ import { installCanvasDragPan, type DragEdgePanController } from "./viewport-inp
 export type { StencilGroupConfig, StencilNodeItem, StencilNodeGroup } from "./stencil-resources";
 
 /** Public X6 facade. Internal owners manage definitions, projections, paint and live resources. */
-export class GraphManager implements IGraphManager {
+export class GraphManager implements GraphAdapterPort {
   private graph: Graph | null = null;
   private selectionPlugin: Selection | null = null;
   private scroller: Scroller | null = null;
-  private interactionMode: ReturnType<IGraphManager["getInteractionMode"]> = "pan";
+  private interactionMode: ReturnType<GraphAdapterPort["getInteractionMode"]> = "pan";
   private types = new GraphTypeRegistry();
   private presentation = new GraphPresentation(
     () => this.graph,
@@ -87,6 +96,7 @@ export class GraphManager implements IGraphManager {
     this.projection.edgeTypes,
     this.types.edges,
   );
+  private notifications = new GraphNotifications((id) => this.getEdgeTypeName(id));
   private sessions = new GraphInteractionSessions(
     () => this.graph,
     this.connections,
@@ -96,6 +106,7 @@ export class GraphManager implements IGraphManager {
     (id, type) => {
       this.projection.setEdgeTypeName(id, type);
     },
+    this.notifications,
   );
   private viewport = new ViewportResources(() => this.graph);
   private domEventCleanups: Array<() => void> = [];
@@ -190,6 +201,7 @@ export class GraphManager implements IGraphManager {
         onEdgeLabelRendered: (args) => this.handleEdgeLabelRendered(args),
       });
       this.graph = graph;
+      this.notifications.install(graph);
       this.domEventCleanups.push(installEdgeRouting(graph));
       this.domEventCleanups.push(
         subscribeTheme(() => {
@@ -321,6 +333,9 @@ export class GraphManager implements IGraphManager {
     this.scroller = null;
     this.dragEdgePan = null;
     runCleanupTasks([
+      () => {
+        this.notifications.dispose();
+      },
       ...this.domEventCleanups.splice(0),
       () => {
         this.sessions.dispose();
@@ -354,6 +369,43 @@ export class GraphManager implements IGraphManager {
         if (debugWindow.__graph_manager === this) delete debugWindow.__graph_manager;
       },
     ]);
+  }
+
+  patchNode(patch: GraphNodePatch): void {
+    this.projection.patchNode(patch);
+  }
+  subscribeEdits(listener: (edit: GraphEdit) => void): Unsubscribe {
+    return this.notifications.subscribeEdits(listener);
+  }
+  subscribeEvents(listener: (event: GraphApplicationEvent) => void): Unsubscribe {
+    return this.notifications.subscribeEvents(listener);
+  }
+  notifyConnectionRejected(rejection: GraphConnectionRejection): void {
+    void this.graph?.trigger("connection:rejected", { ...rejection });
+  }
+  getNodePorts(nodeId: string): readonly PortDefinition[] {
+    const type = this.projection.nodeTypes.get(nodeId);
+    if (!type) return [];
+    const ports = this.types.ports.get(type);
+    return ports?.map((port) => ({ ...port })) ?? [];
+  }
+
+  getEdgeTypeMetadata(name: string): GraphEdgeTypeMetadata | null {
+    const config = this.types.edges.get(name);
+    return config
+      ? {
+          ...(config.schema
+            ? {
+                schema: config.schema.map((field) => ({
+                  ...field,
+                  ...(field.defaultValue === undefined
+                    ? {}
+                    : { defaultValue: structuredClone(field.defaultValue) }),
+                })),
+              }
+            : {}),
+        }
+      : null;
   }
 
   registerNodeType(meta: NodeMeta, view: NodeView): void {
@@ -438,7 +490,7 @@ export class GraphManager implements IGraphManager {
     return this.selectionPlugin?.getSelectedCells().map((cell) => cell.id) ?? [];
   }
 
-  setInteractionMode(mode: ReturnType<IGraphManager["getInteractionMode"]>): void {
+  setInteractionMode(mode: ReturnType<GraphAdapterPort["getInteractionMode"]>): void {
     if (this.interactionMode === mode) return;
     this.interactionMode = mode;
     this.scroller?.togglePanning(mode === "pan");
@@ -446,7 +498,7 @@ export class GraphManager implements IGraphManager {
     this.graph?.trigger("interaction:change" as never, { mode } as never);
   }
 
-  getInteractionMode(): ReturnType<IGraphManager["getInteractionMode"]> {
+  getInteractionMode(): ReturnType<GraphAdapterPort["getInteractionMode"]> {
     return this.interactionMode;
   }
 

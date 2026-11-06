@@ -7,6 +7,21 @@ const { ESLint, Linter } = require("eslint");
 const eslint = new ESLint({ cwd: root });
 const linter = new Linter();
 const cases = [
+  ["packages/core/src/editor.ts", "import type {GraphOptions} from '@flow-designer/graph';", true],
+  [
+    "packages/core/src/index.ts",
+    "export type {IGraphManager} from '../../graph/src/contracts';",
+    true,
+  ],
+  ["packages/model/src/index.ts", "export {CANVAS_COMMANDS} from '@flow-designer/core';", true],
+  [
+    "packages/model/src/index.ts",
+    "export type {GraphPort} from '../../core/src/graph-contracts';",
+    true,
+  ],
+  ["packages/model/src/index.ts", "export type {PaneConfig} from '@flow-designer/skeleton';", true],
+  ["packages/model/src/index.ts", "import type {GraphOptions} from '@flow-designer/graph';", true],
+  ["packages/graph/src/index.ts", "import type {GraphPort} from '@flow-designer/core';", false],
   [
     "packages/i18n/src/catalog/graph.ts",
     "import {GraphManager} from '@flow-designer/graph';",

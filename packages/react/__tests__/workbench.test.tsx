@@ -1,3 +1,5 @@
+import type { GraphApplicationEvent } from "@flow-designer/core";
+import type { GenericRelation } from "@flow-designer/model";
 import { bindSkeleton } from "@flow-designer/skeleton";
 import { useEffect } from "react";
 import { act, render, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -127,8 +129,7 @@ describe("workbench panels", () => {
       setInteractionMode: vi.fn((next: "select" | "pan") => {
         mode = next;
       }),
-      on: vi.fn(),
-      off: vi.fn(),
+      subscribeEvents: vi.fn(() => () => {}),
     };
     const engine = fixture();
     act(() =>
@@ -146,20 +147,16 @@ describe("workbench panels", () => {
   });
 
   it("opens quick add with stencil shape icons and keeps the inspector collapsed after closing", async () => {
-    const handlers = new Map<string, Set<(...args: unknown[]) => void>>();
+    const handlers = new Set<(event: GraphApplicationEvent) => void>();
     const graph = {
       getInteractionMode: () => "pan",
-      getEdgeTypeName: () => null,
+      getEdgeTypeName: (id: string) => (id === "edge-1" ? "sequence-flow" : null),
       clientToLocal: vi.fn((x: number, y: number) => ({ x, y })),
       localToClient: vi.fn((x: number, y: number) => ({ x, y })),
       select: vi.fn(),
-      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
-        const listeners = handlers.get(event) ?? new Set();
-        listeners.add(handler);
-        handlers.set(event, listeners);
-      }),
-      off: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
-        handlers.get(event)?.delete(handler);
+      subscribeEvents: vi.fn((handler: (event: GraphApplicationEvent) => void) => {
+        handlers.add(handler);
+        return () => handlers.delete(handler);
       }),
     };
     const engine = fixture();
@@ -186,8 +183,8 @@ describe("workbench panels", () => {
     expect(screen.getByRole("textbox", { name: "node property" })).toBeTruthy();
 
     const doubleClick = () =>
-      handlers.get("blank:dblclick")?.forEach((handler) => {
-        handler({ e: { clientX: 100, clientY: 100 } });
+      handlers.forEach((handler) => {
+        handler({ type: "blank-double-clicked", clientPosition: { x: 100, y: 100 } });
       });
     act(doubleClick);
     expect(screen.getByRole("button", { name: "展开属性" })).toBeTruthy();
@@ -286,21 +283,29 @@ describe("workbench panels", () => {
     }
   });
 
-  it("opens the inspector for edge selections and leaves node double clicks alone", () => {
-    const handlers = new Map<string, Set<(...args: unknown[]) => void>>();
+  it("opens the inspector for a modeled edge using only application subscriptions", async () => {
+    const handlers = new Set<(event: GraphApplicationEvent) => void>();
     const graph = {
       getInteractionMode: () => "pan",
       getEdgeTypeName: (id: string) => (id === "edge-1" ? "sequence-flow" : null),
-      on: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
-        const listeners = handlers.get(event) ?? new Set();
-        listeners.add(handler);
-        handlers.set(event, listeners);
-      }),
-      off: vi.fn((event: string, handler: (...args: unknown[]) => void) => {
-        handlers.get(event)?.delete(handler);
+      subscribeEvents: vi.fn((handler: (event: GraphApplicationEvent) => void) => {
+        handlers.add(handler);
+        return () => handlers.delete(handler);
       }),
     };
     const engine = fixture();
+    prototypeRegistry.register({
+      meta: { name: "Edge fixture", typeName: "workbench-edge-fixture" },
+      view: { type: "node", shape: "fd-rect" },
+      schema: [],
+    });
+    const source = await engine.doc.getContent().addNode({ type: "workbench-edge-fixture" });
+    const target = await engine.doc.getContent().addNode({ type: "workbench-edge-fixture" });
+    (source.getRelation() as GenericRelation).addEdge({
+      id: "edge-1",
+      targetNodeId: target.getId(),
+      type: "sequence-flow",
+    });
     engine.skeleton.inspector.add({
       key: "settings",
       area: "inspector",
@@ -314,8 +319,7 @@ describe("workbench panels", () => {
 
     act(() => engine.doc.getSelection().setKeys(["edge-1"]));
     expect(screen.getByRole("textbox", { name: "edge property" })).toBeTruthy();
-    expect(graph.on).not.toHaveBeenCalledWith("node:dblclick", expect.any(Function));
-    expect(graph.on).not.toHaveBeenCalledWith("edge:dblclick", expect.any(Function));
-    expect(graph.off).not.toHaveBeenCalledWith("node:dblclick", expect.any(Function));
+    expect(graph).not.toHaveProperty("on");
+    expect(graph).not.toHaveProperty("getEdgeTypeConfig");
   });
 });

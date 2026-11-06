@@ -1,7 +1,8 @@
-import type { IGraphManager } from "@flow-designer/model";
+import type { GraphPort } from "@flow-designer/core";
+
 import { useFlowDesigner } from "../context";
 
-export function useGraph(): IGraphManager | null {
+export function useGraph(): GraphPort | null {
   const { editor } = useFlowDesigner();
   return editor.getGraph();
 }

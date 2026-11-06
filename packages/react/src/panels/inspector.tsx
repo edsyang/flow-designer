@@ -25,7 +25,7 @@ export const Inspector = observer(function Inspector(props: InspectorProps) {
   const selectedKey = keys.length === 1 ? keys[0] : undefined;
   const selectedNode = selectedKey ? doc.getContent().getNode(selectedKey) : null;
   const hasNodeSettings = (selectedNode?.getSettings().getItems().length ?? 0) > 0;
-  const selectedEdgeType = selectedKey && graph ? graph.getEdgeTypeName(selectedKey) : null;
+  const hasSelectedEdge = Boolean(selectedKey && graph?.getEdgeTypeName(selectedKey));
   const docHasSettings = doc.getSettings().getItems().length > 0;
   const contentId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,10 +36,10 @@ export const Inspector = observer(function Inspector(props: InspectorProps) {
       if (!docHasSettings) setCollapsed(true);
       return;
     }
-    if (hasNodeSettings || selectedEdgeType) {
+    if (hasNodeSettings || hasSelectedEdge) {
       setCollapsed(false);
     }
-  }, [selectedKey, hasNodeSettings, selectedEdgeType, docHasSettings]);
+  }, [selectedKey, hasNodeSettings, hasSelectedEdge, docHasSettings]);
   useEffect(() => {
     if (!graph) return;
     // Only a double click on empty canvas collapses the inspector: clicking a
@@ -51,12 +51,10 @@ export const Inspector = observer(function Inspector(props: InspectorProps) {
     const expandForBlank = () => {
       if (docHasSettings) setCollapsed(true);
     };
-    graph.on("blank:dblclick", collapse);
-    graph.on("blank:click", expandForBlank);
-    return () => {
-      graph.off("blank:dblclick", collapse);
-      graph.off("blank:click", expandForBlank);
-    };
+    return graph.subscribeEvents((event) => {
+      if (event.type === "blank-double-clicked") collapse();
+      if (event.type === "blank-clicked") expandForBlank();
+    });
   }, [graph, docHasSettings]);
   useEffect(() => {
     if (!containerRef.current) return;

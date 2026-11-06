@@ -1,7 +1,9 @@
+import type { EdgeTypeConfig } from "@flow-designer/graph";
+import type { ConnectionContext } from "@flow-designer/core";
 import { BuiltinSetters } from "@flow-designer/setters/constants";
 import { canUsePort } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
-import type { ConnectionContext, EdgeTypeConfig } from "@flow-designer/model";
+
 import { BPMN_TYPE_NAMES } from "./constants";
 
 export const sequenceFlowConfig: EdgeTypeConfig = {

@@ -1,7 +1,9 @@
+import type { GraphNotifications } from "./graph-notifications";
 import { runCleanupTasks } from "./cleanup-tasks";
 import type { Graph, Cell, Edge, Node as X6Node } from "@antv/x6";
 import { canUsePort } from "@flow-designer/model";
-import type { PortDefinition, BlankConnectionEvent, EdgeTypeConfig } from "@flow-designer/model";
+import type { PortDefinition } from "@flow-designer/model";
+import type { BlankConnectionEvent, EdgeTypeConfig } from "./contracts";
 import type { ConnectionCoordinator } from "./connection-coordinator";
 import type { GraphPresentation } from "./graph-presentation";
 import { markRoutingPersisted, routingAffectedEdges } from "./edge-routing";
@@ -15,6 +17,7 @@ export class GraphInteractionSessions {
     private edgeTypeByCellId: ReadonlyMap<string, string>,
     private edgeTypes: ReadonlyMap<string, EdgeTypeConfig>,
     private setEdgeType: (id: string, type: string) => void,
+    private notifications: GraphNotifications,
   ) {}
   private get graph(): Graph | null {
     return this.currentGraph();
@@ -272,8 +275,8 @@ export class GraphInteractionSessions {
   setupPortAutoSwitch(): void {
     const graph = this.assertGraph();
 
-    graph.on("edge:connected", ({ edge }: { edge: Edge }) => {
-      if (!edge.getTargetCell()) return;
+    graph.on("edge:connected", ({ edge, isNew }: { edge: Edge; isNew?: boolean }) => {
+      if (this.graph !== graph || !edge.getTargetCell()) return;
       markRoutingPersisted(edge);
       if (!this.edgeTypeByCellId.has(edge.id)) {
         const defaultType = this.connections.getDefaultEdgeType();
@@ -281,6 +284,11 @@ export class GraphInteractionSessions {
       }
       this.connections.updateRouterDirections(edge);
       this.connections.updateConnectorDirections(edge);
+      this.notifications.publishEdit({
+        type: "edge-connected",
+        edge: this.notifications.edgeSnapshot(edge),
+        ...(isNew === undefined ? {} : { isNew }),
+      });
     });
 
     type SavedEdge = {
@@ -421,7 +429,7 @@ export class GraphInteractionSessions {
     };
     graph.on("node:moving", reroute);
     graph.on("node:moved", (args: MovePayload) => {
-      if (!movingNode(args)) return;
+      if (this.graph !== graph || !movingNode(args)) return;
       if (gesture?.lastRejected && initial) restore(initial);
       else reroute(args);
       Object.assign(args, {
@@ -432,6 +440,24 @@ export class GraphInteractionSessions {
           ]),
         ],
       });
+      const node = movingNode(args);
+      if (node) {
+        const edges = new Map(
+          [
+            ...graph.getConnectedEdges(node),
+            ...(args.routingEdgeIds ?? [])
+              .map((id): Cell | null | undefined => graph.getCellById(id))
+              .filter((cell): cell is Edge => !!cell && cell.isEdge()),
+          ].map((edge) => [edge.id, edge]),
+        );
+        const position = node.position();
+        this.notifications.publishEdit({
+          type: "node-moved",
+          nodeId: node.id,
+          position: { x: position.x, y: position.y },
+          edges: [...edges.values()].map((edge) => this.notifications.edgeSnapshot(edge)),
+        });
+      }
       gesture = null;
       initial = null;
     });

@@ -1,18 +1,17 @@
+import type { GraphApplicationEvent } from "@flow-designer/core";
+import type {
+  ConnectionRejectionReason,
+  CanvasPrototypeRequest,
+  CreateCanvasNodeRequest,
+  GraphPort,
+} from "@flow-designer/core";
 import type { IArea } from "@flow-designer/skeleton";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Input } from "antd";
-import { CANVAS_COMMANDS, prototypeRegistry } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import { CANVAS_COMMANDS } from "@flow-designer/core";
 import { t } from "@flow-designer/i18n";
-import type {
-  BlankConnectionEvent,
-  ConnectionRejectedEvent,
-  ConnectionRejectionReason,
-  Document as EditorDocument,
-  CanvasPrototypeRequest,
-  CreateCanvasNodeRequest,
-  IGraphManager,
-  Prototype,
-} from "@flow-designer/model";
+import type { Document as EditorDocument, Prototype } from "@flow-designer/model";
 import { useEditor, useSkeleton } from "../hooks";
 import { commandRegistry } from "@flow-designer/core";
 import { getMessageApi } from "../message-holder";
@@ -74,7 +73,7 @@ export function Canvas(props: CanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const canvasAreaRef = useRef<HTMLElement | null>(null);
-  const [graph, setGraph] = useState<IGraphManager | null>(null);
+  const [graph, setGraph] = useState<GraphPort | null>(null);
   const [prototypes, setPrototypes] = useState<Prototype[]>([]);
   const [query, setQuery] = useState("");
   const [menu, setMenu] = useState<QuickAddMenu | null>(null);
@@ -164,21 +163,25 @@ export function Canvas(props: CanvasProps) {
       });
     };
 
-    const handleBlankConnection = (...args: unknown[]) => {
-      const payload = args[0] as BlankConnectionEvent | undefined;
-      if (!payload?.sourceCellId) return;
-      const clientPoint = graphManager.localToClient(payload.x, payload.y);
+    const handleBlankConnection = (
+      payload: Extract<GraphApplicationEvent, { type: "connection-blank" }>,
+    ) => {
+      const clientPoint = graphManager.localToClient(
+        payload.graphPosition.x,
+        payload.graphPosition.y,
+      );
       openQuickAdd(clientPoint, {
-        cellId: payload.sourceCellId,
+        cellId: payload.sourceNodeId,
         portId: payload.sourcePortId ?? null,
-        ...(payload.edgeId ? { edgeId: payload.edgeId } : {}),
+        ...(payload.temporaryEdgeId ? { edgeId: payload.temporaryEdgeId } : {}),
         ...(payload.reason ? { reason: payload.reason } : {}),
       });
     };
 
-    const handleConnectionRejected = (...args: unknown[]) => {
-      const payload = args[0] as ConnectionRejectedEvent | undefined;
-      if (payload?.reason) {
+    const handleConnectionRejected = (
+      payload: Extract<GraphApplicationEvent, { type: "connection-rejected" }>,
+    ) => {
+      if (payload.reason) {
         const nodeId =
           payload.reason === "workbench.connection.sourceCannotConnect"
             ? payload.sourceNode
@@ -192,34 +195,26 @@ export function Canvas(props: CanvasProps) {
     };
 
     let warnedBaseline: object | undefined;
-    const handleRoutingDegraded = (...args: unknown[]) => {
-      const payload = args[0] as { edgeIds?: string[]; reason?: string } | undefined;
-      if (!payload?.edgeIds?.length) return;
+    const handleRoutingDegraded = (
+      payload: Extract<GraphApplicationEvent, { type: "routing-degraded" }>,
+    ) => {
+      if (!payload.edgeIds.length) return;
       const baseline = editor.getDocument().getTimeline().getPoints()[0];
       if (!baseline || baseline === warnedBaseline) return;
       warnedBaseline = baseline;
-      void getMessageApi()?.warning(t(payload.reason ?? "workbench.connection.legacyRouteWarning"));
+      void getMessageApi()?.warning(t(payload.reason));
     };
 
-    const handleBlankDoubleClick = (...args: unknown[]) => {
-      const payload = args[0] as
-        | {
-            e?: { clientX?: number; clientY?: number };
-            x?: number;
-            y?: number;
-          }
-        | undefined;
+    const handleBlankDoubleClick = (
+      payload: Extract<GraphApplicationEvent, { type: "blank-double-clicked" }>,
+    ) => {
       const canvasArea = canvasAreaRef.current;
-      if (!payload || !canvasArea) return;
-
-      const clientX = payload.e?.clientX;
-      const clientY = payload.e?.clientY;
+      if (!canvasArea) return;
       const clientPoint =
-        Number.isFinite(clientX) && Number.isFinite(clientY)
-          ? { x: clientX as number, y: clientY as number }
-          : payload.x !== undefined && payload.y !== undefined
-            ? graphManager.localToClient(payload.x, payload.y)
-            : null;
+        payload.clientPosition ??
+        (payload.graphPosition
+          ? graphManager.localToClient(payload.graphPosition.x, payload.graphPosition.y)
+          : null);
       if (!clientPoint) return;
 
       openQuickAdd(clientPoint);
@@ -244,15 +239,24 @@ export function Canvas(props: CanvasProps) {
     };
     container.addEventListener("keydown", handleCanvasKeyDown);
 
-    graphManager.on("blank:dblclick", handleBlankDoubleClick);
-    graphManager.on("connection:blank", handleBlankConnection);
-    graphManager.on("connection:rejected", handleConnectionRejected);
-    graphManager.on("edge:routing:degraded", handleRoutingDegraded);
+    const unsubscribeEvents = graphManager.subscribeEvents((event) => {
+      switch (event.type) {
+        case "blank-double-clicked":
+          handleBlankDoubleClick(event);
+          break;
+        case "connection-blank":
+          handleBlankConnection(event);
+          break;
+        case "connection-rejected":
+          handleConnectionRejected(event);
+          break;
+        case "routing-degraded":
+          handleRoutingDegraded(event);
+          break;
+      }
+    });
     return () => {
-      graphManager.off("blank:dblclick", handleBlankDoubleClick);
-      graphManager.off("connection:blank", handleBlankConnection);
-      graphManager.off("connection:rejected", handleConnectionRejected);
-      graphManager.off("edge:routing:degraded", handleRoutingDegraded);
+      unsubscribeEvents();
       if (pendingEdgeRef.current) graphManager.removeCell(pendingEdgeRef.current);
       pendingEdgeRef.current = null;
       container.removeEventListener("keydown", handleCanvasKeyDown);
