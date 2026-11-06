@@ -1,17 +1,21 @@
+import { acquireBrowserTheme } from "../src/browser/theme";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { getTheme, setTheme } from "@flow-designer/model";
+import { getTheme, setTheme } from "@flow-designer/core";
 import { useTheme } from "../src/hooks/use-theme";
 
 const initialTheme = getTheme();
 
+let releaseTheme: (() => void) | undefined;
 beforeEach(() => {
+  releaseTheme = acquireBrowserTheme();
   setTheme("light");
 });
 
 afterEach(() => {
   cleanup();
   setTheme(initialTheme);
+  releaseTheme?.();
   document.documentElement.removeAttribute("data-fd-theme");
 });
 

@@ -6,7 +6,6 @@ import {
   contentTypesRegistry,
   GenericContent,
   initializeDesignerI18n,
-  signal,
 } from "@flow-designer/engine";
 import { subscribeLocale, t } from "@flow-designer/i18n";
 import { erMessages } from "@flow-designer/er-nodes/i18n";
@@ -32,9 +31,6 @@ async function init() {
 
   registerERNodes();
   refreshERTranslations();
-  subscribeLocale(() => {
-    refreshERTranslations();
-  });
 
   const designer: Designer = await createDesigner({
     container,
@@ -48,12 +44,17 @@ async function init() {
     },
   });
 
-  signal.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
+  designer.editor.events.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
     const edgeType = getRelationEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });
 
   window.designer = designer;
+  designer.engine.addDisposer(
+    subscribeLocale(() => {
+      refreshERTranslations(designer.editor.getRegistries().prototypes);
+    }),
+  );
 
   designer.engine.skeleton.header.add({
     key: "app-title",

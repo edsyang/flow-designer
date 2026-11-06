@@ -43,7 +43,7 @@ describe("CommandRegistry", () => {
     expect(reg.unregister("nope")).toBe(false);
   });
 
-  it("getRegistry returns internal map", () => {
+  it("getRegistry returns a query snapshot", () => {
     const reg = new CommandRegistry();
     const fn = () => {};
     reg.register("cmd", fn);

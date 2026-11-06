@@ -10,10 +10,10 @@ import { CanvasToolbar } from "./panels/canvas-toolbar";
 import { Sidebar } from "./panels/sidebar";
 import { Inspector } from "./panels/inspector";
 import { Canvas } from "./panels/canvas";
-import { setMessageApi } from "./message-holder";
-import { applyTheme, getThemeSnapshot, subscribeTheme } from "@flow-designer/model";
+import { useEditor } from "./hooks/use-editor";
+import { getThemeSnapshot, subscribeTheme } from "@flow-designer/core";
 import { getLocaleSnapshot, subscribeLocale, t } from "@flow-designer/i18n";
-import type { Theme } from "@flow-designer/model";
+import type { Theme } from "@flow-designer/core";
 import type { Locale } from "@flow-designer/i18n";
 import type { WorkbenchProps } from "./types";
 import styles from "./workbench.module.less";
@@ -48,7 +48,14 @@ function buildTheme(dark: boolean) {
 
 function MessageBridge() {
   const { message } = App.useApp();
-  setMessageApi(message);
+  const editor = useEditor();
+  useEffect(
+    () =>
+      editor.notifications.bindSink((notification) => {
+        void message[notification.level](notification.message);
+      }),
+    [editor, message],
+  );
   return null;
 }
 
@@ -72,10 +79,6 @@ export const Workbench = observer(function Workbench(props: WorkbenchProps) {
   const { editor, skeleton } = engine;
   const doc = editor.getDocument();
   const themeConfig = useMemo(() => buildTheme(theme === "dark"), [theme]);
-
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
 
   const rootClass = className ? `${styles.workbench} ${className}` : styles.workbench;
 

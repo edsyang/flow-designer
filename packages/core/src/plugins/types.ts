@@ -1,8 +1,17 @@
+import type { CommandRegistry } from "../command";
+import type { NotificationCenter } from "../notifications";
+import type { ShortcutPort } from "../shortcuts";
+import type { RegistrySet, Signal } from "@flow-designer/model";
 import type { GraphPort } from "../graph-contracts";
 import type { Editor } from "../editor";
 import type { Logger } from "../utils";
 
 export interface IPluginContext {
+  readonly commands: CommandRegistry;
+  readonly notifications: NotificationCenter;
+  readonly shortcuts: ShortcutPort;
+  readonly registries: RegistrySet;
+  readonly events: Signal;
   editor: Editor;
   plugins: IPluginManager;
   graph: GraphPort | null;

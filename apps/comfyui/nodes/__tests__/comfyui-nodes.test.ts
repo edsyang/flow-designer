@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { prototypeRegistry } from "@flow-designer/model";
+import { prototypeRegistry, createRegistrySet } from "@flow-designer/model";
 import { setLocale } from "@flow-designer/i18n";
 import { refreshComfyUITranslations, registerComfyUINodes } from "../src";
 import { checkpointLoaderDef } from "../src/checkpoint-loader";
@@ -26,21 +26,44 @@ describe("ComfyUI node definitions", () => {
     }
   });
 
-  it("refreshes registered labels and settings when the locale changes", async () => {
-    registerComfyUINodes();
-    await setLocale("en-US");
-    refreshComfyUITranslations();
-
-    expect(checkpointLoaderDef.meta.name).toBe("Checkpoint Loader");
-    expect(checkpointLoaderDef.meta.categoryTitle).toBe("Loaders");
-    expect(checkpointLoaderDef.view.ports?.[0]?.label).toBe("Model");
-    expect(checkpointLoaderDef.editor[0]?.description).toBe("Checkpoint");
-    expect(prototypeRegistry.getPrototypeByType("CheckpointLoaderSimple")?.getName()).toBe(
-      "Checkpoint Loader",
-    );
-
-    await setLocale("zh-CN");
-    refreshComfyUITranslations();
+  it("refreshes only the registered instance labels and settings without mutating templates", async () => {
+    const owned = createRegistrySet(),
+      peer = createRegistrySet();
+    registerComfyUINodes(owned.prototypes);
+    registerComfyUINodes(peer.prototypes);
+    const templateBefore = {
+      name: checkpointLoaderDef.meta.name,
+      category: checkpointLoaderDef.meta.categoryTitle,
+      description: checkpointLoaderDef.editor[0]?.description,
+    };
+    const peerName = peer.prototypes.getPrototypeByType("CheckpointLoaderSimple")?.getName();
+    try {
+      await setLocale("en-US");
+      refreshComfyUITranslations(owned.prototypes);
+      const definition = owned.prototypes
+        .getPrototypeByType("CheckpointLoaderSimple")
+        ?.getDefinition();
+      if (!definition) throw new Error("Registered node definition is missing");
+      expect(definition.meta.name).toBe("Checkpoint Loader");
+      expect(definition.meta.categoryTitle).toBe("Loaders");
+      expect(definition.editor[0]?.description).toBe("Checkpoint");
+      expect(owned.prototypes.getPrototypeByType("CheckpointLoaderSimple")?.getName()).toBe(
+        "Checkpoint Loader",
+      );
+      expect(definition.view.ports?.[0]?.label).toBe("Model");
+      expect(peer.prototypes.getPrototypeByType("CheckpointLoaderSimple")?.getName()).toBe(
+        peerName,
+      );
+      expect({
+        name: checkpointLoaderDef.meta.name,
+        category: checkpointLoaderDef.meta.categoryTitle,
+        description: checkpointLoaderDef.editor[0]?.description,
+      }).toEqual(templateBefore);
+    } finally {
+      owned.dispose();
+      peer.dispose();
+      await setLocale("zh-CN");
+    }
   });
 
   it("CheckpointLoaderSimple has 0 inputs and 3 typed outputs (MODEL/CLIP/VAE)", () => {

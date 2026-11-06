@@ -26,16 +26,28 @@ export async function initializeDesignerI18n(
   await initializeI18n(messages, getInitialLocale());
 }
 
-/** Persistence is owned by the designer lifetime; catalogue updates do not write storage. */
+let preferenceOwners = 0;
+let releasePreference: (() => void) | null = null;
+/** Each designer owns a lease on the one page-shared persistence subscription. */
 export function persistLocalePreference(): () => void {
-  let previous = getLocale();
-  return subscribeLocale((locale) => {
-    if (previous === locale) return;
-    previous = locale;
-    try {
-      globalThis.localStorage.setItem(STORAGE_KEY, locale);
-    } catch (error) {
-      console.warn("[FlowDesigner] Unable to persist the selected language:", error);
-    }
-  });
+  if (preferenceOwners++ === 0) {
+    let previous = getLocale();
+    releasePreference = subscribeLocale((locale) => {
+      if (previous === locale) return;
+      previous = locale;
+      try {
+        globalThis.localStorage.setItem(STORAGE_KEY, locale);
+      } catch (error) {
+        console.warn("[FlowDesigner] Unable to persist the selected language:", error);
+      }
+    });
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    if (--preferenceOwners > 0) return;
+    releasePreference?.();
+    releasePreference = null;
+  };
 }

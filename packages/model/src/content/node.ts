@@ -1,5 +1,4 @@
 import { EventEmitter } from "eventemitter3";
-import { prototypeRegistry } from "../registries";
 import type Prototype from "../prototype";
 import Props from "../props";
 import type { PropsData } from "../props";
@@ -34,6 +33,7 @@ export default class ContentNode<T extends Relation = Relation> {
     private content: Content<T>,
     nodeData: NodeData,
   ) {
+    const prototypeRegistry = content.getDocument().getRegistries().prototypes;
     let prototype = prototypeRegistry.getPrototypeByType(nodeData.type);
     if (!prototype) {
       prototype = prototypeRegistry.getPrototypeByType("Unknown")!;

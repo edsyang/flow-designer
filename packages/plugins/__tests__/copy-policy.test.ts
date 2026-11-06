@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Editor, commandRegistry } from "@flow-designer/core";
+import { Editor } from "@flow-designer/core";
 import type { IPluginContext } from "@flow-designer/core";
 import {
   Document,
@@ -10,7 +10,6 @@ import {
 import { pluginCopyPaste } from "../src/copy-paste";
 
 const messages = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn() }));
-vi.mock("@flow-designer/react", () => ({ getMessageApi: () => messages }));
 afterEach(() => vi.clearAllMocks());
 
 function fixture() {
@@ -42,10 +41,17 @@ function fixture() {
   });
   const editor = new Editor();
   editor.setDocument(doc);
+  editor.notifications.bindSink(({ level, message }) => {
+    if (level === "warning") messages.warning(message);
+    if (level === "success") messages.success(message);
+  });
   const select = vi.fn((ids: string[]) => doc.getSelection().setKeys(ids));
   const graph = { getSelection: () => doc.getSelection().getKeys(), select };
   const ctx = {
     editor,
+    commands: editor.commands,
+    notifications: editor.notifications,
+    shortcuts: { bind: () => () => {} },
     graph,
     container: document.createElement("div"),
     logger: { error: vi.fn() },
@@ -54,6 +60,7 @@ function fixture() {
   plugin.init?.();
   return {
     doc,
+    editor,
     graph,
     destroy: () => {
       plugin.destroy?.();
@@ -70,13 +77,13 @@ describe("model-backed copy policy", () => {
       doc.getSelection().setKeys(["allowed", "blocked", "edge"]);
       const before = doc.getData();
       const points = doc.getTimeline().getPoints().length;
-      commandRegistry.executeCommand("copy");
+      fixtureState.editor.commands.executeCommand("copy");
       expect(messages.warning).toHaveBeenCalledWith(expect.stringContaining("Blocked、连线"));
       expect(messages.success).toHaveBeenCalledWith(expect.stringContaining("Allowed"));
       expect(doc.getData()).toEqual(before);
       expect(doc.getSelection().getKeys()).toEqual(["allowed", "blocked", "edge"]);
       expect(doc.getTimeline().getPoints()).toHaveLength(points);
-      await commandRegistry.executeCommand("paste");
+      await fixtureState.editor.commands.executeCommand("paste");
       const pasted = doc
         .getContent()
         .getNodes()
@@ -99,13 +106,13 @@ describe("model-backed copy policy", () => {
     const { doc } = fixtureState;
     try {
       doc.getSelection().setKeys(["allowed"]);
-      commandRegistry.executeCommand("copy");
+      fixtureState.editor.commands.executeCommand("copy");
       messages.success.mockClear();
       doc.getSelection().setKeys(["blocked", "edge"]);
-      commandRegistry.executeCommand("copy");
+      fixtureState.editor.commands.executeCommand("copy");
       expect(messages.warning).toHaveBeenCalledOnce();
       expect(messages.success).not.toHaveBeenCalled();
-      await commandRegistry.executeCommand("paste");
+      await fixtureState.editor.commands.executeCommand("paste");
       expect(
         doc
           .getContent()

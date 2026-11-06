@@ -1,7 +1,6 @@
 export { FlowDesignerProvider } from "./provider";
 export { Workbench } from "./workbench";
 export { ErrorBoundary } from "./error-boundary";
-export { getMessageApi } from "./message-holder";
 export {
   useEditor,
   useDocument,
@@ -20,4 +19,7 @@ export type { WorkbenchProps, FlowDesignerProviderProps } from "./types";
 export type { SignalHandler } from "./hooks/use-signal";
 export type { ITranslate } from "./hooks/use-translate";
 export type { ITheme } from "./hooks/use-theme";
-export type { Theme } from "@flow-designer/model";
+export type { Theme } from "@flow-designer/core";
+
+export { createBrowserShortcuts } from "./browser/shortcuts";
+export { acquireBrowserTheme, getInitialTheme, applyTheme } from "./browser/theme";

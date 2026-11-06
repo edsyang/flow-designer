@@ -17,7 +17,7 @@ import type {
   ContentNode,
 } from "@flow-designer/model";
 import type { Locale } from "@flow-designer/i18n";
-import { prototypeRegistry, setterRegistry } from "@flow-designer/model";
+import { setterRegistry } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 import styles from "./settings-renderer.module.less";
 import { edgeNameField, edgeNamePatch, edgeNameValue } from "../x6-graph/commands/edge-properties";
@@ -32,7 +32,7 @@ const NodeSettingsPanel = observer(function NodeSettingsPanel({
   const node = useNode(nodeId);
   if (!node) return <div className={styles.empty}>{t("plugin.settings.nodeMissing")}</div>;
   const typeName = node.getTypeName();
-  const proto = prototypeRegistry.getPrototypeByType(typeName);
+  const proto = node.getDocument().getRegistries().prototypes.getPrototypeByType(typeName);
   const title = proto?.getName() ?? typeName;
   return (
     <div className={styles.container} lang={locale}>

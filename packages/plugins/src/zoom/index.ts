@@ -1,7 +1,5 @@
 import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
-import { commandRegistry } from "@flow-designer/core";
-import { utils } from "@flow-designer/model";
 import { ZoomControl } from "./zoom-control";
 
 const ZOOM_STEP = 0.1;
@@ -30,29 +28,21 @@ export function pluginZoom(ctx: IPluginContext): IPluginConfig {
     name: "plugin-zoom",
     dep: ["plugin-x6-graph"],
     init() {
-      commandRegistry.register("zoomIn", zoomIn);
-      commandRegistry.register("zoomOut", zoomOut);
-      commandRegistry.register("resetZoom", resetZoom);
+      shortcutDisposers.push(ctx.commands.register("zoomIn", zoomIn));
+      shortcutDisposers.push(ctx.commands.register("zoomOut", zoomOut));
+      shortcutDisposers.push(ctx.commands.register("resetZoom", resetZoom));
 
       shortcutDisposers.push(
-        utils.hotkey.bindScoped(
-          "mod+=",
-          (e) => {
-            e.preventDefault();
-            zoomIn();
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+=", (e) => {
+          e.preventDefault();
+          zoomIn();
+        }),
       );
       shortcutDisposers.push(
-        utils.hotkey.bindScoped(
-          "mod+-",
-          (e) => {
-            e.preventDefault();
-            zoomOut();
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+-", (e) => {
+          e.preventDefault();
+          zoomOut();
+        }),
       );
 
       skeleton.canvasToolbar.add({
@@ -81,9 +71,6 @@ export function pluginZoom(ctx: IPluginContext): IPluginConfig {
       shortcutDisposers.splice(0).forEach((dispose) => {
         dispose();
       });
-      commandRegistry.unregister("zoomIn");
-      commandRegistry.unregister("zoomOut");
-      commandRegistry.unregister("resetZoom");
       skeleton.canvasToolbar.remove("zoom-control");
     },
   };

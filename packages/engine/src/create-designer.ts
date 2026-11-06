@@ -1,7 +1,8 @@
+import { createBrowserShortcuts, acquireBrowserTheme } from "@flow-designer/react";
 import { initializeDesignerI18n, persistLocalePreference } from "./i18n";
 import { configure } from "mobx";
 import { getLogger } from "@flow-designer/core";
-import { Document, setterRegistry, contentTypesRegistry, utils } from "@flow-designer/model";
+import { Document, setterRegistry } from "@flow-designer/model";
 import {
   registerBuiltinPlugins,
   getGraphAdapter,
@@ -18,15 +19,20 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
   await initializeDesignerI18n(options.localeMessages);
   configure({ enforceActions: "observed" });
 
-  const engine = new Engine();
+  const engine = new Engine(options.registries);
   const { editor, plugins } = engine;
 
   try {
     engine.addDisposer(persistLocalePreference());
     editor.setContainer(options.container ?? null);
-    engine.addDisposer(utils.hotkey.init(window));
+    engine.addDisposer(acquireBrowserTheme());
+    const shortcuts = createBrowserShortcuts(() => editor.getContainer());
+    engine.addDisposer(() => {
+      shortcuts.dispose();
+    });
+    engine.addDisposer(editor.attachShortcuts(shortcuts));
     for (const transformer of options.transformers ?? []) {
-      engine.addDisposer(contentTypesRegistry.registerTransformer(transformer));
+      engine.addDisposer(engine.registries.contentTypes.registerTransformer(transformer));
     }
 
     if (!options.disableBuiltinSetters) {
@@ -61,6 +67,7 @@ export async function createDesigner(options: DesignerOptions): Promise<Designer
         documentVersion: options.documentVersion,
       },
       options.docSettings,
+      { registries: engine.registries },
     );
     editor.setDocument(doc);
 

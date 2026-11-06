@@ -170,10 +170,14 @@ export default class Prototype {
   }
 
   updateDefinition(definition: NodeDefinition): void {
-    if (this.definition?.meta.typeName !== definition.meta.typeName) {
-      throw new Error(`Cannot update prototype ${this.typeName} with ${definition.meta.typeName}`);
-    }
-    Object.assign(this, new Prototype(definition));
+    this.updateConfig(definition);
+  }
+
+  updateConfig(config: NodeDefinition | PrototypeConfig): void {
+    const next = new Prototype(config);
+    if (next.getTypeName() !== this.typeName)
+      throw new Error(`Cannot update prototype ${this.typeName} with ${next.getTypeName()}`);
+    Object.assign(this, next);
   }
 
   getDefinition(): NodeDefinition | null {

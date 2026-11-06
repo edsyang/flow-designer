@@ -2,7 +2,7 @@ import { bindSkeleton } from "@flow-designer/skeleton";
 import { describe, it, expect, vi, beforeAll } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { createElement } from "react";
-import { Document, GenericContent, contentTypesRegistry, signal } from "@flow-designer/model";
+import { Document, GenericContent, contentTypesRegistry } from "@flow-designer/model";
 import { Editor } from "@flow-designer/core";
 import { Skeleton } from "@flow-designer/skeleton";
 import { FlowDesignerProvider } from "../src/provider";
@@ -140,6 +140,25 @@ describe("usePlugins", () => {
 });
 
 describe("useSignal", () => {
+  it("observes document and editor signals without crossing editor instances", () => {
+    const first = createTestEngine(),
+      second = createTestEngine();
+    const a = vi.fn(),
+      b = vi.fn();
+    const viewA = renderHook(() => useSignal("owned-event", a), { wrapper: createWrapper(first) });
+    const viewB = renderHook(() => useSignal("owned-event", b), { wrapper: createWrapper(second) });
+    first.editor.getDocument().getSignals().sendSignal("owned-event", "document");
+    first.editor.events.sendSignal("owned-event", "editor");
+    expect(a.mock.calls).toEqual([["document"], ["editor"]]);
+    expect(b).not.toHaveBeenCalled();
+    viewA.unmount();
+    first.editor.getDocument().getSignals().sendSignal("owned-event", "late");
+    second.editor.events.sendSignal("owned-event", "second");
+    expect(a).toHaveBeenCalledTimes(2);
+    expect(b).toHaveBeenCalledWith("second");
+    viewB.unmount();
+  });
+
   it("registers and cleans up signal handler", () => {
     const handler = vi.fn();
     const engine = createTestEngine();
@@ -147,12 +166,12 @@ describe("useSignal", () => {
       wrapper: createWrapper(engine),
     });
 
-    signal.sendSignal("test-signal", "arg1");
+    engine.editor.events.sendSignal("test-signal", "arg1");
     expect(handler).toHaveBeenCalledWith("arg1");
 
     unmount();
     handler.mockClear();
-    signal.sendSignal("test-signal", "arg2");
+    engine.editor.events.sendSignal("test-signal", "arg2");
     expect(handler).not.toHaveBeenCalled();
   });
 });

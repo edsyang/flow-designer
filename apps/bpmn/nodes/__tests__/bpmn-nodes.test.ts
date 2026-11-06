@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { prototypeRegistry } from "@flow-designer/model";
+import { prototypeRegistry, createRegistrySet } from "@flow-designer/model";
 import { setLocale } from "@flow-designer/i18n";
 import { refreshBpmnTranslations, registerBpmnNodes } from "../src";
 import { startEventDef } from "../src/start-event";
@@ -205,22 +205,41 @@ describe("BPMN node definitions", () => {
     expect(processGlobalDef.editor).toHaveLength(4);
   });
 
-  it("refreshes registered labels and settings when the locale changes", async () => {
-    registerBpmnNodes();
-    await setLocale("en-US");
-    const changedDefaults = refreshBpmnTranslations();
-
-    expect(startEventDef.meta.name).toBe("Start");
-    expect(startEventDef.meta.categoryTitle).toBe("Events");
-    expect(startEventDef.editor[0]?.description).toBe("Name");
-    expect(prototypeRegistry.getPrototypeByType("StartEvent")?.getName()).toBe("Start");
-    expect(changedDefaults).toContainEqual({
-      typeName: "StartEvent",
-      previous: "开始",
-      next: "Start",
-    });
-
-    await setLocale("zh-CN");
-    refreshBpmnTranslations();
+  it("refreshes only the registered instance labels and settings without mutating templates", async () => {
+    const owned = createRegistrySet(),
+      peer = createRegistrySet();
+    registerBpmnNodes(owned.prototypes);
+    registerBpmnNodes(peer.prototypes);
+    const templateBefore = {
+      name: startEventDef.meta.name,
+      category: startEventDef.meta.categoryTitle,
+      description: startEventDef.editor[0]?.description,
+    };
+    const peerName = peer.prototypes.getPrototypeByType("StartEvent")?.getName();
+    try {
+      await setLocale("en-US");
+      const changedDefaults = refreshBpmnTranslations(owned.prototypes);
+      const definition = owned.prototypes.getPrototypeByType("StartEvent")?.getDefinition();
+      if (!definition) throw new Error("Registered node definition is missing");
+      expect(definition.meta.name).toBe("Start");
+      expect(definition.meta.categoryTitle).toBe("Events");
+      expect(definition.editor[0]?.description).toBe("Name");
+      expect(owned.prototypes.getPrototypeByType("StartEvent")?.getName()).toBe("Start");
+      expect(changedDefaults).toContainEqual({
+        typeName: "StartEvent",
+        previous: "开始",
+        next: "Start",
+      });
+      expect(peer.prototypes.getPrototypeByType("StartEvent")?.getName()).toBe(peerName);
+      expect({
+        name: startEventDef.meta.name,
+        category: startEventDef.meta.categoryTitle,
+        description: startEventDef.editor[0]?.description,
+      }).toEqual(templateBefore);
+    } finally {
+      owned.dispose();
+      peer.dispose();
+      await setLocale("zh-CN");
+    }
   });
 });

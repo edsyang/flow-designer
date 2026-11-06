@@ -1,4 +1,7 @@
-import { Editor, PluginManager } from "@flow-designer/core";
+import { defaultRegistries } from "@flow-designer/model";
+import type { RegistrySet } from "@flow-designer/model";
+import type { ResourceDisposer } from "@flow-designer/core";
+import { Editor, PluginManager, DisposableScope, CleanupError } from "@flow-designer/core";
 import { Skeleton, bindSkeleton } from "@flow-designer/skeleton";
 
 export class Engine {
@@ -6,18 +9,27 @@ export class Engine {
   readonly skeleton: Skeleton;
   readonly plugins: PluginManager;
   private destruction: Promise<void> | null = null;
-  private disposers: Array<() => void> = [];
+  readonly registries: RegistrySet;
+  private resources = new DisposableScope();
 
-  constructor() {
-    this.editor = new Editor();
+  constructor(registries?: RegistrySet) {
+    this.registries = registries ?? defaultRegistries.fork();
+    if (!registries)
+      this.addDisposer(() => {
+        this.registries.dispose();
+      });
+    this.editor = new Editor({ registries: this.registries });
+    this.addDisposer(() => {
+      this.editor.dispose();
+    });
     this.skeleton = new Skeleton();
     this.addDisposer(bindSkeleton(this.editor, this.skeleton));
     this.plugins = new PluginManager(this.editor);
     this.editor.setPlugins(this.plugins);
   }
 
-  addDisposer(dispose: () => void): void {
-    this.disposers.push(dispose);
+  addDisposer(dispose: ResourceDisposer): () => Promise<void> {
+    return this.resources.add(dispose);
   }
 
   destroy(): Promise<void> {
@@ -30,22 +42,23 @@ export class Engine {
     try {
       await this.plugins.dispose();
     } catch (error) {
-      errors.push(error);
+      if (error instanceof CleanupError) errors.push(...error.errors);
+      else errors.push(error);
+    }
+    try {
+      if (this.editor.hasDocument()) this.editor.getDocument().destroy();
+    } catch (error) {
+      if (error instanceof CleanupError) errors.push(...error.errors);
+      else errors.push(error);
     }
     this.editor.setGraph(null);
     this.editor.setContainer(null);
     try {
-      this.editor.getDocument().destroy();
+      await this.resources.dispose();
     } catch (error) {
-      errors.push(error);
+      if (error instanceof CleanupError) errors.push(...error.errors);
+      else errors.push(error);
     }
-    for (const dispose of this.disposers.splice(0).reverse()) {
-      try {
-        dispose();
-      } catch (error) {
-        errors.push(error);
-      }
-    }
-    if (errors.length) throw errors[0];
+    if (errors.length) throw new CleanupError(errors);
   }
 }

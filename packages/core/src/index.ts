@@ -20,3 +20,12 @@ export type { Level } from "./utils/logger";
 
 export * from "./graph-contracts";
 export * from "./canvas-commands";
+
+export { NotificationCenter } from "./notifications";
+export type { Notification, NotificationSink } from "./notifications";
+export { DisposableScope, CleanupError } from "./disposable-scope";
+export type { ResourceDisposer } from "./disposable-scope";
+export type { ShortcutPort, ShortcutEvent } from "./shortcuts";
+export type { EditorOptions } from "./editor";
+export { getTheme, getThemeSnapshot, setTheme, subscribeTheme } from "./theme";
+export type { Theme } from "./theme";

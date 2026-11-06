@@ -1,5 +1,4 @@
 import type { ContentNode } from "@flow-designer/model";
-import { prototypeRegistry } from "@flow-designer/model";
 import { subscribeLocale } from "@flow-designer/i18n";
 import type { GraphPort } from "@flow-designer/core";
 import type { GraphBridge } from "./graph-bridge";
@@ -41,7 +40,7 @@ export class NodeBridge {
   }
 
   refresh(): void {
-    const prototype = prototypeRegistry.getPrototypeByType(this.node.getTypeName());
+    const prototype = this.node.getPrototype();
     const label = this.getLabel();
     this.graphManager.patchNode({
       nodeId: this.node.getId(),
@@ -55,7 +54,7 @@ export class NodeBridge {
   }
 
   private getLabel(): string {
-    const prototype = prototypeRegistry.getPrototypeByType(this.node.getTypeName());
+    const prototype = this.node.getPrototype();
     const name = this.node.getProps().getProp("name")?.getData() as string | undefined;
     return truncateLabel(
       prototype?.getNameForValue(name) ?? name ?? this.node.getTypeName(),

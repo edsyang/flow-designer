@@ -160,7 +160,7 @@ describe("workbench panels", () => {
       }),
     };
     const engine = fixture();
-    prototypeRegistry.register({
+    engine.editor.getRegistries().prototypes.register({
       name: "Configured double-click",
       typeName: "workbench-double-click",
       view: { type: "node", shape: "fd-rect" },
@@ -216,14 +216,14 @@ describe("workbench panels", () => {
         }) as unknown as MediaQueryList,
     );
     try {
-      prototypeRegistry.register({
+      const engine = fixture();
+      engine.editor.getRegistries().prototypes.register({
         name: "Configured",
         typeName: "workbench-configured",
         view: { type: "node" },
         props: [{ name: "label", defaultValue: "" }],
         settings: [{ name: "label", setter: "StringSetter" }],
       });
-      const engine = fixture();
       const first = await engine.doc.getContent().addNode({ type: "workbench-configured" });
       const second = await engine.doc.getContent().addNode({ type: "workbench-configured" });
       engine.skeleton.inspector.add({
@@ -294,7 +294,7 @@ describe("workbench panels", () => {
       }),
     };
     const engine = fixture();
-    prototypeRegistry.register({
+    engine.editor.getRegistries().prototypes.register({
       meta: { name: "Edge fixture", typeName: "workbench-edge-fixture" },
       view: { type: "node", shape: "fd-rect" },
       schema: [],

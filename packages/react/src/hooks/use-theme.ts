@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { getThemeSnapshot, setTheme, subscribeTheme } from "@flow-designer/model";
-import type { Theme } from "@flow-designer/model";
+import { getThemeSnapshot, setTheme, subscribeTheme } from "@flow-designer/core";
+import type { Theme } from "@flow-designer/core";
 
 export interface ITheme {
   theme: Theme;

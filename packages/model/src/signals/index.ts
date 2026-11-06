@@ -9,16 +9,18 @@ export default class Signal extends EventEmitter {
   }
 
   onSignal(signal: string, fn: signalFn): destroyFn {
-    this.on(signal, fn);
+    const listener = fn.bind(this);
+    this.on(signal, listener);
     return () => {
-      this.removeListener(signal, fn);
+      this.removeListener(signal, listener);
     };
   }
 
   onceSignal(signal: string, fn: signalFn): destroyFn {
-    this.once(signal, fn);
+    const listener = fn.bind(this);
+    this.once(signal, listener);
     return () => {
-      this.removeListener(signal, fn);
+      this.removeListener(signal, listener);
     };
   }
 }

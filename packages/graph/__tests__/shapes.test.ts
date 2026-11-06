@@ -1,3 +1,4 @@
+import { Node } from "@antv/x6";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { registerShape } from "../src/shapes";
 import { GraphManager } from "../src/graph-manager";
@@ -39,5 +40,15 @@ describe("shapes", () => {
     expect(manager.getCellById("rect-1")).toBeTruthy();
     expect(manager.getCellById("diamond-1")).toBeTruthy();
     expect(manager.getCellById("circle-1")).toBeTruthy();
+  });
+  it("releases explicit global extensions by identity without deleting a newer replacement", () => {
+    const releaseA = registerShape("owned-global-shape", { inherit: "rect", width: 100 });
+    const releaseB = registerShape("owned-global-shape", { inherit: "rect", width: 200 });
+    const latest = Node.registry.get("owned-global-shape");
+    releaseA();
+    expect(Node.registry.get("owned-global-shape")).toBe(latest);
+    releaseB();
+    expect(Node.registry.get("owned-global-shape")).toBeUndefined();
+    releaseB();
   });
 });

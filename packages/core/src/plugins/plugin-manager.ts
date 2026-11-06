@@ -1,3 +1,4 @@
+import { CleanupError } from "../disposable-scope";
 import type { RegisterOptions, IPluginManager, IPlugin, PluginCreator } from "./types";
 import { PluginContext } from "./plugin-context";
 import type { Editor } from "../editor";
@@ -111,22 +112,17 @@ export class PluginManager implements IPluginManager {
   }
 
   async destroy() {
-    let firstError: unknown;
-    let hasError = false;
+    const errors: unknown[] = [];
     for (const plugin of [...this.plugins].reverse()) {
       try {
         await plugin.destroy();
       } catch (error) {
-        if (!hasError) {
-          firstError = error;
-          hasError = true;
-        }
+        if (error instanceof CleanupError) errors.push(...error.errors);
+        else errors.push(error);
         logger.error(`Failed to destroy plugin "${plugin.name}".`, error);
       }
     }
-    if (hasError) {
-      throw firstError;
-    }
+    if (errors.length) throw new CleanupError(errors);
   }
 
   get size() {

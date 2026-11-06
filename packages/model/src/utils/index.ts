@@ -1,13 +1,9 @@
-import Hotkey from "./hotkey";
-
 export enum DataType {
   Map = "map",
   List = "list",
   Scalar = "scalar",
   Null = "null",
 }
-
-export const hotkey = new Hotkey();
 
 function isPlainObject(obj: any): boolean {
   return Object.getPrototypeOf(obj) === Object.prototype;

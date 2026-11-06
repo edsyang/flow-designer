@@ -6,13 +6,6 @@ vi.mock("antd", () => ({
   Button: "button",
   Space: "div",
 }));
-vi.mock("@flow-designer/react", async (importOriginal) => {
-  const actual = (await importOriginal()) as any;
-  return {
-    ...actual,
-    getMessageApi: () => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn() }),
-  };
-});
 vi.mock("@ant-design/icons", () => ({
   CheckOutlined: "span",
   GlobalOutlined: "span",
@@ -32,10 +25,14 @@ beforeAll(() => {
     disconnect() {}
   } as any;
 });
-import { commandRegistry } from "@flow-designer/core";
+import { CommandRegistry, NotificationCenter } from "@flow-designer/core";
+import { prototypeRegistry } from "@flow-designer/model";
 
 function createMockContext(overrides: Record<string, any> = {}) {
   const ctx = {
+    commands: new CommandRegistry(),
+    notifications: new NotificationCenter(),
+    shortcuts: { bind: vi.fn(() => () => {}) },
     graph: {
       getZoom: vi.fn(() => 1),
       zoomTo: vi.fn(),
@@ -85,6 +82,7 @@ function createMockContext(overrides: Record<string, any> = {}) {
     },
     ...overrides,
   };
+  Object.assign(ctx.editor, { getRegistries: () => ({ prototypes: prototypeRegistry }) });
   bindSkeleton(ctx.editor as unknown as Editor, ctx.skeleton);
   return ctx;
 }
@@ -116,12 +114,6 @@ describe("pluginZoom", () => {
     config.destroy!();
   });
 
-  beforeEach(() => {
-    commandRegistry.unregister("zoomIn");
-    commandRegistry.unregister("zoomOut");
-    commandRegistry.unregister("resetZoom");
-  });
-
   it("registers commands and canvas toolbar component", async () => {
     const { pluginZoom } = await import("../src/zoom");
     const ctx = createMockContext();
@@ -130,9 +122,9 @@ describe("pluginZoom", () => {
     expect(config.dep).toEqual(["plugin-x6-graph"]);
 
     config.init!();
-    expect(commandRegistry.hasCommand("zoomIn")).toBe(true);
-    expect(commandRegistry.hasCommand("zoomOut")).toBe(true);
-    expect(commandRegistry.hasCommand("resetZoom")).toBe(true);
+    expect(ctx.commands.hasCommand("zoomIn")).toBe(true);
+    expect(ctx.commands.hasCommand("zoomOut")).toBe(true);
+    expect(ctx.commands.hasCommand("resetZoom")).toBe(true);
     expect(ctx.skeleton.canvasToolbar.add).toHaveBeenCalledWith(
       expect.objectContaining({ key: "zoom-control", area: "canvasToolbar" }),
     );
@@ -144,7 +136,7 @@ describe("pluginZoom", () => {
     const config = pluginZoom(ctx as any);
     config.init!();
 
-    commandRegistry.executeCommand("zoomIn");
+    ctx.commands.executeCommand("zoomIn");
     expect(ctx.graph.zoomTo).toHaveBeenCalledWith(1.1);
   });
 
@@ -154,7 +146,7 @@ describe("pluginZoom", () => {
     const config = pluginZoom(ctx as any);
     config.init!();
 
-    commandRegistry.executeCommand("resetZoom");
+    ctx.commands.executeCommand("resetZoom");
     expect(ctx.graph.zoomToFit).toHaveBeenCalled();
   });
 
@@ -165,25 +157,20 @@ describe("pluginZoom", () => {
     config.init!();
     config.destroy!();
 
-    expect(commandRegistry.hasCommand("zoomIn")).toBe(false);
+    expect(ctx.commands.hasCommand("zoomIn")).toBe(false);
     expect(ctx.skeleton.canvasToolbar.remove).toHaveBeenCalledWith("zoom-control");
   });
 });
 
 describe("pluginUndoRedo", () => {
-  beforeEach(() => {
-    commandRegistry.unregister("undo");
-    commandRegistry.unregister("redo");
-  });
-
   it("registers undo and redo commands", async () => {
     const { pluginUndoRedo } = await import("../src/undo-redo");
     const ctx = createMockContext();
     const config = pluginUndoRedo(ctx as any);
     config.init!();
 
-    expect(commandRegistry.hasCommand("undo")).toBe(true);
-    expect(commandRegistry.hasCommand("redo")).toBe(true);
+    expect(ctx.commands.hasCommand("undo")).toBe(true);
+    expect(ctx.commands.hasCommand("redo")).toBe(true);
     expect(ctx.skeleton.canvasToolbar.add).toHaveBeenCalledWith(
       expect.objectContaining({ key: "undo-redo" }),
     );
@@ -206,25 +193,20 @@ describe("pluginUndoRedo", () => {
     });
     const config = pluginUndoRedo(ctx as any);
     config.init!();
-    commandRegistry.executeCommand("undo");
+    ctx.commands.executeCommand("undo");
     expect(back).toHaveBeenCalled();
   });
 });
 
 describe("pluginCopyPaste", () => {
-  beforeEach(() => {
-    commandRegistry.unregister("copy");
-    commandRegistry.unregister("paste");
-  });
-
   it("registers copy and paste commands", async () => {
     const { pluginCopyPaste } = await import("../src/copy-paste");
     const ctx = createMockContext();
     const config = pluginCopyPaste(ctx as any);
     config.init!();
 
-    expect(commandRegistry.hasCommand("copy")).toBe(true);
-    expect(commandRegistry.hasCommand("paste")).toBe(true);
+    expect(ctx.commands.hasCommand("copy")).toBe(true);
+    expect(ctx.commands.hasCommand("paste")).toBe(true);
   });
 
   it("copies selected model data without a native clipboard", async () => {
@@ -246,8 +228,8 @@ describe("pluginCopyPaste", () => {
     });
     const config = pluginCopyPaste(ctx as any);
     config.init!();
-    commandRegistry.executeCommand("copy");
-    await commandRegistry.executeCommand("paste");
+    ctx.commands.executeCommand("copy");
+    await ctx.commands.executeCommand("paste");
     expect(addNode).toHaveBeenCalledWith({
       type: "copy-fixture",
       props: { label: "Copy", __position: { x: 40, y: 50 } },
@@ -258,16 +240,12 @@ describe("pluginCopyPaste", () => {
 });
 
 describe("pluginDelete", () => {
-  beforeEach(() => {
-    commandRegistry.unregister("delete");
-  });
-
   it("registers delete command", async () => {
     const { pluginDelete } = await import("../src/delete");
     const ctx = createMockContext();
     const config = pluginDelete(ctx as any);
     config.init!();
-    expect(commandRegistry.hasCommand("delete")).toBe(true);
+    expect(ctx.commands.hasCommand("delete")).toBe(true);
   });
 
   it("deletes selected nodes via content.removeNode", async () => {
@@ -295,7 +273,7 @@ describe("pluginDelete", () => {
     });
     const config = pluginDelete(ctx as any);
     config.init!();
-    await commandRegistry.executeCommand("delete");
+    await ctx.commands.executeCommand("delete");
     expect(removeNode).toHaveBeenCalledWith("n1");
     expect(removeEdgeById).toHaveBeenCalledWith("e1");
   });

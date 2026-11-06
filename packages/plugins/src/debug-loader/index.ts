@@ -1,5 +1,5 @@
+import type { NodeDefinition, PrototypeConfig } from "@flow-designer/model";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
-import { prototypeRegistry } from "@flow-designer/model";
 
 const DEFAULT_PORTS = [8080];
 
@@ -53,7 +53,9 @@ export function pluginDebugLoader(ctx: IPluginContext): IPluginConfig {
           );
           const proto = (mod as Record<string, unknown>).default ?? mod;
           if (proto && typeof proto === "object" && "name" in proto && "view" in proto) {
-            prototypeRegistry.register(proto as Parameters<typeof prototypeRegistry.register>[0]);
+            ctx.editor
+              .getRegistries()
+              .prototypes.register(proto as NodeDefinition | PrototypeConfig);
           }
         } catch {
           // debug component load failure is non-fatal

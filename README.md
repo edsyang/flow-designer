@@ -288,3 +288,5 @@ Import `GraphPort`, canvas command contracts and connection decision types from 
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).
+
+Instance commands and notifications belong to `designer.editor`; document registries are available through `designer.document.getRegistries()`. See [the runtime migration guide](docs/core-runtime-migration.md) for ownership, disposal and the explicitly page-shared theme/locale policy.

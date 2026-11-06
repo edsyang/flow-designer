@@ -1,4 +1,4 @@
-import { Graph } from "@antv/x6";
+import { Graph, Node } from "@antv/x6";
 
 export interface ShapeDefinition {
   inherit: "rect" | "circle" | "polygon" | "ellipse" | "path";
@@ -9,8 +9,15 @@ export interface ShapeDefinition {
   [extra: string]: unknown;
 }
 
-export function registerShape(name: string, config: ShapeDefinition): void {
-  Graph.registerNode(name, config as any, true);
+/** Explicit page-global X6 extension, not a business node-type registration.
+ * Business node renderers use the owning GraphManager's private shape namespace.
+ * The returned cleanup only removes this registration, never a newer replacement.
+ */
+export function registerShape(name: string, config: ShapeDefinition): () => void {
+  const definition = Graph.registerNode(name, config as any, true);
+  return () => {
+    if (Node.registry.get(name) === definition) Graph.unregisterNode(name);
+  };
 }
 
 const PORT_MARKUP = [
@@ -51,7 +58,9 @@ export const DEFAULT_PORT_ITEMS = [
   { id: "left", group: "left" },
 ];
 
+let builtinsRegistered = false;
 export function registerBuiltinShapes(): void {
+  if (builtinsRegistered) return;
   registerShape("fd-rect", {
     inherit: "rect",
     width: 140,
@@ -111,4 +120,5 @@ export function registerBuiltinShapes(): void {
     },
     ports: { groups: PORT_GROUPS },
   });
+  builtinsRegistered = true;
 }

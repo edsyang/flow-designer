@@ -39,7 +39,7 @@ Static import rules do not establish transitive dependency isolation or detect d
 
 ## Instance support boundary
 
-The examples initialize one designer per page. Prototype/content/setter registries, signals, command registration, and hotkeys include shared state; isolated same-page multi-instance behavior has not been established. This is a current support limitation, not a decision to prohibit future multi-instance support. Any change claiming isolation must verify two independently configured editors, focus/shortcut dispatch, and destruction of one while the other remains usable.
+Document catalogs/signals, editor commands/notifications, scoped shortcuts and business renderer registrations are instance-owned. Two independently configured editors are verified with same-name types and IDs, focused shortcuts and destruction of one while the other remains usable. Theme and locale are explicitly page-shared preferences. Setter/UI contribution ownership is addressed separately in P6; this guarantee does not isolate arbitrary application globals or explicit page-global native X6 extensions.
 
 ## Translation ownership and migration
 

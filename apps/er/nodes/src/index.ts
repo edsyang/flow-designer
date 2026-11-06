@@ -1,3 +1,4 @@
+import type { PrototypeRegistry } from "@flow-designer/model";
 import { prototypeRegistry } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 export { erMessages } from "./i18n";
@@ -20,10 +21,10 @@ const allDefs: NodeDefinition[] = [tableDef, viewDef, enumDef];
  * Idempotent: already-registered types are left to `refreshERTranslations()`,
  * which owns locale updates. Registering an absent type is this function's job.
  */
-export function registerERNodes(): void {
+export function registerERNodes(registry: PrototypeRegistry = prototypeRegistry): void {
   for (const def of allDefs) {
-    if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+    if (!registry.getPrototypeByType(def.meta.typeName)) {
+      registry.register(def);
     }
   }
 }
@@ -33,7 +34,7 @@ export function registerERNodes(): void {
  * the types that are already present. It never registers a new type: a
  * translation refresh must not create nodes as a side effect.
  */
-export function refreshERTranslations(): void {
+export function refreshERTranslations(registry: PrototypeRegistry = prototypeRegistry): void {
   const names: Record<string, string> = {
     Table: "er.node.table",
     View: "er.node.view",
@@ -53,7 +54,8 @@ export function refreshERTranslations(): void {
     enums: "er.category.enums",
   };
 
-  for (const def of allDefs) {
+  for (const template of allDefs) {
+    const def = registry.getPrototypeByType(template.meta.typeName)?.getDefinition() ?? template;
     def.meta.name = t(names[def.meta.typeName]!);
     if (def.meta.category && categoryTitles[def.meta.category]) {
       def.meta.categoryTitle = t(categoryTitles[def.meta.category]!);
@@ -63,8 +65,8 @@ export function refreshERTranslations(): void {
         field.description = t(descriptions[field.target]!);
       }
     }
-    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+    if (registry.getPrototypeByType(def.meta.typeName)) {
+      registry.replace(def);
     }
   }
 }

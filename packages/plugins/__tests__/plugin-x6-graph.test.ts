@@ -1,40 +1,27 @@
 import { bindSkeleton } from "@flow-designer/skeleton";
-import type { Editor } from "@flow-designer/core";
-import type { ISkeleton } from "@flow-designer/skeleton";
+import { Editor, PluginContext, PluginManager } from "@flow-designer/core";
+import { Skeleton } from "@flow-designer/skeleton";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
-import { prototypeRegistry, signal } from "@flow-designer/model";
 import type { Document } from "@flow-designer/model";
 import { pluginX6Graph } from "../src/x6-graph";
 import { setupRegistries, createDocument } from "./test-helpers";
 
 function createMockContext(document: Document) {
-  let mountCallback: ((container: HTMLElement) => void) | null = null;
-  const setGraph = vi.fn();
-  const editor = {
-    setGraph,
-    getGraph: vi.fn(),
-    getContainer: vi.fn(() => null),
-    setContainer: vi.fn(),
-    getDocument: () => document,
-  };
-  const ctx = {
-    skeleton: {
-      canvas: {
-        hooks: {
-          didMount: (cb: (container: HTMLElement) => void) => {
-            mountCallback = cb;
-          },
-        },
-      },
-    },
-    editor,
-  };
-  bindSkeleton(editor as unknown as Editor, ctx.skeleton as unknown as ISkeleton);
+  const editor = new Editor({ registries: document.getRegistries() });
+  editor.setDocument(document);
+  const skeleton = new Skeleton();
+  bindSkeleton(editor, skeleton);
+  const manager = new PluginManager(editor);
+  editor.setPlugins(manager);
+  const ctx = new PluginContext(editor, manager);
+  ctx.setLogger({ name: "plugin-x6-graph" });
+  const setGraph = vi.spyOn(editor, "setGraph");
   return {
-    ctx: ctx as unknown as IPluginContext,
-    triggerMount: (container: HTMLElement) => mountCallback?.(container),
+    ctx,
+    triggerMount: (container: HTMLElement) =>
+      skeleton.canvas.getDidMountCallbacks().forEach((callback) => callback(container)),
     setGraph,
   };
 }
@@ -111,7 +98,7 @@ describe("pluginX6Graph", () => {
     });
 
     const received: unknown[] = [];
-    const off = signal.onSignal("graph:init-failed", (error) => received.push(error));
+    const off = ctx.editor.events.onSignal("graph:init-failed", (error) => received.push(error));
 
     const config = pluginX6Graph(ctx);
     config.init!();

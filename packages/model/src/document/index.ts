@@ -1,6 +1,7 @@
 import { EventEmitter } from "eventemitter3";
-import { contentTypesRegistry } from "../registries";
-import { signal } from "../signals";
+import { defaultRegistries } from "../registries";
+import type { RegistrySet } from "../registries/registry-set";
+import Signal from "../signals";
 import Props from "../props";
 import type { PropsData } from "../props";
 import type Content from "../content";
@@ -10,6 +11,11 @@ import { hasOwn } from "../utils/index";
 import type { ChangeKeys } from "../props/prop";
 import Selection from "./selection";
 import Timeline from "./timeline";
+
+export interface DocumentOptions {
+  registries?: RegistrySet;
+  signals?: Signal;
+}
 
 export interface DocumentData {
   id: string;
@@ -109,15 +115,31 @@ export default class Document {
   private timeline: Timeline;
   private aspects: AspectsMap = {};
   private disableTimelineLogging: boolean = false;
+  private registries: RegistrySet;
+  private signals: Signal;
+  private ownsRegistries: boolean;
+  private ownsSignals: boolean;
+  private disposed = false;
 
-  constructor(data: DocumentData, settingsConfig?: Array<SettingConfig<Document>>) {
+  constructor(
+    data: DocumentData,
+    settingsConfig?: Array<SettingConfig<Document>>,
+    options: DocumentOptions = {},
+  ) {
+    this.ownsRegistries = !options.registries;
+    this.ownsSignals = !options.signals;
+    this.registries = options.registries ?? defaultRegistries.fork();
+    this.signals = options.signals ?? new Signal();
     const { id, documentType, documentVersion, props, ...contents } = data;
 
     this.id = id;
     this.documentType = documentType;
     this.documentVersion = documentVersion;
 
-    const ContentModel = contentTypesRegistry.getSuitableContentType(documentType, documentVersion);
+    const ContentModel = this.registries.contentTypes.getSuitableContentType(
+      documentType,
+      documentVersion,
+    );
     if (!ContentModel) {
       throw new Error("Cannot find suitable content model");
     }
@@ -139,6 +161,16 @@ export default class Document {
         this.applyTimelinePointData(pointData);
       },
     );
+  }
+
+  getRegistries(): RegistrySet {
+    return this.registries;
+  }
+  getSignals(): Signal {
+    return this.signals;
+  }
+  isDisposed(): boolean {
+    return this.disposed;
   }
 
   getId() {
@@ -170,6 +202,7 @@ export default class Document {
   }
 
   transaction<T>(title: string, operation: () => T | Promise<T>): Promise<T> {
+    if (this.disposed) return Promise.reject(new Error("Document has been destroyed"));
     return this.timeline.transaction(title, operation);
   }
 
@@ -219,6 +252,8 @@ export default class Document {
   }
 
   destroy(): void {
+    if (this.disposed) return;
+    this.disposed = true;
     this.timeline.pause();
     this.content.destroy();
     this.props.didPurge();
@@ -226,10 +261,12 @@ export default class Document {
     this.settings.didPurge();
     this.timeline.destroy();
     this.aspects = {};
+    if (this.ownsSignals) this.signals.removeAllListeners();
+    if (this.ownsRegistries) this.registries.dispose();
   }
 
   sendSignal(type: string, ...args: any[]): void {
-    signal.sendSignal(type, this, ...args);
+    if (!this.disposed) this.signals.sendSignal(type, this, ...args);
   }
 
   aspect(type: string, fn: AspectFn): void {
@@ -261,19 +298,39 @@ export class DocumentCollection {
   private emitter: EventEmitter = new EventEmitter();
   private items: Document[] = [];
   private current: Document | null = null;
+  private signals: Signal;
+  private registries: RegistrySet;
+  private ownsRegistries: boolean;
+  private ownsSignals: boolean;
+  private disposed = false;
 
   constructor(
     data: DocumentCollectionData,
     private settingsConfig?: Array<SettingConfig<Document>>,
+    private options: DocumentOptions = {},
   ) {
     this.items = [];
+    this.registries = options.registries ?? defaultRegistries.fork();
+    this.ownsRegistries = !options.registries;
+    this.signals = options.signals ?? new Signal();
+    this.ownsSignals = !options.signals;
+  }
+
+  getRegistries(): RegistrySet {
+    return this.registries;
+  }
+
+  getSignals(): Signal {
+    return this.signals;
   }
 
   createDocument(data: DocumentData): Document {
-    return new Document(data, this.settingsConfig);
+    if (this.disposed) throw new Error("Document collection has been destroyed");
+    return new Document(data, this.settingsConfig, { registries: this.registries });
   }
 
   addDocument(doc: DocumentData | Document, index: number | null = null): Document {
+    if (this.disposed) throw new Error("Document collection has been destroyed");
     if (!(doc instanceof Document)) {
       doc = this.createDocument(doc);
     }
@@ -286,7 +343,7 @@ export class DocumentCollection {
 
     this.items.splice(index, 0, doc);
 
-    signal.sendSignal(DocumentCollectionSignal.DOC_ADD, this, doc);
+    this.signals.sendSignal(DocumentCollectionSignal.DOC_ADD, this, doc);
 
     if (!this.current) {
       this.setCurrent(doc);
@@ -299,7 +356,7 @@ export class DocumentCollection {
     const i = this.items.indexOf(doc);
     if (i > -1) {
       this.items.splice(i, 1);
-      signal.sendSignal(DocumentCollectionSignal.DOC_REMOVE, this, doc);
+      this.signals.sendSignal(DocumentCollectionSignal.DOC_REMOVE, this, doc);
       if (this.current === doc) {
         this.setCurrent(this.getDocument(0));
       }
@@ -324,7 +381,7 @@ export class DocumentCollection {
     }
     const orig = this.current;
     this.current = doc;
-    signal.sendSignal(DocumentCollectionSignal.CURRENT_CHANGE, this, doc, orig);
+    this.signals.sendSignal(DocumentCollectionSignal.CURRENT_CHANGE, this, doc, orig);
     this.emitter.emit("currentchange");
   }
 
@@ -340,6 +397,17 @@ export class DocumentCollection {
     return () => {
       this.emitter.removeListener("currentchange", fn);
     };
+  }
+
+  /** Collection listeners/registries are owned here; externally retained documents remain caller-owned. */
+  destroy(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.emitter.removeAllListeners();
+    if (this.ownsSignals) this.signals.removeAllListeners();
+    if (this.ownsRegistries) this.registries.dispose();
+    this.items = [];
+    this.current = null;
   }
 
   getData(): DocumentCollectionData {

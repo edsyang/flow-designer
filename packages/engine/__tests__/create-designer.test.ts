@@ -1,7 +1,8 @@
+import * as BrowserUI from "@flow-designer/react";
 import { GraphManager } from "@flow-designer/graph";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createDesigner } from "../src/create-designer";
-import { contentTypesRegistry, GenericContent, utils } from "@flow-designer/model";
+import { contentTypesRegistry, GenericContent } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 
 beforeEach(() => {
@@ -202,7 +203,9 @@ describe("designer resource ownership", () => {
   });
   it("releases acquired listeners when registration throws before plugin initialization", async () => {
     const dispose = vi.fn();
-    const init = vi.spyOn(utils.hotkey, "init").mockReturnValue(dispose);
+    const init = vi
+      .spyOn(BrowserUI, "createBrowserShortcuts")
+      .mockReturnValue({ bind: () => () => {}, dispose });
     try {
       await expect(
         createDesigner({
@@ -235,7 +238,10 @@ describe("designer resource ownership", () => {
       disableBuiltinPlugins: ALL_DISABLED,
       transformers: [transformer],
     });
-    expect(contentTypesRegistry.transform(format, {})).toEqual({ owned: true });
+    expect(designer.editor.getRegistries().contentTypes.transform(format, {})).toEqual({
+      owned: true,
+    });
+    expect(() => contentTypesRegistry.transform(format, {})).toThrow("No transformer registered");
     await designer.destroy();
     expect(() => contentTypesRegistry.transform(format, {})).toThrow("No transformer registered");
   });

@@ -8,13 +8,10 @@ import type {
 import type { IArea } from "@flow-designer/skeleton";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Input } from "antd";
-import { prototypeRegistry } from "@flow-designer/model";
 import { CANVAS_COMMANDS } from "@flow-designer/core";
 import { t } from "@flow-designer/i18n";
 import type { Document as EditorDocument, Prototype } from "@flow-designer/model";
 import { useEditor, useSkeleton } from "../hooks";
-import { commandRegistry } from "@flow-designer/core";
-import { getMessageApi } from "../message-holder";
 import { mountArea } from "./mount-area";
 import styles from "../workbench.module.less";
 
@@ -42,7 +39,9 @@ function rejectionMessage(
   nodeId?: string,
 ): string {
   const node = nodeId ? document.getContent().getNode(nodeId) : null;
-  const prototype = node ? prototypeRegistry.getPrototypeByType(node.getTypeName()) : null;
+  const prototype = node
+    ? document.getRegistries().prototypes.getPrototypeByType(node.getTypeName())
+    : null;
   const value: unknown = node?.getProps().getPropData("name");
   const name =
     typeof value === "string" && value
@@ -69,6 +68,7 @@ function getQuickAddShapeColor(shape: string): string {
 export function Canvas(props: CanvasProps) {
   const { area } = props;
   const editor = useEditor();
+  const prototypeRegistry = editor.getRegistries().prototypes;
   const skeleton = useSkeleton();
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -188,9 +188,10 @@ export function Canvas(props: CanvasProps) {
             : payload.reason === "workbench.connection.targetCannotReceive"
               ? payload.targetNode
               : undefined;
-        void getMessageApi()?.warning(
-          rejectionMessage(payload.reason, editor.getDocument(), nodeId),
-        );
+        editor.notifications.notify({
+          level: "warning",
+          message: rejectionMessage(payload.reason, editor.getDocument(), nodeId),
+        });
       }
     };
 
@@ -202,7 +203,7 @@ export function Canvas(props: CanvasProps) {
       const baseline = editor.getDocument().getTimeline().getPoints()[0];
       if (!baseline || baseline === warnedBaseline) return;
       warnedBaseline = baseline;
-      void getMessageApi()?.warning(t(payload.reason));
+      editor.notifications.notify({ level: "warning", message: t(payload.reason) });
     };
 
     const handleBlankDoubleClick = (
@@ -281,7 +282,7 @@ export function Canvas(props: CanvasProps) {
     };
     refreshPrototypes();
     return prototypeRegistry.onRegistryChange(refreshPrototypes);
-  }, []);
+  }, [prototypeRegistry]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -382,7 +383,7 @@ export function Canvas(props: CanvasProps) {
         position: { x: menu.graphX, y: menu.graphY },
         ...(pending ? { source: { nodeId: pending.cellId, portId: pending.portId } } : {}),
       };
-      const result: unknown = await commandRegistry.executeCommand(
+      const result: unknown = await editor.commands.executeCommand(
         CANVAS_COMMANDS.createNode,
         request,
       );
@@ -414,7 +415,7 @@ export function Canvas(props: CanvasProps) {
       typeName: prototype.getTypeName(),
       source: { nodeId: menu.pendingSource.cellId, portId: menu.pendingSource.portId },
     };
-    const result: unknown = commandRegistry.executeCommand(
+    const result: unknown = editor.commands.executeCommand(
       CANVAS_COMMANDS.evaluatePrototype,
       request,
     );

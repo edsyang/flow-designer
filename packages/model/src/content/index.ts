@@ -112,7 +112,7 @@ export default abstract class Content<T extends Relation = Relation> {
     const doc = this.getDocument();
     return doc.invoke(ContentAop.NODE_ADDING, node, this).then(
       () => {
-        if (this.destroyed) {
+        if (this.destroyed || this.nodesMap[node.getId()] !== node) {
           node.didPurge();
           return null;
         }
@@ -135,6 +135,7 @@ export default abstract class Content<T extends Relation = Relation> {
   }
 
   removeNode(node: ContentNode<T> | string, sideEffects?: () => void) {
+    if (this.destroyed) return Promise.resolve(false);
     if (typeof node === "string") {
       node = this.nodesMap[node]!;
     }
@@ -143,10 +144,11 @@ export default abstract class Content<T extends Relation = Relation> {
       const doc = this.getDocument();
       return doc.invoke(ContentAop.NODE_REMOVING, node, this).then(
         () => {
-          if (isContentNode<T>(node)) {
+          if (isContentNode<T>(node) && !this.destroyed && this.nodesMap[node.getId()] === node) {
             if (sideEffects) {
               sideEffects();
             }
+            if (this.destroyed || this.nodesMap[node.getId()] !== node) return false;
             const i = this.nodes.indexOf(node);
             if (i > -1) {
               runInAction(() => {
@@ -159,6 +161,7 @@ export default abstract class Content<T extends Relation = Relation> {
               return true;
             }
           }
+          return false;
         },
         (_e: unknown) => {
           return false;

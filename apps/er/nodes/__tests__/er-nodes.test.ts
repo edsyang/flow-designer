@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { prototypeRegistry } from "@flow-designer/model";
+import { prototypeRegistry, createRegistrySet } from "@flow-designer/model";
 import { setLocale } from "@flow-designer/i18n";
 import { refreshERTranslations, registerERNodes } from "../src";
 import { tableDef } from "../src/table";
@@ -22,18 +22,37 @@ describe("ER node definitions", () => {
     }
   });
 
-  it("refreshes registered labels and settings when the locale changes", async () => {
-    registerERNodes();
-    await setLocale("en-US");
-    refreshERTranslations();
-
-    expect(tableDef.meta.name).toBe("Table");
-    expect(tableDef.meta.categoryTitle).toBe("Entities");
-    expect(tableDef.editor[0]?.description).toBe("Table name");
-    expect(prototypeRegistry.getPrototypeByType("Table")?.getName()).toBe("Table");
-
-    await setLocale("zh-CN");
-    refreshERTranslations();
+  it("refreshes only the registered instance labels and settings without mutating templates", async () => {
+    const owned = createRegistrySet(),
+      peer = createRegistrySet();
+    registerERNodes(owned.prototypes);
+    registerERNodes(peer.prototypes);
+    const templateBefore = {
+      name: tableDef.meta.name,
+      category: tableDef.meta.categoryTitle,
+      description: tableDef.editor[0]?.description,
+    };
+    const peerName = peer.prototypes.getPrototypeByType("Table")?.getName();
+    try {
+      await setLocale("en-US");
+      refreshERTranslations(owned.prototypes);
+      const definition = owned.prototypes.getPrototypeByType("Table")?.getDefinition();
+      if (!definition) throw new Error("Registered node definition is missing");
+      expect(definition.meta.name).toBe("Table");
+      expect(definition.meta.categoryTitle).toBe("Entities");
+      expect(definition.editor[0]?.description).toBe("Table name");
+      expect(owned.prototypes.getPrototypeByType("Table")?.getName()).toBe("Table");
+      expect(peer.prototypes.getPrototypeByType("Table")?.getName()).toBe(peerName);
+      expect({
+        name: tableDef.meta.name,
+        category: tableDef.meta.categoryTitle,
+        description: tableDef.editor[0]?.description,
+      }).toEqual(templateBefore);
+    } finally {
+      owned.dispose();
+      peer.dispose();
+      await setLocale("zh-CN");
+    }
   });
 
   it("Table has correct meta and 3 ports", () => {

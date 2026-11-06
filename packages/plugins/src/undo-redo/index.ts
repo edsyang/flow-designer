@@ -1,7 +1,5 @@
 import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
-import { commandRegistry } from "@flow-designer/core";
-import { utils } from "@flow-designer/model";
 import { UndoRedoButtons } from "./undo-redo-buttons";
 
 export function pluginUndoRedo(ctx: IPluginContext): IPluginConfig {
@@ -25,38 +23,26 @@ export function pluginUndoRedo(ctx: IPluginContext): IPluginConfig {
     name: "plugin-undo-redo",
     dep: ["plugin-x6-graph"],
     init() {
-      commandRegistry.register("undo", undo);
-      commandRegistry.register("redo", redo);
+      shortcutDisposers.push(ctx.commands.register("undo", undo));
+      shortcutDisposers.push(ctx.commands.register("redo", redo));
 
       shortcutDisposers.push(
-        utils.hotkey.bindScoped(
-          "mod+z",
-          (e) => {
-            e.preventDefault();
-            undo();
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+z", (e) => {
+          e.preventDefault();
+          undo();
+        }),
       );
       shortcutDisposers.push(
-        utils.hotkey.bindScoped(
-          "mod+shift+z",
-          (e) => {
-            e.preventDefault();
-            redo();
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+shift+z", (e) => {
+          e.preventDefault();
+          redo();
+        }),
       );
       shortcutDisposers.push(
-        utils.hotkey.bindScoped(
-          "mod+y",
-          (e) => {
-            e.preventDefault();
-            redo();
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+y", (e) => {
+          e.preventDefault();
+          redo();
+        }),
       );
 
       skeleton.canvasToolbar.add({
@@ -70,8 +56,6 @@ export function pluginUndoRedo(ctx: IPluginContext): IPluginConfig {
       shortcutDisposers.splice(0).forEach((dispose) => {
         dispose();
       });
-      commandRegistry.unregister("undo");
-      commandRegistry.unregister("redo");
       skeleton.canvasToolbar.remove("undo-redo");
     },
   };

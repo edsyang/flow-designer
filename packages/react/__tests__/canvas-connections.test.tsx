@@ -12,13 +12,12 @@ import {
 import { CANVAS_COMMANDS } from "@flow-designer/core";
 import { initializeI18n } from "@flow-designer/i18n";
 import type { GenericRelation, PortDefinition } from "@flow-designer/model";
-import { Editor, commandRegistry } from "@flow-designer/core";
+import { Editor } from "@flow-designer/core";
 import { registerCanvasCommands } from "../../plugins/src/x6-graph/commands";
 import { Skeleton } from "@flow-designer/skeleton";
 import { FlowDesignerContext } from "../src/context";
 import type { EngineShape } from "../src/types";
 import { Canvas } from "../src/panels/canvas";
-import { setMessageApi } from "../src/message-holder";
 
 beforeAll(async () => {
   await initializeI18n();
@@ -33,7 +32,6 @@ afterEach(() => {
 let fixtureId = 0;
 
 async function setup(rejectCommit = false) {
-  commandDisposers.push(registerCanvasCommands());
   const id = ++fixtureId;
   const ports: PortDefinition[] = [
     { id: "source-only", group: "in", position: "top", connectionDirection: "out" },
@@ -54,6 +52,7 @@ async function setup(rejectCommit = false) {
   const editor = new Editor();
   const skeleton = new Skeleton();
   editor.setDocument(doc);
+  commandDisposers.push(registerCanvasCommands(editor.commands));
   bindSkeleton(editor, skeleton);
   const listeners = new Set<(event: GraphApplicationEvent) => void>();
   const evaluateConnection = vi.fn(
@@ -99,7 +98,7 @@ async function setup(rejectCommit = false) {
       graphPosition: { x: 100, y: 100 },
       reason,
     });
-  return { id, doc, source: source!, graph, open, emit, view, evaluateConnection };
+  return { id, doc, editor, source: source!, graph, open, emit, view, evaluateConnection };
 }
 
 describe("Canvas pending connections", () => {
@@ -168,7 +167,7 @@ describe("Canvas pending connections", () => {
   it("reports a missing creation command without mutating the document", async () => {
     const fixture = await setup();
     fixture.open();
-    commandRegistry.unregister(CANVAS_COMMANDS.createNode);
+    fixture.editor.commands.unregister(CANVAS_COMMANDS.createNode);
     fireEvent.click(screen.getByRole("button", { name: `Target ${fixture.id}` }));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toContain(`Target ${fixture.id}`);
@@ -179,7 +178,11 @@ describe("Canvas pending connections", () => {
   it("aggregates legacy routing warnings once per loaded baseline without rejecting its connection", async () => {
     const fixture = await setup();
     const warning = vi.fn();
-    setMessageApi({ warning } as unknown as Parameters<typeof setMessageApi>[0]);
+    commandDisposers.push(
+      fixture.editor.notifications.bindSink(({ level, message }) => {
+        if (level === "warning") warning(message);
+      }),
+    );
     fixture.open();
     fixture.emit({
       type: "routing-degraded",
@@ -206,7 +209,11 @@ describe("Canvas pending connections", () => {
   it("shows one drop rejection message and releases its event listener", async () => {
     const fixture = await setup();
     const warning = vi.fn();
-    setMessageApi({ warning } as unknown as Parameters<typeof setMessageApi>[0]);
+    commandDisposers.push(
+      fixture.editor.notifications.bindSink(({ level, message }) => {
+        if (level === "warning") warning(message);
+      }),
+    );
     fixture.emit({
       type: "connection-rejected",
       valid: false,

@@ -1,6 +1,6 @@
 import { autorun } from "mobx";
 import type { Document, ContentNode, GenericRelation } from "@flow-designer/model";
-import { prototypeRegistry, canUsePort } from "@flow-designer/model";
+import { canUsePort } from "@flow-designer/model";
 import type {
   GraphPort,
   GraphEdgeSnapshot,
@@ -180,7 +180,7 @@ export class GraphBridge {
   }
 
   private toNodeConfig(node: ContentNode) {
-    const prototype = prototypeRegistry.getPrototypeByType(node.getTypeName());
+    const prototype = node.getPrototype();
     const type = prototype?.getName() ?? node.getTypeName();
     const { x, y } = node.getPosition();
     const name = node.getProps().getProp("name")?.getData() as string | undefined;

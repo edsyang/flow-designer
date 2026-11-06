@@ -1,3 +1,4 @@
+import type { PrototypeRegistry } from "@flow-designer/model";
 import { prototypeRegistry } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 export { bpmnMessages } from "./i18n";
@@ -46,10 +47,10 @@ const allDefs: NodeDefinition[] = [
  * Idempotent: already-registered types are left to `refreshBpmnTranslations()`,
  * which owns locale updates. Registering an absent type is this function's job.
  */
-export function registerBpmnNodes(): void {
+export function registerBpmnNodes(registry: PrototypeRegistry = prototypeRegistry): void {
   for (const def of allDefs) {
-    if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+    if (!registry.getPrototypeByType(def.meta.typeName)) {
+      registry.register(def);
     }
   }
 }
@@ -67,7 +68,9 @@ export interface DefaultNameChange {
  * It never registers a new type: a translation refresh must not create nodes as
  * a side effect. Call `registerBpmnNodes()` first (or after) to define nodes.
  */
-export function refreshBpmnTranslations(): DefaultNameChange[] {
+export function refreshBpmnTranslations(
+  registry: PrototypeRegistry = prototypeRegistry,
+): DefaultNameChange[] {
   const defaultNameKeys: Record<string, string> = {
     StartEvent: "bpmn.node.startEvent.label",
     EndEvent: "bpmn.node.endEvent.label",
@@ -103,7 +106,8 @@ export function refreshBpmnTranslations(): DefaultNameChange[] {
     global: "bpmn.category.global",
   };
 
-  for (const def of allDefs) {
+  for (const template of allDefs) {
+    const def = registry.getPrototypeByType(template.meta.typeName)?.getDefinition() ?? template;
     if (def.meta.category && categoryKeys[def.meta.category]) {
       def.meta.categoryTitle = t(categoryKeys[def.meta.category]!);
     }
@@ -137,8 +141,8 @@ export function refreshBpmnTranslations(): DefaultNameChange[] {
       }
     };
     refreshFields(def.editor);
-    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+    if (registry.getPrototypeByType(def.meta.typeName)) {
+      registry.replace(def);
     }
   }
 
@@ -157,7 +161,7 @@ export function getSequenceFlowEdgeType(): {
   return { name: SEQUENCE_FLOW_TYPE, config: sequenceFlowConfig };
 }
 
-export function getProcessGlobalSettings() {
-  const proto = prototypeRegistry.getPrototypeByType("ProcessGlobal");
+export function getProcessGlobalSettings(registry: PrototypeRegistry = prototypeRegistry) {
+  const proto = registry.getPrototypeByType("ProcessGlobal");
   return proto?.getSettings() ?? [];
 }

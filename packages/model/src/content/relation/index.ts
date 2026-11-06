@@ -124,6 +124,11 @@ export class GenericRelation extends Relation {
   }
 
   override didPurge(): void {
+    const current = this.content.getNode(this.node.getId());
+    if (current && current !== this.node) {
+      super.didPurge();
+      return;
+    }
     for (const node of this.content.getNodes()) {
       const relation = node.getRelation();
       if (relation instanceof GenericRelation && relation !== this)

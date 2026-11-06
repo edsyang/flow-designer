@@ -1,11 +1,9 @@
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
-import { commandRegistry } from "@flow-designer/core";
-import { prototypeRegistry, utils } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 import type { ContentNode } from "@flow-designer/model";
-import { getMessageApi } from "@flow-designer/react";
 
 export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
+  const prototypeRegistry = ctx.editor.getRegistries().prototypes;
   const cleanups: Array<() => void> = [];
   let clipboard: Array<{
     type: string;
@@ -34,11 +32,12 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
       }
     }
     if (blockedNames.length) {
-      getMessageApi()?.warning(
-        t("plugin.copy.unsupported", {
+      ctx.notifications.notify({
+        level: "warning",
+        message: t("plugin.copy.unsupported", {
           names: [...new Set(blockedNames)].join("、"),
         }),
-      );
+      });
     }
     if (!nodes.length) return;
     clipboard = nodes.map((node) => ({
@@ -55,7 +54,10 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
         ),
       ),
     ];
-    getMessageApi()?.success(t("plugin.copy.success", { names: names.join("、") }));
+    ctx.notifications.notify({
+      level: "success",
+      message: t("plugin.copy.success", { names: names.join("、") }),
+    });
   }
 
   async function paste() {
@@ -82,38 +84,28 @@ export function pluginCopyPaste(ctx: IPluginContext): IPluginConfig {
     name: "plugin-copy-paste",
     dep: ["plugin-x6-graph"],
     init() {
-      commandRegistry.register("copy", copy);
-      commandRegistry.register("paste", paste);
+      cleanups.push(ctx.commands.register("copy", copy));
+      cleanups.push(ctx.commands.register("paste", paste));
 
       cleanups.push(
-        utils.hotkey.bindScoped(
-          "mod+c",
-          (e) => {
-            e.preventDefault();
-            copy();
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+c", (e) => {
+          e.preventDefault();
+          copy();
+        }),
       );
       cleanups.push(
-        utils.hotkey.bindScoped(
-          "mod+v",
-          (e) => {
-            e.preventDefault();
-            void paste().catch((error: unknown) => {
-              ctx.logger.error("Paste failed:", error);
-            });
-          },
-          () => ctx.container,
-        ),
+        ctx.shortcuts.bind("mod+v", (e) => {
+          e.preventDefault();
+          void paste().catch((error: unknown) => {
+            ctx.logger.error("Paste failed:", error);
+          });
+        }),
       );
     },
     destroy() {
       cleanups.splice(0).forEach((cleanup) => {
         cleanup();
       });
-      commandRegistry.unregister("copy");
-      commandRegistry.unregister("paste");
     },
   };
 }

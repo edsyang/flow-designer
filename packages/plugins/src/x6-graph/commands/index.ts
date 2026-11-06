@@ -1,5 +1,6 @@
+import type { CommandRegistry } from "@flow-designer/core";
 import { commandRegistry, CANVAS_COMMANDS } from "@flow-designer/core";
-import { canUsePort, prototypeRegistry } from "@flow-designer/model";
+import { canUsePort } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 import type { ContentNode, Document, GenericRelation, PortDefinition } from "@flow-designer/model";
 import type {
@@ -22,7 +23,11 @@ export class CanvasConnectionError extends Error {
 let sequence = 0;
 const queues = new WeakMap<Document, Promise<unknown>>();
 function enqueue<T>(document: Document, operation: () => Promise<T>): Promise<T> {
-  const result = (queues.get(document) ?? Promise.resolve()).then(operation, operation);
+  const run = () => {
+    if (document.isDisposed()) throw new Error("Document has been destroyed");
+    return operation();
+  };
+  const result = (queues.get(document) ?? Promise.resolve()).then(run, run);
   queues.set(
     document,
     result.catch(() => undefined),
@@ -49,7 +54,9 @@ function freshEdgeId(document: Document): string {
 }
 
 export function evaluateCanvasPrototype(request: CanvasPrototypeRequest): CanvasPrototypeResult {
-  const prototype = prototypeRegistry.getPrototypeByType(request.typeName);
+  const prototype = request.document
+    .getRegistries()
+    .prototypes.getPrototypeByType(request.typeName);
   const sourcePort = request.source.portId
     ? request.graph.getPortDefinition(request.source.nodeId, request.source.portId)
     : null;
@@ -150,7 +157,9 @@ export function createCanvasNode(request: CreateCanvasNodeRequest): Promise<Crea
   return enqueue(request.document, () =>
     request.document.transaction(t("workbench.canvas.connectNode"), async () => {
       const { document } = request;
-      const prototype = prototypeRegistry.getPrototypeByType(request.typeName);
+      const prototype = request.document
+        .getRegistries()
+        .prototypes.getPrototypeByType(request.typeName);
       if (!prototype) throw new Error(t("workbench.canvas.addFailed", { name: request.typeName }));
       if (request.source) {
         const candidate = evaluateCanvasPrototype({ ...request, source: request.source });
@@ -218,34 +227,17 @@ export function createCanvasNode(request: CreateCanvasNodeRequest): Promise<Crea
   );
 }
 
-let registrations = 0;
-let commandCleanups: Array<() => void> = [];
-export function registerCanvasCommands(): () => void {
-  if (registrations++ === 0) {
-    const entries = [
-      [CANVAS_COMMANDS.createNode, createCanvasNode],
-      [CANVAS_COMMANDS.connectNodes, connectCanvasNodes],
-      [CANVAS_COMMANDS.evaluatePrototype, evaluateCanvasPrototype],
-    ] as const;
-    commandCleanups = entries.map(([name, command]) => {
-      const previous = commandRegistry.getRegistry().get(name);
-      commandRegistry.register(name, command);
-      return () => {
-        if (commandRegistry.getRegistry().get(name) !== command) return;
-        if (previous) commandRegistry.register(name, previous);
-        else commandRegistry.unregister(name);
-      };
-    });
-  }
-  let disposed = false;
+/** Register against the owning editor; the optional legacy bus is for direct consumers only. */
+export function registerCanvasCommands(registry: CommandRegistry = commandRegistry): () => void {
+  const entries = [
+    [CANVAS_COMMANDS.createNode, createCanvasNode],
+    [CANVAS_COMMANDS.connectNodes, connectCanvasNodes],
+    [CANVAS_COMMANDS.evaluatePrototype, evaluateCanvasPrototype],
+  ] as const;
+  const cleanups = entries.map(([name, command]) => registry.register(name, command));
   return () => {
-    if (disposed) return;
-    disposed = true;
-    if (--registrations === 0) {
-      commandCleanups.forEach((cleanup) => {
-        cleanup();
-      });
-      commandCleanups = [];
-    }
+    cleanups.forEach((cleanup) => {
+      cleanup();
+    });
   };
 }

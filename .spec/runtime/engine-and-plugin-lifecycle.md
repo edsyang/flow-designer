@@ -6,7 +6,7 @@
 
 1. Call `initializeDesignerI18n(localeMessages)` to add scenario messages to the built-in framework catalog in the shared default i18n service and initialize its first locale from browser storage (otherwise `zh-CN`).
 2. Configure MobX actions.
-3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`, and binds the UI in skeleton before plugin registration. Acquire the locale-persistence subscription with an engine-owned disposer. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
+3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`, and binds the UI in skeleton before plugin registration. Fork the bootstrap model catalog unless a caller-owned registry set is supplied. Acquire locale persistence, the page-shared browser theme owner and an independent scoped shortcut adapter with disposal handles. Register option transformers in the instance catalog.
 4. Register built-in setters unless disabled.
 5. Register enabled built-in plugins, passing graph options to the X6 graph plugin.
 6. Register caller-supplied plugins and explicitly requested optional plugins such as autosave or the unsaved-changes prompt.
@@ -51,7 +51,7 @@ Primary implementation: `packages/engine/src/create-designer.ts`, `packages/engi
 
 **Required contract:** autosave persists the last `Document.getData()` snapshot to browser IndexedDB but never restores it implicitly. Recovery is an explicit consumer step: `designer.plugins["plugin-auto-save"].restore()` loads the stored snapshot into the open document through `Document.load()`, resolves `false` when nothing was stored, and leaves the document untouched in that case; `clear()` deletes the snapshot. IndexedDB failures are logged and must not be reported as a successful save.
 
-`DesignerOptions.container` supplies the nullable live `PluginContext.container` and scopes keyboard commands; it does not mount React. If omitted, the React canvas records its owning workbench element when mounted. Apps own their React root. `DesignerOptions.transformers` registers format transformers before plugins initialize and releases those exact registrations on destruction or failed creation. The shared registry preserves first-registered format precedence; this does not establish per-editor transformer overrides.
+`DesignerOptions.container` supplies the nullable live `PluginContext.container` and scopes keyboard commands; it does not mount React. If omitted, the React canvas records its owning workbench element when mounted. Apps own their React root. `DesignerOptions.transformers` registers format transformers before plugins initialize and releases those exact registrations on destruction or failed creation. The instance registry uses latest-compatible registration precedence; disposal releases that exact override. Caller-supplied registry sets remain caller-owned.
 
 ## Resource ownership and known gaps
 
@@ -62,7 +62,7 @@ Primary implementation: `packages/engine/src/create-designer.ts`, `packages/engi
 - Canvas initialization happens later: the X6 plugin catches mount errors, emits `graph:init-failed`, and shows an error message. Such failure cannot reject an already-resolved `createDesigner()` promise; complete partial-mount rollback is not established.
 - `hotkey.init(window)` returns an idempotent disposer. Listener acquisition is reference-counted per document. Built-in copy, delete, undo/redo and zoom shortcuts use disposable scoped bindings; input, textarea, select, editable descendants, IME composition and already-handled keyboard events are ignored.
 - Engine destruction is idempotent and disposes plugins, clears graph/container references, destroys document resources, and runs acquired disposers even when another cleanup step fails. It does not unmount the caller's React root. Area mount hooks return an unregister function, and mounted callbacks may return a resource disposer. React panels release those resources in reverse order on unmount and roll back prior callbacks if a later callback throws. The graph plugin unregisters its hook when destroyed and releases graph/bridges/registry/history applier during unmount.
-- Shared registries/signals/commands prevent claiming instance isolation; see the architecture spec.
+- Model catalogs, document signals, commands, notifications, shortcuts and business renderers are instance-owned. Theme and locale remain explicitly page-shared; setter/UI-definition separation is completed in P6.
 
 Plugin-manager, engine and hotkey tests cover plugin-init rollback, registration failure cleanup, option transformer disposal, repeated destruction, input-safe scope and listener ownership. Changes to readiness or disposal need mount-failure and repeated create/mount/destroy checks, including absence of callbacks into a destroyed editor.
 
@@ -77,3 +77,11 @@ The full designer still uses the shared default service, not a service passed th
 ## UI ownership cleanup
 
 The engine's UI binding is its first acquired disposer and is released after plugin disposal, document cleanup and later-acquired disposers. UI plugins capture their bound skeleton when created; they remove contributions from that same object even if an external owner later unbinds/rebinds the editor. Failed initialization and failed plugin destruction still release the engine binding. Core has no skeleton ownership and can register, initialize and dispose non-UI plugins without any binding.
+
+## Instance service ownership
+
+Editor exposes its own commands, notifications and events. Command registration and signal subscriptions return identity-bound disposers. Shortcut handling is injected through a DOM-independent port; the browser implementation ignores inputs, IME and other workbench scopes, and disposes its own listeners. Notifications bind to the owning Workbench in an effect; unmounting it cannot redirect messages into another editor.
+
+Document accepts explicit registries/signals or creates its own services. Engine and its Document use the same registry identity. Bootstrap catalogs are copied at construction, not live shared mutation channels. Registry replacement refreshes current definitions without adding overlays; cloning preserves property descriptors while separating owned data. Pending additions/removals cannot mutate a disposed document or remove a replacement object with the same ID.
+
+DisposableScope cleans every owner in reverse order and reports CleanupError.errors. Engine and plugin-manager cleanup attempt all resources even after failures. Failed creation still reports its original setup error, with cleanup failures separately reported. The caller owns its React root.

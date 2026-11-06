@@ -1,7 +1,6 @@
 import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { getGraphAdapter } from "../x6-graph/adapter";
-import { signal } from "@flow-designer/model";
 import { StencilContainer } from "./stencil-container";
 
 export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
@@ -35,7 +34,7 @@ export function pluginStencilPanel(ctx: IPluginContext): IPluginConfig {
       if (ctx.editor.getGraph()) {
         addPanel();
       } else {
-        unsubGraphReady = signal.onceSignal("graph:ready", () => {
+        unsubGraphReady = ctx.editor.events.onceSignal("graph:ready", () => {
           addPanel();
         });
       }

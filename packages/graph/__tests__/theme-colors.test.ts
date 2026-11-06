@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getTheme, setTheme } from "@flow-designer/model";
+import { getTheme, setTheme } from "@flow-designer/core";
 import { GraphManager } from "../src/graph-manager";
 
 let manager: GraphManager;

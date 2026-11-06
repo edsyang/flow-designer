@@ -15,16 +15,6 @@ import Props from "./props";
 import Prop from "./props/prop";
 import Settings from "./settings";
 import Setting, { DisplayType, SettingType } from "./settings/setting";
-export {
-  applyTheme,
-  getInitialTheme,
-  getTheme,
-  getThemeSnapshot,
-  setTheme,
-  subscribeTheme,
-} from "./theme";
-export type { Theme } from "./theme";
-
 const workspace = new Workspace();
 
 export {
@@ -78,3 +68,10 @@ export type {
 } from "./types";
 
 export { canUsePort } from "./connection";
+
+export { RegistrySet, createRegistrySet } from "./registries/registry-set";
+export { defaultRegistries } from "./registries";
+export { default as PrototypeRegistry } from "./registries/prototype-registry";
+export { default as ContentTypesRegistry } from "./registries/content-types-registry";
+export { default as Signal } from "./signals";
+export type { DocumentOptions } from "./document";

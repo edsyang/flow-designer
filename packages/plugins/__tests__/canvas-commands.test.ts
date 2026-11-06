@@ -209,7 +209,7 @@ describe("shared Canvas creation commands", () => {
   it("cleans its allocated object when addNode throws after inserting it", async () => {
     const { document, request } = fixture();
     const before = structuredClone(document.getData());
-    const prototype = prototypeRegistry.getPrototypeByType("command-task")!;
+    const prototype = document.getRegistries().prototypes.getPrototypeByType("command-task")!;
     const add = vi.spyOn(prototype, "nodeDidAdd").mockImplementationOnce(() => {
       throw new Error("after insertion");
     });
@@ -295,4 +295,18 @@ describe("shared Canvas creation commands", () => {
       dispose();
     }
   });
+});
+
+it("does not run a queued creation after its document is destroyed", async () => {
+  const { document, graph } = fixture();
+  const pending = createCanvasNode({
+    document,
+    graph,
+    typeName: "command-task",
+    position: { x: 0, y: 0 },
+  });
+  document.destroy();
+  await expect(pending).rejects.toThrow("destroyed");
+  expect(document.getContent().getNodes()).toHaveLength(0);
+  expect(document.getTimeline().getPoints()).toHaveLength(0);
 });

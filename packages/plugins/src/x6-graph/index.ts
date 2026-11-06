@@ -3,7 +3,6 @@ import type { GraphOptions } from "@flow-designer/graph";
 import { getSkeleton } from "@flow-designer/skeleton";
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
-import { prototypeRegistry, signal } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 import type { NodeMeta, Prototype } from "@flow-designer/model";
 import { GraphBridge } from "./bridge/graph-bridge";
@@ -31,6 +30,7 @@ function showInitError(container: HTMLElement): void {
 export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): IPluginConfig {
   const skeleton = getSkeleton(ctx.editor);
   const graphManager = new GraphManager();
+  const prototypeRegistry = ctx.editor.getRegistries().prototypes;
   let graphBridge: GraphBridge | null = null;
   let destroyed = false;
   let releaseCommands: (() => void) | null = null;
@@ -48,7 +48,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
     name: "plugin-x6-graph",
     dep: [],
     init() {
-      releaseCommands = registerCanvasCommands();
+      releaseCommands = registerCanvasCommands(ctx.commands);
       try {
         unregisterMount = skeleton.canvas.hooks.didMount((container) => {
           if (destroyed) return;
@@ -104,10 +104,10 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
                 else doc.applyTimelinePointData(data);
               });
 
-            signal.sendSignal("graph:ready", graphManager);
+            ctx.editor.events.sendSignal("graph:ready", graphManager);
           } catch (error) {
             cleanup();
-            signal.sendSignal("graph:init-failed", error);
+            ctx.editor.events.sendSignal("graph:init-failed", error);
             showInitError(container);
             errorMessage = container.lastElementChild as HTMLElement | null;
             return () => errorMessage?.remove();
@@ -117,7 +117,7 @@ export function pluginX6Graph(ctx: IPluginContext, options: GraphOptions = {}): 
       } catch (error) {
         releaseCommands?.();
         releaseCommands = null;
-        signal.sendSignal("graph:init-failed", error);
+        ctx.editor.events.sendSignal("graph:init-failed", error);
       }
     },
     destroy() {

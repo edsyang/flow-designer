@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { createDesigner, Workbench, initializeDesignerI18n, signal } from "@flow-designer/engine";
+import { createDesigner, Workbench, initializeDesignerI18n } from "@flow-designer/engine";
 import { subscribeLocale, t } from "@flow-designer/i18n";
 import { registerProcessContentType } from "@flow-designer/bpmn-model";
 import { bpmnMessages } from "@flow-designer/bpmn-nodes/i18n";
@@ -32,10 +32,6 @@ async function init() {
   registerBpmnNodes();
   refreshBpmnTranslations();
 
-  subscribeLocale(() => {
-    refreshBpmnTranslations();
-  });
-
   const designer: Designer = await createDesigner({
     container,
     documentType: "process",
@@ -50,6 +46,11 @@ async function init() {
   });
 
   window.designer = designer;
+  designer.engine.addDisposer(
+    subscribeLocale(() => {
+      refreshBpmnTranslations(designer.editor.getRegistries().prototypes);
+    }),
+  );
 
   designer.engine.skeleton.header.add({
     key: "app-title",
@@ -70,7 +71,7 @@ async function init() {
     contentProps: {},
   });
 
-  signal.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
+  designer.editor.events.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
     const edgeType = getSequenceFlowEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });

@@ -1,5 +1,5 @@
 import type { GraphOptions, GraphAdapterPort } from "@flow-designer/graph";
-import type { ContentTransformer, SettingConfig } from "@flow-designer/model";
+import type { ContentTransformer, SettingConfig, RegistrySet } from "@flow-designer/model";
 import type { Locale, Messages } from "@flow-designer/i18n";
 import type { PluginCreator, Editor, IPluginManager } from "@flow-designer/core";
 import type { Engine } from "./engine";
@@ -7,6 +7,7 @@ import type { Document } from "@flow-designer/model";
 
 export interface DesignerOptions {
   container?: HTMLElement;
+  registries?: RegistrySet;
   documentType: string;
   documentVersion: string;
   graphOptions?: GraphOptions;

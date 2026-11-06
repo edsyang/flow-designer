@@ -12,4 +12,4 @@ export { useTranslate } from "./use-translate";
 export type { ITranslate } from "./use-translate";
 export { useTheme } from "./use-theme";
 export type { ITheme } from "./use-theme";
-export type { Theme } from "@flow-designer/model";
+export type { Theme } from "@flow-designer/core";

@@ -19,7 +19,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "vite build",
-    "lint": "eslint src/ --max-warnings 394",
+    "lint": "eslint src/ --max-warnings 362",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\""

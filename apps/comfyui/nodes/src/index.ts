@@ -1,3 +1,4 @@
+import type { PrototypeRegistry } from "@flow-designer/model";
 import { prototypeRegistry } from "@flow-designer/model";
 import { t } from "@flow-designer/i18n";
 export { comfyuiMessages } from "./i18n";
@@ -30,10 +31,10 @@ const allDefs: NodeDefinition[] = [
  * Idempotent: already-registered types are left to `refreshComfyUITranslations()`,
  * which owns locale updates. Registering an absent type is this function's job.
  */
-export function registerComfyUINodes(): void {
+export function registerComfyUINodes(registry: PrototypeRegistry = prototypeRegistry): void {
   for (const def of allDefs) {
-    if (!prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+    if (!registry.getPrototypeByType(def.meta.typeName)) {
+      registry.register(def);
     }
   }
 }
@@ -43,7 +44,7 @@ export function registerComfyUINodes(): void {
  * re-registers the types that are already present. It never registers a new
  * type: a translation refresh must not create nodes as a side effect.
  */
-export function refreshComfyUITranslations(): void {
+export function refreshComfyUITranslations(registry: PrototypeRegistry = prototypeRegistry): void {
   const names: Record<string, string> = {
     CheckpointLoaderSimple: "comfyui.node.checkpointLoader",
     KSampler: "comfyui.node.sampler",
@@ -78,7 +79,8 @@ export function refreshComfyUITranslations(): void {
     image: "comfyui.port.image",
   };
 
-  for (const def of allDefs) {
+  for (const template of allDefs) {
+    const def = registry.getPrototypeByType(template.meta.typeName)?.getDefinition() ?? template;
     def.meta.name = t(names[def.meta.typeName]!);
     if (def.meta.category && categoryTitles[def.meta.category]) {
       def.meta.categoryTitle = t(categoryTitles[def.meta.category]!);
@@ -91,8 +93,8 @@ export function refreshComfyUITranslations(): void {
     for (const port of def.view.ports ?? []) {
       if (port.id && portLabels[port.id]) port.label = t(portLabels[port.id]!);
     }
-    if (prototypeRegistry.getPrototypeByType(def.meta.typeName)) {
-      prototypeRegistry.register(def);
+    if (registry.getPrototypeByType(def.meta.typeName)) {
+      registry.replace(def);
     }
   }
 }

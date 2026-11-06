@@ -1,6 +1,6 @@
 import { runCleanupTasks } from "./cleanup-tasks";
-import type { Graph, Node as X6Node } from "@antv/x6";
-import { register } from "@antv/x6-react-shape";
+import { Graph, Node as X6Node } from "@antv/x6";
+import { register, shapeMaps } from "@antv/x6-react-shape";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ContentNode, NodeMeta, NodeView } from "@flow-designer/model";
@@ -8,8 +8,30 @@ import type { EdgeTypeConfig } from "./contracts";
 import { wrapWithErrorBoundary } from "./node-error-boundary";
 import { translatePorts } from "./port-projection";
 
+let nextRenderingOwner = 0;
+
 /** Owns React roots and adapters; callbacks always read the current projection. */
 export class GraphReactRendering {
+  private readonly owner = ++nextRenderingOwner;
+  private generation = 0;
+  private nextShape = 0;
+  private shapes = new Map<string, string>();
+  private registrations = new Map<string, () => void>();
+  resolveShape(publicShape: string): string {
+    return this.shapes.get(publicShape) ?? publicShape;
+  }
+  begin(): void {
+    this.releaseShapes();
+    this.generation += 1;
+    this.nextShape = 0;
+  }
+  private releaseShapes(): void {
+    const cleanups = [...this.registrations.values()];
+    this.registrations.clear();
+    this.shapes.clear();
+    runCleanupTasks(cleanups.reverse());
+  }
+
   private roots = new Map<Element, { root: Root; release: () => void }>();
   constructor(
     private getNode: (id: string) => ContentNode | undefined,
@@ -28,13 +50,25 @@ export class GraphReactRendering {
         data,
       });
     };
+    const shape =
+      this.shapes.get(meta.name) ??
+      `fd-react-owner-${String(this.owner)}-${String(this.generation)}-${String(++this.nextShape)}`;
+    const previous = this.registrations.get(shape);
     register({
-      shape: meta.name,
+      shape,
       width: view.defaultSize?.width ?? 180,
       height: view.defaultSize?.height ?? 40,
       component: adapter as any,
       ports: translatePorts(view.ports),
     });
+    const content = shapeMaps[shape];
+    const definition = X6Node.registry.get(shape);
+    this.shapes.set(meta.name, shape);
+    this.registrations.set(shape, () => {
+      if (shapeMaps[shape] === content) Reflect.deleteProperty(shapeMaps, shape);
+      if (X6Node.registry.get(shape) === definition) Graph.unregisterNode(shape);
+    });
+    previous?.();
   }
   renderEdgeLabel(args: {
     edge: { id: string; getData<T = Record<string, unknown>>(): T };
@@ -67,6 +101,11 @@ export class GraphReactRendering {
   dispose(): void {
     const entries = [...this.roots.values()];
     this.roots.clear();
-    runCleanupTasks(entries.map((entry) => entry.release));
+    runCleanupTasks([
+      ...entries.map((entry) => entry.release),
+      () => {
+        this.releaseShapes();
+      },
+    ]);
   }
 }

@@ -171,3 +171,24 @@ describe("PluginManager", () => {
     expect(pm.getAll()).toHaveLength(1);
   });
 });
+
+it("aggregates all reverse-order plugin cleanup failures without losing error identities", async () => {
+  const manager = new PluginManager(createEditor());
+  const a = new Error("A cleanup"),
+    b = new Error("B cleanup");
+  await manager.register(() => ({
+    name: "A",
+    destroy: () => {
+      throw a;
+    },
+  }));
+  await manager.register(() => ({
+    name: "B",
+    destroy: () => {
+      throw b;
+    },
+  }));
+  await manager.init();
+  await expect(manager.dispose()).rejects.toMatchObject({ errors: [b, a] });
+  expect(manager.getAll()).toEqual([]);
+});

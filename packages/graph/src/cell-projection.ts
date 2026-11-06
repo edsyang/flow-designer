@@ -33,6 +33,7 @@ export class GraphCellProjection {
     private types: GraphTypeRegistry,
     private presentation: GraphPresentation,
     private routing: RoutingProjection,
+    private resolveShape: (shape: string) => string,
   ) {}
   get nodeTypes(): ReadonlyMap<string, string> {
     return this.nodeTypeByCellId;
@@ -79,7 +80,7 @@ export class GraphCellProjection {
   addNode(config: NodeConfig): string {
     const graph = this.assertGraph();
     const typeEntry = this.types.nodes.get(config.type);
-    const shape = typeEntry?.view.shape ?? config.type;
+    const shape = this.resolveShape(typeEntry?.view.shape ?? config.type);
     const customPorts = typeEntry?.view.ports?.length
       ? translatePorts(typeEntry.view.ports)
       : undefined;

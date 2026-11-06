@@ -1,6 +1,7 @@
 node_modules/
 /docs/*
 !/docs/verification.md
+!/docs/core-runtime-migration.md
 !/docs/plans/
 /docs/plans/*
 !/docs/plans/README.md

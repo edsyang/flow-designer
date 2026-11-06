@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { commandRegistry } from "@flow-designer/core";
+import { Editor } from "@flow-designer/core";
 import type { IPluginContext } from "@flow-designer/core";
 import {
   ContentAop,
@@ -10,8 +10,6 @@ import {
 } from "@flow-designer/model";
 import { pluginCopyPaste } from "../src/copy-paste";
 import { pluginDelete } from "../src/delete";
-
-vi.mock("@flow-designer/react", () => ({ getMessageApi: () => undefined }));
 
 describe("mutation commands", () => {
   it("pastes preserved props with fresh IDs in one undo step, then awaits asynchronous deletion", async () => {
@@ -44,8 +42,13 @@ describe("mutation commands", () => {
     });
     const selected = ["first", "second"];
     const select = vi.fn();
+    const editor = new Editor();
+    editor.setDocument(doc);
     const ctx = {
-      editor: { getDocument: () => doc },
+      editor,
+      commands: editor.commands,
+      notifications: editor.notifications,
+      shortcuts: { bind: () => () => {} },
       graph: { select, getSelection: () => selected, removeCell: vi.fn() },
       container: document.createElement("div"),
       logger: { error: vi.fn() },
@@ -55,8 +58,8 @@ describe("mutation commands", () => {
     copy.init?.();
     deletion.init?.();
     try {
-      commandRegistry.executeCommand("copy");
-      await commandRegistry.executeCommand("paste");
+      editor.commands.executeCommand("copy");
+      await editor.commands.executeCommand("paste");
       const nodes = doc.getContent().getNodes();
       expect(nodes).toHaveLength(4);
       expect(nodes[2].getId()).not.toBe("first");
@@ -69,7 +72,7 @@ describe("mutation commands", () => {
       doc.aspect(ContentAop.NODE_REMOVING, async () => {
         await new Promise((resolve) => setTimeout(resolve, 5));
       });
-      const pending = commandRegistry.executeCommand("delete");
+      const pending = editor.commands.executeCommand("delete");
       expect(doc.getContent().getNodes()).toHaveLength(2);
       await pending;
       expect(doc.getContent().getNodes()).toHaveLength(0);

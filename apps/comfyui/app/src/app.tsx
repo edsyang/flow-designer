@@ -5,7 +5,6 @@ import {
   contentTypesRegistry,
   GenericContent,
   initializeDesignerI18n,
-  signal,
 } from "@flow-designer/engine";
 import { subscribeLocale, t } from "@flow-designer/i18n";
 import { comfyuiMessages } from "@flow-designer/comfyui-nodes/i18n";
@@ -34,9 +33,6 @@ async function init() {
 
   registerComfyUINodes();
   refreshComfyUITranslations();
-  subscribeLocale(() => {
-    refreshComfyUITranslations();
-  });
 
   const designer: Designer = await createDesigner({
     container,
@@ -45,12 +41,17 @@ async function init() {
     localeMessages: comfyuiMessages,
   });
 
-  signal.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
+  designer.editor.events.onceSignal("graph:ready", (graphManager: GraphAdapterPort) => {
     const edgeType = getDataLinkEdgeType();
     graphManager.registerEdgeType(edgeType.name, edgeType.config);
   });
 
   window.designer = designer;
+  designer.engine.addDisposer(
+    subscribeLocale(() => {
+      refreshComfyUITranslations(designer.editor.getRegistries().prototypes);
+    }),
+  );
 
   designer.engine.skeleton.header.add({
     key: "app-title",

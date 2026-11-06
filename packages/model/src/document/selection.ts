@@ -15,6 +15,7 @@ export default class Selection implements TaskInterface {
   private emitter: EventEmitter = new EventEmitter();
   private dirty: string[] = [];
   private selections: string[] = [];
+  private destroyed = false;
 
   constructor(private document: Document) {
     makeAutoObservable(this);
@@ -29,6 +30,7 @@ export default class Selection implements TaskInterface {
   }
 
   addKey(key: string) {
+    if (this.destroyed) return;
     if (this.selections.indexOf(key) < 0) {
       this.selections = [...this.selections, key];
       this.getDocument().sendSignal(SelectionSignal.ADD_ITEM, key, this);
@@ -37,6 +39,7 @@ export default class Selection implements TaskInterface {
   }
 
   setKeys(keys: string[]): void {
+    if (this.destroyed) return;
     this.selections = keys;
     this.tickChange();
   }
@@ -46,11 +49,13 @@ export default class Selection implements TaskInterface {
   }
 
   clear(): void {
+    if (this.destroyed) return;
     this.selections.length = 0;
     this.tickChange();
   }
 
   removeKey(key: string): void {
+    if (this.destroyed) return;
     const i = this.selections.indexOf(key);
     if (i > -1) {
       this.selections.splice(i, 1);
@@ -60,6 +65,7 @@ export default class Selection implements TaskInterface {
   }
 
   runTask(): void {
+    if (this.destroyed) return;
     if (JSON.stringify(this.dirty) !== JSON.stringify(this.selections.sort())) {
       this.getDocument().sendSignal(SelectionSignal.CHANGE, this.selections, this);
       this.emitter.emit("selectionchange", this.selections);
@@ -82,6 +88,7 @@ export default class Selection implements TaskInterface {
   }
 
   private tickChange(): void {
+    if (this.destroyed) return;
     this.getDocument().sendSignal(SelectionSignal.SYNC_CHANGE, this.selections, this);
     this.emitter.emit("selectionsyncchange", this.selections);
     queueTask(this);
@@ -89,6 +96,7 @@ export default class Selection implements TaskInterface {
   }
 
   destroy(): void {
+    this.destroyed = true;
     queueRemoveTask(this);
     this.emitter.removeAllListeners();
   }

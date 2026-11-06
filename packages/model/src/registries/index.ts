@@ -1,11 +1,11 @@
-import PrototypeRegistry from "./prototype-registry";
+import { RegistrySet } from "./registry-set";
 import SetterRegistry from "./setter-registry";
 import Config from "./config";
-import ContentTypesRegistry from "./content-types-registry";
 
-const prototypeRegistry = new PrototypeRegistry();
+export const defaultRegistries = new RegistrySet();
+const prototypeRegistry = defaultRegistries.prototypes;
 const setterRegistry = new SetterRegistry();
-const contentTypesRegistry = new ContentTypesRegistry();
+const contentTypesRegistry = defaultRegistries.contentTypes;
 const config = new Config();
 
 export { config, prototypeRegistry, setterRegistry, contentTypesRegistry };

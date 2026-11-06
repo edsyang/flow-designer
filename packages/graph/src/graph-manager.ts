@@ -27,7 +27,8 @@ import { Snapline } from "@antv/x6-plugin-snapline";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import "@antv/x6-plugin-stencil/dist/index.css";
-import { canUsePort, subscribeTheme } from "@flow-designer/model";
+import { canUsePort } from "@flow-designer/model";
+import { subscribeTheme } from "@flow-designer/core";
 import type { NodeMeta, NodeView, PortDefinition } from "@flow-designer/model";
 import type {
   NodeConfig,
@@ -66,18 +67,24 @@ export class GraphManager implements GraphAdapterPort {
     () => this.graph,
     () => this.getSelection(),
   );
-  private projection = new GraphCellProjection(() => this.graph, this.types, this.presentation, {
-    autoSwitchEdgePorts: (edge, source, target) => {
-      this.connections.autoSwitchEdgePorts(edge, source, target);
+  private projection: GraphCellProjection = new GraphCellProjection(
+    () => this.graph,
+    this.types,
+    this.presentation,
+    {
+      autoSwitchEdgePorts: (edge, source, target) => {
+        this.connections.autoSwitchEdgePorts(edge, source, target);
+      },
+      updateRouterDirections: (edge) => {
+        this.connections.updateRouterDirections(edge);
+      },
+      updateConnectorDirections: (edge) => {
+        this.connections.updateConnectorDirections(edge);
+      },
     },
-    updateRouterDirections: (edge) => {
-      this.connections.updateRouterDirections(edge);
-    },
-    updateConnectorDirections: (edge) => {
-      this.connections.updateConnectorDirections(edge);
-    },
-  });
-  private rendering = new GraphReactRendering(
+    (shape) => this.rendering.resolveShape(shape),
+  );
+  private rendering: GraphReactRendering = new GraphReactRendering(
     (id) => this.projection.contentNodes.get(id),
     (id) => this.getSelection().includes(id),
     (id) => this.projection.edgeTypes.get(id),
@@ -113,6 +120,9 @@ export class GraphManager implements GraphAdapterPort {
 
   init(container: HTMLElement, options: GraphOptions = {}): void {
     try {
+      this.rendering.begin();
+      for (const { meta, view } of this.types.nodes.values())
+        this.rendering.registerNode(meta, view);
       registerBuiltinShapes();
       registerPortCurveConnector();
       registerRoutedSegments();

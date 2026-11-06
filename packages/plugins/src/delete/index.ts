@@ -1,9 +1,8 @@
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
-import { commandRegistry } from "@flow-designer/core";
-import { utils, prototypeRegistry } from "@flow-designer/model";
 import type { ContentNode, GenericRelation } from "@flow-designer/model";
 
 export function pluginDelete(ctx: IPluginContext): IPluginConfig {
+  const prototypeRegistry = ctx.editor.getRegistries().prototypes;
   const cleanups: Array<() => void> = [];
   async function deleteSelected() {
     const graph = ctx.graph;
@@ -45,20 +44,16 @@ export function pluginDelete(ctx: IPluginContext): IPluginConfig {
     name: "plugin-delete",
     dep: ["plugin-x6-graph"],
     init() {
-      commandRegistry.register("delete", deleteSelected);
+      cleanups.push(ctx.commands.register("delete", deleteSelected));
 
       for (const key of ["backspace", "del"]) {
         cleanups.push(
-          utils.hotkey.bindScoped(
-            key,
-            (e) => {
-              e.preventDefault();
-              void deleteSelected().catch((error) => {
-                ctx.logger.error("Delete failed:", error);
-              });
-            },
-            () => ctx.container,
-          ),
+          ctx.shortcuts.bind(key, (e) => {
+            e.preventDefault();
+            void deleteSelected().catch((error) => {
+              ctx.logger.error("Delete failed:", error);
+            });
+          }),
         );
       }
     },
@@ -66,7 +61,6 @@ export function pluginDelete(ctx: IPluginContext): IPluginConfig {
       cleanups.splice(0).forEach((cleanup) => {
         cleanup();
       });
-      commandRegistry.unregister("delete");
     },
   };
 }

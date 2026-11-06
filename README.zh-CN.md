@@ -288,3 +288,5 @@ pnpm test:e2e
 ## License
 
 本项目采用 [MIT License](./LICENSE)。
+
+实例命令与通知归 `designer.editor` 所有，文档目录通过 `designer.document.getRegistries()` 获取。所有权、清理与明确的页面共享主题/语言策略见[运行时迁移说明](docs/core-runtime-migration.md)。

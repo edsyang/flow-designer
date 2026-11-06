@@ -366,3 +366,19 @@ Core now owns GraphPort, canvas commands and immutable final edit DTOs; graph ow
 - Offline lockfile synchronization changed workspace importers only, with no dependency version updates. Changed-file formatting and diff checks passed. Browser/performance sampling preceded only a test-fixture correction and whitespace formatting, with no later runtime semantic edits.
 
 Logs: `/tmp/flow-core-p2b-build.log`, `/tmp/flow-core-p2b-check-final.log`, `/tmp/flow-core-p2b-e2e.log`, `/tmp/flow-core-p2b-consumer.log`, `/tmp/flow-core-p2b-boundaries.log`, `/tmp/flow-core-p2b-performance/`. Reports remain outside the repository. P3–P6 remain outstanding.
+
+## P3 instance services and ownership (2026-11-06)
+
+Document catalogs/signals and editor commands/notifications/shortcuts now have explicit instance owners. Registrations have identity-bound cleanup. Business React node types use private X6 shapes per manager/generation. Browser theme/locale remain page-shared; setter/UI definition separation remains P6 work.
+
+- Final build: 20/20. Final workspace checks: 75/75 tasks, 614 unit tests. Model lint ceiling reduced from 394 to 362; migrated Hotkey warnings were fixed rather than transferred into a larger React budget. React remains at its original 12-warning ceiling, engine at zero.
+- Six built consumer groups and 57 dependency-boundary assertions passed.
+- Same-page browser regression uses identical type names and node IDs with different renderers, dimensions and ports; it verifies focused deletion/undo and continued creation/editing after sibling destruction. It passed after correcting fixture-only dependency and application-height setup.
+- Unit coverage includes reverse cleanup/error aggregation, stale registration release, notification cleanup/rebind, scoped and overwritten shortcuts, independent definitions/signals and asynchronous add/remove completion after destruction or same-ID replacement.
+- Three locale tests previously expected shared exported templates to mutate. They now assert actual registry metadata translation and peer/template nonmutation; original translation expectations were preserved. Other initial integration failures were stale imports/fixtures and migrated lint warnings, all repaired without raising budgets.
+- One initial full browser run had 81 passes and two failures during concurrent HMR (including an explicit execution-context navigation failure). The frozen-source rerun is recorded below; the interrupted run is not a passing baseline.
+- Production nine-run performance sampling is deferred to P5/P6 after the route implementation; developer-server measurements in the full browser suite are not a production performance claim.
+
+Evidence: `/tmp/flow-p3-build-final.log`, `/tmp/flow-p3-check-final.log`, `/tmp/flow-p3-consumer.log`, `/tmp/flow-p3-boundaries.log`, `/tmp/flow-p3-e2e-final.log`. Reports remain outside the repository.
+
+P3 frozen-source complete Chrome suite: **83/83 passed**, including the new same-page instance regression.

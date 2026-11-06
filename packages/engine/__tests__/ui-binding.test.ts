@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getSkeleton } from "@flow-designer/skeleton";
+import { CleanupError } from "@flow-designer/core";
 import { Engine } from "../src/engine";
 import { Document, GenericContent, contentTypesRegistry } from "@flow-designer/model";
 function engineWithDocument() {
@@ -7,7 +8,9 @@ function engineWithDocument() {
     contentTypesRegistry.register(GenericContent);
   const engine = new Engine();
   engine.editor.setDocument(
-    new Document({ id: "ui-binding", documentType: "*", documentVersion: "1.0.0" }),
+    new Document({ id: "ui-binding", documentType: "*", documentVersion: "1.0.0" }, undefined, {
+      registries: engine.registries,
+    }),
   );
   return engine;
 }
@@ -45,7 +48,10 @@ describe("engine UI binding ownership", () => {
       },
     }));
     await engine.plugins.init();
-    await expect(engine.destroy()).rejects.toBe(error);
+    const failure: unknown = await engine.destroy().catch((caught: unknown) => caught);
+    expect(failure).toBeInstanceOf(CleanupError);
+    if (!(failure instanceof CleanupError)) throw new Error("Missing cleanup error");
+    expect(failure.errors[0]).toBe(error);
     expect(() => getSkeleton(engine.editor)).toThrow("No skeleton");
   });
   it("cleans bindings after initialization failure", async () => {

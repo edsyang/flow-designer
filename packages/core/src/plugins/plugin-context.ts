@@ -18,6 +18,22 @@ export class PluginContext implements IPluginContext {
     this.options = {};
   }
 
+  get commands() {
+    return this.editor.commands;
+  }
+  get notifications() {
+    return this.editor.notifications;
+  }
+  get shortcuts() {
+    return this.editor.shortcuts;
+  }
+  get registries() {
+    return this.editor.getRegistries();
+  }
+  get events() {
+    return this.editor.events;
+  }
+
   get container(): HTMLElement | null {
     return this.editor.getContainer();
   }
