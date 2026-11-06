@@ -1,0 +1,33 @@
+{
+  "id": "baseline-document",
+  "documentType": "*",
+  "documentVersion": "1.0.0",
+  "props": { "title": "持久化基线" },
+  "elements": [
+    {
+      "id": "a",
+      "typeName": "BaselineTask",
+      "props": { "name": "自定义任务", "nested": { "value": 7 } },
+      "position": { "x": 10, "y": 20 }
+    },
+    {
+      "id": "b",
+      "typeName": "BaselineTask",
+      "props": { "name": "Target" },
+      "position": { "x": 220, "y": 140 }
+    },
+    {
+      "id": "curve",
+      "typeName": "BaselineCurve",
+      "sourceRef": "a",
+      "targetRef": "b",
+      "sourcePort": "named-output",
+      "targetPort": "named-input",
+      "props": { "name": "用户连接名", "custom": true },
+      "vertices": [
+        { "x": 140, "y": 30 },
+        { "x": 160, "y": 110 }
+      ]
+    }
+  ]
+}

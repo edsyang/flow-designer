@@ -23,7 +23,8 @@
     "clean": "turbo clean",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "check:core-baseline": "node scripts/check-core-baseline.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
