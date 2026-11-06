@@ -1,4 +1,3 @@
-import { workbenchMessages } from "../src/messages";
 import { useEffect } from "react";
 import { act, render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -16,7 +15,7 @@ import { Workbench } from "../src/workbench";
 import { useSelection, useSkeleton } from "../src/hooks";
 import type { WorkbenchProps } from "../src/types";
 
-await initializeI18n(workbenchMessages);
+await initializeI18n();
 
 beforeAll(() => {
   if (!contentTypesRegistry.getSuitableContentType("*"))

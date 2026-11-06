@@ -1,5 +1,3 @@
-import { graphMessages } from "../../graph/src/messages";
-import { workbenchMessages } from "../src/messages";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -26,10 +24,7 @@ import { Canvas } from "../src/panels/canvas";
 import { setMessageApi } from "../src/message-holder";
 
 beforeAll(async () => {
-  await initializeI18n({
-    "zh-CN": { ...workbenchMessages["zh-CN"], ...graphMessages["zh-CN"] },
-    "en-US": { ...workbenchMessages["en-US"], ...graphMessages["en-US"] },
-  });
+  await initializeI18n();
   if (!contentTypesRegistry.getSuitableContentType("*"))
     contentTypesRegistry.register(GenericContent);
 });

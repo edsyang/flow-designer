@@ -21,7 +21,7 @@ Flow Designer is an extensible visual flow-editor framework built with React, Ty
 
 The workbench and the BPMN, ComfyUI, and ER examples support Simplified Chinese and English. Simplified Chinese is the default; the language selector saves the choice in browser storage.
 
-Translation state lives in `@flow-designer/i18n`, independently of model, React, browser storage and application catalogs. Custom applications pass scenario messages to `createDesigner`; the engine composes framework and scenario messages before plugins start:
+Translation state lives in `@flow-designer/i18n`, independently of model, React, browser storage and application catalogs. Custom applications pass scenario messages to `createDesigner`; built-in framework messages are included automatically and the engine adds scenario messages before plugins start:
 
 ```ts
 import { createDesigner } from "@flow-designer/engine";
@@ -77,7 +77,7 @@ await initializeDesignerI18n(scenarioMessages);
 await import("./register-nodes");
 ```
 
-`initializeDesignerI18n` combines catalogs from `packages/{graph,plugins,react,setters,skeleton}/src/messages.ts` and reads the initial browser preference (falling back to Chinese). Scenario catalogs, including example header text, belong in each scenario's `nodes/src/i18n.ts`. `createDesigner` owns the language-persistence subscription and disposes it on destruction or failed setup; registering messages alone does not write storage.
+Every `createI18n()` service includes framework text automatically, maintained by domain under `packages/i18n/src/catalog/`. Applications only register their own text or explicit overrides; no per-package catalog assembly is needed. `initializeDesignerI18n` adds scenario messages and reads the initial browser preference (falling back to Chinese). Scenario catalogs, including example header text, belong in each scenario's `nodes/src/i18n.ts`. `createDesigner` owns the language-persistence subscription and disposes it on destruction or failed setup; registering messages alone does not write storage.
 
 For a separately scoped React subtree, create and initialize a service explicitly:
 
@@ -97,7 +97,7 @@ const view = (
 
 The service defaults to Chinese and performs no browser preference lookup or persistence. The complete designer still uses the shared default service: a Provider does not isolate its plugins or registries. This release does not establish same-page multi-designer isolation.
 
-**Migration:** move translation functions and `Locale`/`Messages` types previously imported from `@flow-designer/model` to `@flow-designer/i18n`; model no longer re-exports them. Replace UI bootstrap calls to the low-level `initializeI18n` with `initializeDesignerI18n(scenarioMessages)` from engine. Low-level `initializeI18n` remains available for independent services and does not install framework UI catalogs.
+**Migration:** move translation functions and `Locale`/`Messages` types previously imported from `@flow-designer/model` to `@flow-designer/i18n`; model no longer re-exports them. Replace UI bootstrap calls to the low-level `initializeI18n` with `initializeDesignerI18n(scenarioMessages)` from engine. Low-level `initializeI18n` remains available for independent services, already includes framework text, and does not read browser preferences. `coreMessages` remains available from i18n and the engine facade for compatibility; the former per-package catalog exports are removed. Applications should register their own messages rather than re-registering the built-in catalog.
 
 ## Theme
 

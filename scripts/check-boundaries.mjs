@@ -7,6 +7,18 @@ const { ESLint, Linter } = require("eslint");
 const eslint = new ESLint({ cwd: root });
 const linter = new Linter();
 const cases = [
+  [
+    "packages/i18n/src/catalog/graph.ts",
+    "import {GraphManager} from '@flow-designer/graph';",
+    true,
+  ],
+  ["packages/i18n/src/catalog/workbench.ts", "import {createElement} from 'react';", true],
+  [
+    "packages/i18n/src/catalog/index.ts",
+    "import {coreMessages} from '@flow-designer/engine';",
+    true,
+  ],
+  ["packages/i18n/src/catalog/index.ts", "import {graphMessages} from './graph';", false],
   ["packages/i18n/src/index.ts", "import {Document} from '@flow-designer/model';", true],
   ["packages/i18n/src/index.ts", "import {createElement} from 'react';", true],
   ["packages/i18n/src/react.tsx", "import {createContext} from 'react';", false],

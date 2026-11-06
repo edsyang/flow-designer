@@ -1,34 +1,12 @@
 import {
   getLocale,
   initializeI18n,
-  registerMessages,
   subscribeLocale,
   type Locale,
   type Messages,
 } from "@flow-designer/i18n";
-import { graphMessages } from "@flow-designer/graph";
-import { pluginsMessages } from "@flow-designer/plugins";
-import { workbenchMessages } from "@flow-designer/react";
-import { settersMessages } from "@flow-designer/setters";
-import { commonMessages } from "@flow-designer/skeleton";
+export { coreMessages } from "@flow-designer/i18n";
 
-/** Framework UI catalogues composed here, never imported by the translation runtime. */
-export const coreMessages: Record<Locale, Messages> = {
-  "zh-CN": {
-    ...commonMessages["zh-CN"],
-    ...graphMessages["zh-CN"],
-    ...pluginsMessages["zh-CN"],
-    ...workbenchMessages["zh-CN"],
-    ...settersMessages["zh-CN"],
-  },
-  "en-US": {
-    ...commonMessages["en-US"],
-    ...graphMessages["en-US"],
-    ...pluginsMessages["en-US"],
-    ...workbenchMessages["en-US"],
-    ...settersMessages["en-US"],
-  },
-};
 const STORAGE_KEY = "flow-designer:locale";
 
 export function getInitialLocale(): Locale {
@@ -41,15 +19,10 @@ export function getInitialLocale(): Locale {
   return "zh-CN";
 }
 
-let registered = false;
 /** Call before evaluating scenario definitions that translate their initial metadata. */
 export async function initializeDesignerI18n(
   messages: Partial<Record<Locale, Messages>> = {},
 ): Promise<void> {
-  if (!registered) {
-    registerMessages(coreMessages);
-    registered = true;
-  }
   await initializeI18n(messages, getInitialLocale());
 }
 

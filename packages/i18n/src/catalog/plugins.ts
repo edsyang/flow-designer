@@ -1,4 +1,4 @@
-import type { Locale, Messages } from "@flow-designer/i18n";
+import type { Locale, Messages } from "../index";
 
 export const pluginsMessages: Record<Locale, Messages> = {
   "zh-CN": {

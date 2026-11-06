@@ -12,7 +12,7 @@ These rules apply across the monorepo. Add a package-level `AGENTS.md` only for 
 
 ## Ownership and dependency boundaries
 
-- `packages/i18n`: UI-independent translation services and catalogs/locale subscriptions; its `/react` subpath owns the optional Provider and hook adapter. No browser storage or framework/scenario catalogs in the service.
+- `packages/i18n`: UI-independent translation services and catalogs/locale subscriptions; its `/react` subpath owns the optional Provider and hook adapter. Built-in framework text lives in its internal domain catalogs; no browser storage, UI implementation imports or scenario catalogs in the service.
 - `packages/model`: document/content state, prototypes, registries, settings, and serialization; do not restore removed i18n re-exports.
 - `packages/core`: editor orchestration, commands, plugin lifecycle, and editor communication. No UI runtime dependencies or React runtime import exceptions. Shared React content helpers belong in `packages/skeleton`; core must not re-export UI helpers back across this boundary.
 - `packages/graph`: X6 adaptation, rendering, and interaction.
@@ -33,7 +33,7 @@ Shared packages must not import scenario packages or encode scenario schemas/pol
 - Declare plugin initialization dependencies. Every acquired observer, event listener, shortcut, timer, React root, or DOM resource needs an owning cleanup path, including partial initialization failure. Effects must release the same resources they acquire.
 - Initialization and persistence failures must remain observable through established UI messaging and logging. Do not swallow rejections or report persistence success before the underlying operation succeeds.
 - Scope DOM access and interaction to the owning editor. Same-page multi-instance isolation is not currently guaranteed; do not claim it based only on scoped selectors.
-- Translation catalogs belong to their consuming package (`src/messages.ts`); scenario catalogs, including header text, belong to scenario nodes. Engine composes catalogs through `initializeDesignerI18n` and owns browser locale persistence cleanup. Independent `createI18n` services and Providers do not establish isolation of the full designer, which still uses the shared default service.
+- Framework translation catalogs belong to `packages/i18n/src/catalog/`, split by domain and included by default in every service; consumers must not manually assemble them. Applications register only scenario text or overrides; scenario catalogs, including header text, belong to scenario nodes. Engine selects the initial browser locale through `initializeDesignerI18n` and owns browser locale persistence cleanup. Independent `createI18n` services and Providers do not establish isolation of the full designer, which still uses the shared default service.
 - CSS is a runtime side effect. Changes to library styles or exports require checking built CSS and the consumer import path.
 
 ## Implementation conventions

@@ -327,3 +327,15 @@ P1 extracts GraphManager into type registry, cell projection, React rendering, p
 - Built public consumer/serialization/scaffold check: six groups passed; import boundaries: 46/46.
 - Production comparison after extraction: 100/300/500 nodes with 200/600/1000 edges, three runs each, 9/9 passed. Ordinary and fit drag P95 stayed about 16.7–16.8ms. Counts, route failures (0), error elements (0), legacy warnings (101/309/517), and local routing work (126 ordinary / 240 fit route passes) match the P0 fixture. This sampling preceded the final exceptional-cleanup guard and is not a universal frame-rate guarantee.
 - Evidence: `/tmp/flow-core-p1-final-check.log`, `/tmp/flow-core-p1-e2e.log`, `/tmp/flow-core-p1-final-e2e.log`, `/tmp/flow-core-p1-performance/`, `/tmp/flow-core-p1-consumer.log`. Reports remain outside the repository.
+
+## Unified built-in framework catalogs (2026-11-06)
+
+Framework messages now live in i18n's internal catalog and are copied into every service. Applications register only scenario messages or explicit overrides; engine no longer gathers catalogs from UI packages. This supersedes the earlier catalog-ownership description, without changing browser persistence or claiming full designer instance isolation.
+
+- Workspace build/test/typecheck/lint: 75/75 tasks passed, including 563 unit tests.
+- Built-in catalog tests cover bilingual key/interpolation parity, frozen defaults, application override precedence, repeated initialization and isolation after native i18next resource writes.
+- Import-boundary assertions: 50/50 passed, including catalog-to-UI/editor dependency rejection.
+- Built consumer baseline: all six groups passed, retaining the explicitly characterized engine native-Node CSS limitation. Independent i18n ESM/CJS consumption also passed.
+- Chrome targeted browser suite: 14/14 passed across language switching/reload in BPMN, ER and ComfyUI, edge-name inspector and workbench UI. Full browser and performance suites were not rerun for this catalog-only runtime change.
+
+Logs: `/tmp/flow-i18n-unified-check.log`, `/tmp/flow-i18n-unified-consumer.log`, `/tmp/flow-i18n-unified-e2e.log`, `/private/tmp/flow-i18n-unified-boundaries.log`.

@@ -15,5 +15,3 @@ export type {
   SelectSetterProps,
   RadioGroupSetterProps,
 } from "./types";
-
-export { settersMessages } from "./messages";

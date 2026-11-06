@@ -214,7 +214,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["packages/i18n/src/index.ts"],
+    files: ["packages/i18n/src/index.ts", "packages/i18n/src/catalog/**/*.ts"],
     rules: {
       "@typescript-eslint/no-restricted-imports": [
         "error",

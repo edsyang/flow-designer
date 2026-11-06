@@ -1,3 +1,6 @@
+import { coreMessages } from "./catalog";
+export { coreMessages } from "./catalog";
+
 import { createInstance } from "i18next";
 import type { i18n as I18next } from "i18next";
 
@@ -19,7 +22,10 @@ export interface I18nService {
 /** A resource/locale owner. Storage and application messages belong to its caller. */
 export function createI18n(): I18nService {
   const i18n = createInstance();
-  let pending: LocaleMessages = {};
+  let pending: LocaleMessages = {
+    "zh-CN": { ...coreMessages["zh-CN"] },
+    "en-US": { ...coreMessages["en-US"] },
+  };
   let initialization: Promise<void> | null = null;
   let revision = 0;
   const getLocale = (): Locale =>

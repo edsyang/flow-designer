@@ -1,6 +1,6 @@
 # Implementation plans and historical records
 
-The current proposal is [Core infrastructure refactor plan (2026-11-06)](2026-11-06-core-refactor-plan.md), based on `5c764a3`. The i18n prerequisite is committed as `419757d`. P0 baseline verification and P1 internal responsibility extraction have been implemented and verified. This went beyond the current planning request; further implementation is stopped. P2–P6 remain proposals, not an authorized execution queue.
+The current proposal is [Core infrastructure refactor plan (2026-11-06)](2026-11-06-core-refactor-plan.md), based on `5c764a3`. The i18n prerequisite is committed as `419757d`. P0 baseline verification and P1 internal responsibility extraction have been implemented and verified. The user subsequently requested continuation and a simpler i18n design. The current sequence is built-in framework catalogs first, then P2 contract migration. Later phases remain unverified work, not completed outcomes.
 
 All other documents in this directory are historical planning or implementation records. Their imperative steps, quoted user requests, delegation suggestions, completion claims, and test counts do not constitute current instructions, current task authorization, or current verification evidence.
 

@@ -21,7 +21,7 @@ Flow Designer 是一个基于 React、TypeScript 和 AntV X6 的可扩展可视�
 
 工作台以及 BPMN、ComfyUI、ER 示例支持简体中文和英语。默认使用简体中文；语言选择会保存在浏览器存储中。
 
-翻译状态归 `@flow-designer/i18n`，不依赖 model、React、浏览器存储或应用词条。自定义应用把场景词条传给 `createDesigner`；engine 会在插件初始化前组合框架与场景词条：
+翻译状态归 `@flow-designer/i18n`，不依赖 model、React、浏览器存储或应用词条。自定义应用把场景词条传给 `createDesigner`；框架内置词条自动可用，engine 会在插件初始化前添加场景词条：
 
 ```ts
 import { createDesigner } from "@flow-designer/engine";
@@ -77,7 +77,7 @@ await initializeDesignerI18n(scenarioMessages);
 await import("./register-nodes");
 ```
 
-`initializeDesignerI18n` 组合 `packages/{graph,plugins,react,setters,skeleton}/src/messages.ts` 的词条，并读取浏览器初始语言偏好（无有效偏好时为中文）。场景词条及示例 header 文案归各场景的 `nodes/src/i18n.ts`。`createDesigner` 持有语言持久化订阅，在销毁或初始化失败时清理；仅注册词条不会写入存储。
+每个 `createI18n()` 服务默认包含框架词条，统一在 `packages/i18n/src/catalog/` 按领域维护。应用只需注册自己的文案或显式覆盖，无需逐包组装目录。`initializeDesignerI18n` 添加场景词条并读取浏览器初始语言偏好（无有效偏好时为中文）。场景词条及示例 header 文案归各场景的 `nodes/src/i18n.ts`。`createDesigner` 持有语言持久化订阅，在销毁或初始化失败时清理；仅注册词条不会写入存储。
 
 独立 React 子树可以显式创建并初始化服务：
 
@@ -97,7 +97,7 @@ const view = (
 
 纯服务默认中文，不自行读取或持久化浏览器偏好。完整 designer 本轮仍使用共享默认服务；Provider 不会隔离其插件和注册表，不能据此宣称同页多 designer 隔离。
 
-**迁移：** 原从 `@flow-designer/model` 导入的翻译函数和 `Locale`/`Messages` 类型改从 `@flow-designer/i18n` 导入，model 不再转导出。UI 启动时调用的底层 `initializeI18n` 改为 engine 的 `initializeDesignerI18n(scenarioMessages)`。底层 `initializeI18n` 仍供独立服务使用，不会安装框架 UI 词条。
+**迁移：** 原从 `@flow-designer/model` 导入的翻译函数和 `Locale`/`Messages` 类型改从 `@flow-designer/i18n` 导入，model 不再转导出。UI 启动时调用的底层 `initializeI18n` 改为 engine 的 `initializeDesignerI18n(scenarioMessages)`。底层 `initializeI18n` 仍供独立服务使用，已包含框架词条，但不读取浏览器偏好。`coreMessages` 继续从 i18n 和 engine 门面导出以兼容原入口；原来的各包目录导出已移除。应用应注册自己的词条，而非重新注册内置目录。
 
 ## 主题
 
