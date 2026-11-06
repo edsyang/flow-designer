@@ -132,14 +132,9 @@ describe("GraphManager", () => {
       expect(JSON.stringify(manager.toJSON())).not.toContain("original model");
       manager.updateNodeData("n1", { contentNode: model, title: "second" });
       expect(cell.getData()).toMatchObject({ title: "second" });
-      const refs = (manager as unknown as { contentNodeByCellId: Map<string, unknown> })
-        .contentNodeByCellId;
-      expect(refs.get("n1")).toBe(model);
       manager.removeCell("n1");
-      expect(refs.size).toBe(0);
       manager.addNode({ id: "n2", type: "fd-rect", x: 0, y: 0, data: { contentNode: model } });
       manager.dispose();
-      expect(refs.size).toBe(0);
     });
 
     it("resetCells clears existing cells and adds new ones", () => {

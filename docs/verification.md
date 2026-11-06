@@ -315,3 +315,15 @@ Scope: extract `@flow-designer/i18n`, separate its optional React adapter, reloc
 - Offline frozen-lockfile install passed after synchronizing workspace importers; no third-party dependency version changes. Import-boundary assertions: 46/46 passed. Changed files were formatted and `git diff --check` passed.
 
 Local logs: `/tmp/flow-i18n-build.log`, `/tmp/flow-i18n-check.log`, `/tmp/flow-i18n-test.log`, `/tmp/flow-i18n-e2e.log`. Temporary built-package smoke consumers live outside the repository. Generated browser reports are not part of the change.
+
+## Core refactor P0/P1 verification (2026-11-06)
+
+Runtime baseline is `419757d`; P0 evidence and public-consumer/serialization fixtures were committed as `3ac9a61`. See `docs/plans/2026-11-06-core-baseline.md` and `pnpm check:core-baseline`.
+
+P1 extracts GraphManager into type registry, cell projection, React rendering, presentation, connection coordination, interaction sessions, viewport and stencil resource owners. Public methods, route selection and persisted data remain unchanged. Initialization failure now cleans acquired resources while retaining the original error; disposal attempts all cleanup and reports failures after releasing remaining owners.
+
+- Final workspace gate: 75/75 build/test/typecheck/lint tasks, 559 unit tests. Graph tests: 121, including four lifecycle cases. Graph lint budget lowered from 192 to 188.
+- Full Chrome E2E after structural extraction: 82/82. After the final exceptional-cleanup change, focused workbench/port/edge interaction tests: 14/14. Full E2E was not repeated after that exceptional-path-only change.
+- Built public consumer/serialization/scaffold check: six groups passed; import boundaries: 46/46.
+- Production comparison after extraction: 100/300/500 nodes with 200/600/1000 edges, three runs each, 9/9 passed. Ordinary and fit drag P95 stayed about 16.7–16.8ms. Counts, route failures (0), error elements (0), legacy warnings (101/309/517), and local routing work (126 ordinary / 240 fit route passes) match the P0 fixture. This sampling preceded the final exceptional-cleanup guard and is not a universal frame-rate guarantee.
+- Evidence: `/tmp/flow-core-p1-final-check.log`, `/tmp/flow-core-p1-e2e.log`, `/tmp/flow-core-p1-final-e2e.log`, `/tmp/flow-core-p1-performance/`, `/tmp/flow-core-p1-consumer.log`. Reports remain outside the repository.

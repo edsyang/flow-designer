@@ -1,3 +1,4 @@
+import { ConnectionCoordinator } from "../src/connection-coordinator";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Edge, Graph } from "@antv/x6";
 import { ConnectionValidators } from "../src/validators";
@@ -91,10 +92,19 @@ describe("shared connection policy", () => {
     });
     const source = edge.getSource(),
       target = edge.getTarget();
-    const admission = manager as unknown as {
-      hasShortConnectionRoute: (context: unknown, id: string) => boolean;
-      tryAlternativeDirectionalPorts: (edge: Edge) => boolean;
-    };
+    const admission = new ConnectionCoordinator(
+      () => graph,
+      new Map([
+        ["task", "task"],
+        ["end", "end"],
+      ]),
+      new Map([
+        ["task", ports],
+        ["end", ports.map((port) => ({ ...port, connectionDirection: "in" as const }))],
+      ]),
+      new Map(),
+      new Map(),
+    );
     const check = vi.spyOn(admission, "hasShortConnectionRoute").mockImplementation(() => {
       expect(edge.getSource()).toEqual(source);
       expect(edge.getTarget()).toEqual(target);
@@ -112,13 +122,19 @@ describe("shared connection policy", () => {
       source: { cell: "task", port: "out-right" },
       target: { cell: "end", port: "in-left" },
     });
-    const admission = manager as unknown as {
-      hasShortConnectionRoute: (
-        context: { sourcePort: { position: string }; targetPort: { position: string } },
-        id: string,
-      ) => boolean;
-      autoSwitchEdgePorts: (edge: Edge, a: boolean, b: boolean, directionalOnly: boolean) => void;
-    };
+    const admission = new ConnectionCoordinator(
+      () => graph,
+      new Map([
+        ["task", "task"],
+        ["end", "end"],
+      ]),
+      new Map([
+        ["task", ports],
+        ["end", ports.map((port) => ({ ...port, connectionDirection: "in" as const }))],
+      ]),
+      new Map(),
+      new Map(),
+    );
     const originalSource = edge.getSource(),
       originalTarget = edge.getTarget();
     let committed = false;

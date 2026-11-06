@@ -57,3 +57,19 @@ The port-curve connector preserves direct Bezier links that clear node bodies. B
 A blocked anchor, overlap, or bounded search can prevent a valid route. New connections reject with the translatable `routeUnavailable` reason. Node drags restore the latest legal preview before paint (including snapline translations); ending in an illegal state restores every selected node and associated ports/vertices to the gesture start before model synchronization. Net unchanged transactions create no history. Segment drags similarly retain a legal preview and revert rejected edits. Unrelated obstacles are checked against cached route footprints, not only attached links.
 
 Legacy data is retained. A legal route needing more bends remains visible with `data-routing-warning`. Physically impossible legacy geometry uses an explicitly red dashed diagnostic connection, marked `data-routing-error`, rather than disappearing; this diagnostic is not a collision-free route. Only persisted model projections produce legacy warnings; temporary native drags and adjusted drops do not. `edge:routing:degraded` aggregates `{ edgeIds, reason: "workbench.connection.legacyRouteWarning" }` once per animation frame for a visible workbench warning. Recovery removes the diagnostic presentation and restores caller stroke, dash and marker styling. Pending warning frames are cancelled on disposal.
+
+## Internal graph ownership after P1
+
+`GraphManager` remains the public facade. Internal responsibilities are split without changing graph events, serialized formats or routing policy:
+
+- `type-registry.ts` owns registered definitions, retained across viewport disposal.
+- `cell-projection.ts` owns cell/type/model-reference indexes and projection/batch operations; disposal clears live cell references.
+- `react-rendering.ts` owns React adapters and label roots. Cleanup is identity-bound and idempotent, so an old callback cannot unmount a replacement root.
+- `graph-presentation.ts` owns theme-managed attributes and transient selection/hover presentation.
+- `connection-coordinator.ts` owns existing connection validation and port/router projection; it reads registry/projection indexes without owning their mutation.
+- `interaction-sessions.ts` owns gesture snapshots and legal-preview restoration; its listeners retain the original ordering before bridge synchronization.
+- `viewport-resources.ts` and `stencil-resources.ts` own their viewport/drag resources, composing the existing viewport input/culling helpers.
+
+These modules do not own Document history. Root cleanup and model-reference release are covered by `packages/graph/__tests__/rendering-lifecycle.test.ts`; the facade behavior suite remains the compatibility gate.
+
+Graph initialization failures release already acquired resources and preserve the original initialization error; secondary cleanup errors remain observable. Disposal detaches the live graph first, attempts all owned cleanup tasks even if one throws, and reports collected failures after cleanup. Repeated disposal is safe. This recovery behavior is verified with a native plugin failing part-way through initialization and with multiple failing disposers.
