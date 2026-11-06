@@ -1,7 +1,7 @@
 import { Component } from "react";
 import type { ReactNode, ErrorInfo } from "react";
 import { Button } from "antd";
-import { t } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 
 interface Props {
   children: ReactNode;

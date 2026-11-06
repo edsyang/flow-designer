@@ -1,6 +1,7 @@
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { GraphManager } from "@flow-designer/graph";
-import { prototypeRegistry, signal, t } from "@flow-designer/model";
+import { prototypeRegistry, signal } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import type { NodeMeta, GraphOptions, Prototype } from "@flow-designer/model";
 import { GraphBridge } from "./bridge/graph-bridge";
 import { registerCanvasCommands } from "./commands";

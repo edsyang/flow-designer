@@ -29,7 +29,7 @@ The workbench ships a light and a dark appearance. The theme is transient UI sta
 | Canvas background, grid, diagram palette | `packages/graph/src/graph-manager.ts` (`backgroundOption`, `resolveBackgroundColor`, `resolveGridColor`, `resolveCanvasPalette`, `applyNodeTheme`, `applyEdgeTheme`, `applyCanvasTheme`, `subscribeTheme`) |
 | Switching window | `packages/model/src/theme.ts` (`beginThemeSwitch`), `packages/react/src/design-tokens.less` (`data-fd-theme-switching`) |
 | Toggle control | `packages/plugins/src/theme/{index,theme-switcher}.tsx`, registered in `packages/plugins/src/register-builtin-plugins.ts` |
-| Messages | `packages/model/src/i18n-messages.ts` (`workbench.theme.*`) |
+| Messages | `packages/plugins/src/messages.ts` (`workbench.theme.*`) |
 | Tests | `packages/model/__tests__/theme.test.ts`, `packages/react/__tests__/use-theme.test.tsx` |
 
 ## Known gaps

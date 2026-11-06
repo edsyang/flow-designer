@@ -1,6 +1,7 @@
 import type { IPluginConfig, IPluginContext } from "@flow-designer/core";
 import { commandRegistry } from "@flow-designer/core";
-import { prototypeRegistry, t, utils } from "@flow-designer/model";
+import { prototypeRegistry, utils } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import type { ContentNode, GenericRelation } from "@flow-designer/model";
 import { getMessageApi } from "@flow-designer/react";
 

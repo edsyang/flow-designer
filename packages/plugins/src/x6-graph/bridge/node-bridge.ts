@@ -1,6 +1,6 @@
 import type { ContentNode } from "@flow-designer/model";
 import { prototypeRegistry } from "@flow-designer/model";
-import { subscribeLocale } from "@flow-designer/model";
+import { subscribeLocale } from "@flow-designer/i18n";
 import type { GraphManager } from "@flow-designer/graph";
 import type { GraphBridge } from "./graph-bridge";
 import { truncateLabel } from "./graph-bridge";

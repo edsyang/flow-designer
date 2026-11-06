@@ -1,3 +1,4 @@
+import { workbenchMessages } from "../src/messages";
 import { useEffect } from "react";
 import { act, render, screen, cleanup, fireEvent, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -6,16 +7,16 @@ import {
   Document,
   GenericContent,
   contentTypesRegistry,
-  initializeI18n,
   prototypeRegistry,
 } from "@flow-designer/model";
+import { initializeI18n } from "@flow-designer/i18n";
 import { Editor } from "@flow-designer/core";
 import { Skeleton } from "@flow-designer/skeleton";
 import { Workbench } from "../src/workbench";
 import { useSelection, useSkeleton } from "../src/hooks";
 import type { WorkbenchProps } from "../src/types";
 
-await initializeI18n();
+await initializeI18n(workbenchMessages);
 
 beforeAll(() => {
   if (!contentTypesRegistry.getSuitableContentType("*"))

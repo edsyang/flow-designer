@@ -2,10 +2,9 @@ import type {
   GraphOptions,
   ContentTransformer,
   IGraphManager,
-  Locale,
-  Messages,
   SettingConfig,
 } from "@flow-designer/model";
+import type { Locale, Messages } from "@flow-designer/i18n";
 import type { PluginCreator, Editor, IPluginManager } from "@flow-designer/core";
 import type { Engine } from "./engine";
 import type { Document } from "@flow-designer/model";

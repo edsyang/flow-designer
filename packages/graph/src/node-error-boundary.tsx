@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { Component } from "react";
-import { subscribeLocale, t } from "@flow-designer/model";
+import { subscribeLocale, t } from "@flow-designer/i18n";
 
 interface NodeErrorBoundaryProps {
   nodeName: string;

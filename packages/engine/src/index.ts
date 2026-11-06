@@ -9,3 +9,6 @@ export * from "@flow-designer/react";
 export { Engine } from "./engine";
 export { createDesigner } from "./create-designer";
 export type { DesignerOptions, Designer } from "./types";
+
+export * from "@flow-designer/i18n";
+export { coreMessages, initializeDesignerI18n, getInitialLocale } from "./i18n";

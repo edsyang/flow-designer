@@ -5,11 +5,10 @@ import {
   ConnectionValidators,
   contentTypesRegistry,
   GenericContent,
-  initializeI18n,
+  initializeDesignerI18n,
   signal,
-  subscribeLocale,
-  t,
 } from "@flow-designer/engine";
+import { subscribeLocale, t } from "@flow-designer/i18n";
 import { erMessages } from "@flow-designer/er-nodes/i18n";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
 import styles from "./app.module.less";
@@ -27,7 +26,7 @@ async function init() {
 
   if (!container) throw new Error("Root element #root not found");
 
-  await initializeI18n(erMessages);
+  await initializeDesignerI18n(erMessages);
   const { registerERNodes, refreshERTranslations, getRelationEdgeType } =
     await import("@flow-designer/er-nodes");
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button, Space } from "antd";
-import { t } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import { UndoOutlined, RedoOutlined } from "@ant-design/icons";
 
 interface UndoRedoButtonsProps {

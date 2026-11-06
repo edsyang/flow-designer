@@ -6,6 +6,7 @@ Flow Designer is a reusable visual editor framework with scenario applications. 
 
 ## Layers
 
+- `packages/i18n`: translation service, locale/resource subscriptions and independently created instances; optional React integration is exposed only through `/react`. The service does not import UI, model, browser storage or application catalogs.
 - `packages/model`: document/content state, node prototypes, settings, registries, and serialization contracts.
 - `packages/core`: editor orchestration, commands, plugin lifecycle, and editor-level communication.
 - `packages/graph`: graph-facing contracts and X6-backed graph management.
@@ -39,3 +40,11 @@ Static import rules do not establish transitive dependency isolation or detect d
 ## Instance support boundary
 
 The examples initialize one designer per page. Prototype/content/setter registries, signals, command registration, and hotkeys include shared state; isolated same-page multi-instance behavior has not been established. This is a current support limitation, not a decision to prohibit future multi-instance support. Any change claiming isolation must verify two independently configured editors, focus/shortcut dispatch, and destruction of one while the other remains usable.
+
+## Translation ownership and migration
+
+`@flow-designer/i18n` exposes `defaultI18n` and its convenience functions, plus `createI18n()` for independent resource/locale ownership. `@flow-designer/i18n/react` exposes `I18nProvider` (`instance` prop) and `useTranslate`; the existing React package hook delegates to this adapter. Model no longer exports translation APIs or types: migrate those imports to the i18n package, without a reverse compatibility dependency.
+
+Framework catalogs belong to `packages/{graph,plugins,react,setters,skeleton}/src/messages.ts`; example scenario catalogs, including header text, belong to their nodes package's `src/i18n.ts`. Engine owns their composition and initial browser locale through `initializeDesignerI18n(scenarioMessages)`. UI bootstrap should use that entry rather than low-level `initializeI18n`, which deliberately installs no framework catalogs. Definitions translating metadata during module evaluation must be imported after composition is initialized.
+
+The complete designer still uses the shared default service. An independent service with a Provider isolates translations in its consuming subtree, not the designer's plugin/runtime services. Other proposed core refactors remain outside this extraction's authorization.

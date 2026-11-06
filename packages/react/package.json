@@ -31,7 +31,8 @@
     "@ant-design/icons": "^6.3.2",
     "@flow-designer/core": "workspace:*",
     "@flow-designer/model": "workspace:*",
-    "@flow-designer/skeleton": "workspace:*"
+    "@flow-designer/skeleton": "workspace:*",
+    "@flow-designer/i18n": "workspace:*"
   },
   "peerDependencies": {
     "antd": "^6.5.2",

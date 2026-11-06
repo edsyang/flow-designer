@@ -10,7 +10,8 @@ import "@antv/x6-plugin-stencil/dist/index.css";
 import { register } from "@antv/x6-react-shape";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { canUsePort, getTheme, subscribeTheme, t } from "@flow-designer/model";
+import { canUsePort, getTheme, subscribeTheme } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import type {
   IGraphManager,
   GraphOptions,

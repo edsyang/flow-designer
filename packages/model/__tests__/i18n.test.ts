@@ -1,23 +1,24 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   addMessages,
-  getInitialLocale,
   getLocale,
   initializeI18n,
   registerMessages,
   setLocale,
   t,
-} from "../src/i18n";
+} from "@flow-designer/i18n";
 import Prototype from "../src/prototype";
 
-const initialLocale = getInitialLocale();
+const initialLocale = getLocale();
 
 await initializeI18n({
   "zh-CN": {
     "test.node.label": "测试节点",
+    "test.addFailed": "无法添加“{{name}}”",
   },
   "en-US": {
     "test.node.label": "Test node",
+    "test.addFailed": "Unable to add “{{name}}”",
   },
 });
 
@@ -28,11 +29,9 @@ afterEach(async () => {
 describe("locale messages", () => {
   it("switches locale and interpolates translated messages", async () => {
     await setLocale("en-US");
-    expect(t("workbench.canvas.addFailed", { name: "Start Event" })).toBe(
-      "Unable to add “Start Event”",
-    );
+    expect(t("test.addFailed", { name: "Start Event" })).toBe("Unable to add “Start Event”");
     await setLocale("zh-CN");
-    expect(t("workbench.canvas.addFailed", { name: "开始" })).toBe("无法添加“开始”");
+    expect(t("test.addFailed", { name: "开始" })).toBe("无法添加“开始”");
   });
 
   it("translates by semantic key in the selected locale", async () => {
@@ -77,19 +76,9 @@ describe("locale messages", () => {
     expect(t("test.scenario.title")).toBe("场景标题");
   });
 
-  it("keeps the core catalogue available after injection", async () => {
+  it("keeps fixture messages available after injection", async () => {
     await setLocale("en-US");
-    expect(t("workbench.language.english")).toBe("English");
+    expect(t("test.node.label")).toBe("Test node");
     expect(getLocale()).toBe("en-US");
   });
-});
-
-it("keeps route diagnostics in the selected language", async () => {
-  const { coreMessages } = await import("../src/i18n-messages");
-  expect(coreMessages["zh-CN"]["workbench.connection.routeUnavailable"]).toContain("无法");
-  expect(coreMessages["zh-CN"]["workbench.connection.legacyRouteWarning"]).toContain("已有连线");
-  expect(coreMessages["en-US"]["workbench.connection.routeUnavailable"]).toContain("No route");
-  expect(coreMessages["en-US"]["workbench.connection.legacyRouteWarning"]).toContain(
-    "Some existing",
-  );
 });

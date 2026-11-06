@@ -32,7 +32,8 @@
     "@flow-designer/plugins": "workspace:*",
     "@flow-designer/setters": "workspace:*",
     "@flow-designer/react": "workspace:*",
-    "mobx": "^6.13.7"
+    "mobx": "^6.13.7",
+    "@flow-designer/i18n": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.3.1",

@@ -36,7 +36,8 @@
     "clean": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\""
   },
   "dependencies": {
-    "@flow-designer/model": "workspace:*"
+    "@flow-designer/model": "workspace:*",
+    "@flow-designer/i18n": "workspace:*"
   },
   "peerDependencies": {
     "antd": "^6.5.2",

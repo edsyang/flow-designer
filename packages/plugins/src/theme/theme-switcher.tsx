@@ -1,6 +1,6 @@
 import { Button } from "antd";
 import { MoonOutlined, SunOutlined } from "@ant-design/icons";
-import { t } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import { useTheme } from "@flow-designer/react";
 import styles from "./theme-switcher.module.less";
 

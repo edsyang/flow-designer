@@ -28,6 +28,7 @@ const baseImports = [
 ];
 const coreUIImports = {
   group: [
+    "@flow-designer/i18n/react",
     "@flow-designer/react",
     "@flow-designer/react/**",
     "@flow-designer/skeleton",
@@ -193,6 +194,43 @@ export default tseslint.config(
       "e2e/**/*.{ts,tsx,mjs}",
     ],
     extends: [tseslint.configs.disableTypeChecked],
+  },
+  {
+    files: ["packages/i18n/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...baseImports,
+            ...scenarioImports,
+            {
+              group: ["@flow-designer/*", "**/model/src/**", "**/core/src/**", "**/engine/src/**"],
+              message: "The translation runtime must not depend on editor packages.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["packages/i18n/src/index.ts"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            ...baseImports,
+            ...scenarioImports,
+            reactRuntimeImports,
+            {
+              group: ["@flow-designer/*", "./react", "./react.*"],
+              message: "Keep the translation entry independent from React and editor packages.",
+            },
+          ],
+        },
+      ],
+    },
   },
   eslintConfigPrettier,
 );

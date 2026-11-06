@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { prototypeRegistry, setLocale } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import { setLocale } from "@flow-designer/i18n";
 import { refreshERTranslations, registerERNodes } from "../src";
 import { tableDef } from "../src/table";
 import { viewDef } from "../src/view";

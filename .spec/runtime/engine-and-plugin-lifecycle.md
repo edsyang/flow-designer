@@ -4,16 +4,16 @@
 
 `createDesigner(options)` composes one runtime in this order:
 
-1. Initialize the shared i18next instance with core messages and optional scenario `localeMessages`.
+1. Call `initializeDesignerI18n(localeMessages)` to compose package catalogs into the shared default i18n service and initialize its first locale from browser storage (otherwise `zh-CN`).
 2. Configure MobX actions.
-3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
+3. Construct `Engine`, which owns an `Editor`, `Skeleton`, and `PluginManager`. Acquire the locale-persistence subscription with an engine-owned disposer. Record the optional container, acquire a disposable shared hotkey listener owner, and register option transformers with disposal handles.
 4. Register built-in setters unless disabled.
 5. Register enabled built-in plugins, passing graph options to the X6 graph plugin.
 6. Register caller-supplied plugins and explicitly requested optional plugins such as autosave or the unsaved-changes prompt.
 7. Construct the `Document` from the requested document type/version and settings.
 8. Initialize the plugin manager and return the engine, editor, document, graph, plugin proxy, and `destroy()`.
 
-Scenario registration (content types, node prototypes, edge types, and transformers) belongs in the scenario app before the runtime needs those registrations. Scenario translation catalogs are passed through `DesignerOptions.localeMessages`; the engine initializes the shared i18next instance without depending on scenario packages or schemas.
+Scenario registration (content types, node prototypes, edge types, and transformers) belongs in the scenario app before the runtime needs those registrations. Scenario translation catalogs are passed through `DesignerOptions.localeMessages`; the engine initializes the shared default translation service without depending on scenario packages or schemas. Applications evaluating translated metadata before creation call `initializeDesignerI18n(scenarioMessages)` before importing those definitions. The low-level `@flow-designer/i18n.initializeI18n` does not compose UI catalogs or read browser preferences.
 
 ## Plugin manager contract
 
@@ -47,7 +47,7 @@ Primary implementation: `packages/engine/src/create-designer.ts`, `packages/engi
 
 `documentType`, `documentVersion`, and `docSettings` take effect during document construction. `localeMessages` are merged with core translations during i18next initialization, before plugin initialization. `disableBuiltinSetters`, `disableBuiltinPlugins`, `plugins`, `autoSave`, and `unsavedPrompt` affect registration/initialization. `graphOptions` is passed to the graph plugin and applied when the canvas mounts. `autoSave` and `unsavedPrompt` are opt-in; autosave's default interval is 30 seconds.
 
-**Required contract:** translation catalogs are not frozen at initialization. `registerMessages(catalogByLocale)` merges a whole catalog and `addMessages(locale, messages)` merges one locale; both work before or after initialization, notify locale subscribers, and never replace previously registered keys for the same locale. React consumers read translations through `useTranslate` (locale plus catalog changes) rather than subscribing to the locale alone. Scenario apps must not register prototypes as a side effect of refreshing translations.
+**Required contract:** translation catalogs are not frozen at initialization. `registerMessages(catalogByLocale)` merges a whole catalog and `addMessages(locale, messages)` merges one locale; both work before or after initialization and notify locale subscribers. Supplied same-locale keys replace previous values; unrelated keys remain. This corrects the former inaccurate “never replace” wording: pre-initialization object merging and post-initialization resource merging both permit explicit overrides, including lazy catalog corrections. It is not a relaxation of test expectations. React consumers read translations through `useTranslate` (locale plus catalog changes) rather than subscribing to the locale alone. Scenario apps must not register prototypes as a side effect of refreshing translations.
 
 **Required contract:** autosave persists the last `Document.getData()` snapshot to browser IndexedDB but never restores it implicitly. Recovery is an explicit consumer step: `designer.plugins["plugin-auto-save"].restore()` loads the stored snapshot into the open document through `Document.load()`, resolves `false` when nothing was stored, and leaves the document untouched in that case; `clear()` deletes the snapshot. IndexedDB failures are logged and must not be reported as a successful save.
 
@@ -65,3 +65,11 @@ Primary implementation: `packages/engine/src/create-designer.ts`, `packages/engi
 - Shared registries/signals/commands prevent claiming instance isolation; see the architecture spec.
 
 Plugin-manager, engine and hotkey tests cover plugin-init rollback, registration failure cleanup, option transformer disposal, repeated destruction, input-safe scope and listener ownership. Changes to readiness or disposal need mount-failure and repeated create/mount/destroy checks, including absence of callbacks into a destroyed editor.
+
+## Translation service lifecycle
+
+The pure service lives in `@flow-designer/i18n`, with `createI18n()` for independent instances and convenience exports bound to `defaultI18n`. Initialization defaults to `zh-CN` unless its caller supplies a locale. It has no DOM, storage, React, framework catalog or scenario dependency. Locale/catalog subscribers receive a disposer; hooks subscribe to resource changes as well as language changes. `@flow-designer/i18n/react` supplies the optional `I18nProvider instance={service}` and `useTranslate`; `@flow-designer/react` retains its hook facade.
+
+Engine composes the graph, plugins, react, setters and skeleton `src/messages.ts` catalogs; scenario header messages remain in each nodes package's `src/i18n.ts`. `createDesigner` subscribes to actual locale changes for browser persistence, avoids storage writes on catalog-only changes, and disposes the subscription during destruction or failed setup. Calling the initializer alone does not install a persistence subscription. Storage is optional; failure must not prevent initialization.
+
+The full designer still uses the shared default service, not a service passed through a Provider. Independent service/Provider isolation must not be described as complete multi-designer isolation. Translation API/type imports formerly obtained from model move to `@flow-designer/i18n`; model has no compatibility re-export.

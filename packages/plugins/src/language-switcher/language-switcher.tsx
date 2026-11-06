@@ -1,7 +1,7 @@
 import { Button, Dropdown } from "antd";
 import { CheckOutlined, GlobalOutlined } from "@ant-design/icons";
-import { setLocale, t } from "@flow-designer/model";
-import type { Locale } from "@flow-designer/model";
+import { setLocale, t } from "@flow-designer/i18n";
+import type { Locale } from "@flow-designer/i18n";
 import styles from "./language-switcher.module.less";
 
 interface LanguageSwitcherProps {

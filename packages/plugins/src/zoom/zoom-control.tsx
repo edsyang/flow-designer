@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, type CSSProperties } from "react";
 import { Button } from "antd";
-import { t } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import { MinusOutlined, PlusOutlined, ExpandOutlined } from "@ant-design/icons";
 import styles from "./zoom-control.module.less";
 

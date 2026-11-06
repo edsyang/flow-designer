@@ -301,3 +301,17 @@ Production checks used `/assets/index-DU0ikOfV.js` on port 5199 without concurre
 All samples retained 200/600/1000 edges with zero routing failures or diagnostic errors. Long drags produced 30 position events / 126 route computations, and fit-view drags 60 / 240. The initial 500-node fit-view sample had P95 **33.3ms**, with 6.17% of intervals over 25ms; the short-run comparison measured **16.8ms** (3.95% over 25ms), and one isolated repeat measured **16.7ms** (1.33% over 25ms). No code or thresholds changed between these runs. The first result is retained rather than replaced by the repeat: steady-state interaction is responsive in these samples, but occasional frame drops and initial rendering costs remain. Legacy warnings belong to the imported cross-row stress fixture; they do not establish that every imported edge satisfies the new short-route rule.
 
 Reports: `/private/tmp/flow-six-{build,unit,static,e2e}.log`, `/private/tmp/flow-six-e2e.json`; performance artifacts under `/private/tmp/flow-six-perf-{long,short,500-repeat}/`. Visual review used `/private/tmp/flow-workspace-layout.png`, `/private/tmp/flow-diamond-stubs.png`, `/private/tmp/flow-start-left-stub.png`, and `/private/tmp/flow-bottom-auto-port.png`. Root visually checked all four, including the final bottom-port result without a warning toast.
+
+## Independent i18n package verification (2026-11-06)
+
+Scope: extract `@flow-designer/i18n`, separate its optional React adapter, relocate framework/scenario catalogues, migrate consumers, and move browser locale persistence to engine-owned cleanup. Full designer instances still share the default translation service; independent service/Provider isolation is verified separately.
+
+- Workspace build: 20/20 tasks passed. Existing application chunk-size warnings remain; no TypeScript diagnostics.
+- Workspace typecheck/lint: 56/56 tasks passed; new i18n package has zero warnings.
+- Workspace tests: 555 tests passed. The first run exposed three React canvas tests relying on implicit model-owned catalogues; fixtures now explicitly register workbench and connection catalogues, with existing assertions retained.
+- Focused Chrome E2E: 13/13 passed across BPMN, ComfyUI and ER. Includes locale persistence across reload, document/history invariance, selected connection translation and existing workbench layout/theme regressions. Bundled Chromium was unavailable; the initial launch attempt could not execute tests, so installed Chrome was used. Full unrelated E2E and performance suites were not rerun for this change.
+- Built-package consumer smoke: ESM/CJS translation entry runs without DOM and with React loading forbidden; both React entry formats pass Provider/hook SSR; strict NodeNext `.mts`/`.cts` consumers compile.
+- Service tests include dynamic/raw resource updates, independent instances, Provider unmount cleanup, initialization retry and pending-initialization resource replacement.
+- Offline frozen-lockfile install passed after synchronizing workspace importers; no third-party dependency version changes. Import-boundary assertions: 46/46 passed. Changed files were formatted and `git diff --check` passed.
+
+Local logs: `/tmp/flow-i18n-build.log`, `/tmp/flow-i18n-check.log`, `/tmp/flow-i18n-test.log`, `/tmp/flow-i18n-e2e.log`. Temporary built-package smoke consumers live outside the repository. Generated browser reports are not part of the change.

@@ -1,5 +1,6 @@
 import { commandRegistry } from "@flow-designer/core";
-import { CANVAS_COMMANDS, canUsePort, prototypeRegistry, t } from "@flow-designer/model";
+import { CANVAS_COMMANDS, canUsePort, prototypeRegistry } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import type {
   CanvasPrototypeRequest,
   CanvasPrototypeResult,

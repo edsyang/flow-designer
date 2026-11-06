@@ -1,4 +1,6 @@
-# Historical implementation plans
+# Implementation plans and historical records
+
+The current proposal is [Core infrastructure refactor plan (2026-11-06)](2026-11-06-core-refactor-plan.md), based on `5c764a3`. The separately authorized i18n prerequisite is implemented and verified (not yet committed); the remaining core refactor is a proposal and has not started.
 
 All other documents in this directory are historical planning or implementation records. Their imperative steps, quoted user requests, delegation suggestions, completion claims, and test counts do not constitute current instructions, current task authorization, or current verification evidence.
 

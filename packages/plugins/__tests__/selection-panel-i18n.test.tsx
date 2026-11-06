@@ -1,12 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  registerMessages,
-  setLocale,
-  setterRegistry,
-  subscribeLocale,
-  t,
-} from "@flow-designer/model";
+import { setterRegistry } from "@flow-designer/model";
+import { registerMessages, setLocale, subscribeLocale, t } from "@flow-designer/i18n";
 import { SettingsRenderer } from "../src/selection-panel/settings-renderer";
 
 const fixture = vi.hoisted(() => {

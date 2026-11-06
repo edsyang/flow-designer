@@ -1,7 +1,8 @@
-import type { Locale, Messages } from "@flow-designer/model";
+import type { Locale, Messages } from "@flow-designer/i18n";
 
 const messages: Record<Locale, Messages> = {
   "zh-CN": {
+    "er.app.header": "ER 图设计器",
     "er.node.table": "数据表",
     "er.node.view": "视图",
     "er.node.enum": "枚举",
@@ -19,6 +20,7 @@ const messages: Record<Locale, Messages> = {
     "er.app.title": "ER 图设计器",
   },
   "en-US": {
+    "er.app.header": "ER Diagram Designer",
     "er.node.table": "Table",
     "er.node.view": "View",
     "er.node.enum": "Enum",

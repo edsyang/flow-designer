@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setLocale } from "@flow-designer/model";
+import { setLocale } from "@flow-designer/i18n";
 import {
   edgeDefaultProps,
   edgeNameValue,

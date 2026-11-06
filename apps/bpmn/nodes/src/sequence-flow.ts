@@ -1,5 +1,6 @@
 import { BuiltinSetters } from "@flow-designer/setters/constants";
-import { canUsePort, t } from "@flow-designer/model";
+import { canUsePort } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import type { ConnectionContext, EdgeTypeConfig } from "@flow-designer/model";
 import { BPMN_TYPE_NAMES } from "./constants";
 

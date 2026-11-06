@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { Document, GenericContent, contentTypesRegistry, setLocale } from "@flow-designer/model";
+import { Document, GenericContent, contentTypesRegistry } from "@flow-designer/model";
+import { setLocale } from "@flow-designer/i18n";
 import { Editor } from "@flow-designer/core";
 import type { IPluginContext } from "@flow-designer/core";
 import { Skeleton } from "@flow-designer/skeleton";

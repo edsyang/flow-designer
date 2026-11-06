@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { prototypeRegistry, setLocale, t } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import { setLocale, t } from "@flow-designer/i18n";
 import { COMFYUI_TYPE_NAMES } from "../src/constants";
 import { refreshComfyUITranslations, registerComfyUINodes } from "../src";
 

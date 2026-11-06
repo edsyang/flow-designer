@@ -1,10 +1,13 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
-import { initializeI18n, registerMessages, setLocale } from "@flow-designer/model";
+import { initializeI18n, registerMessages, setLocale } from "@flow-designer/i18n";
 import { useTranslate } from "../src/hooks/use-translate";
 
 beforeAll(async () => {
-  await initializeI18n();
+  await initializeI18n({
+    "zh-CN": { "workbench.language.label": "语言" },
+    "en-US": { "workbench.language.label": "Language" },
+  });
 });
 
 afterEach(async () => {

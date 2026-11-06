@@ -1,0 +1,46 @@
+import type { Locale, Messages } from "@flow-designer/i18n";
+
+export const workbenchMessages: Record<Locale, Messages> = {
+  "zh-CN": {
+    "workbench.canvas.label": "流程画布",
+    "workbench.canvas.addHint": "双击空白画布或拖动线至画布空白处添加节点",
+    "workbench.canvas.quickAdd": "添加节点",
+    "workbench.canvas.connectNode": "选择要连接的节点",
+    "workbench.canvas.connectHint": "从端口拖到空白处后，选择一个节点即可自动连上",
+    "workbench.canvas.close": "关闭",
+    "workbench.canvas.noMatch": "没有匹配的节点",
+    "workbench.canvas.addFailed": "无法添加“{{name}}”",
+    "workbench.canvas.interaction": "画布交互",
+    "workbench.canvas.selectTool": "选择工具",
+    "workbench.canvas.panTool": "平移工具",
+    "workbench.canvas.help": "操作帮助",
+    "workbench.sidebar.expand": "展开节点库",
+    "workbench.sidebar.collapse": "节点库",
+    "workbench.sidebar.search": "搜索节点库",
+    "workbench.sidebar.searchPlaceholder": "搜索节点…",
+    "workbench.inspector.expand": "展开属性",
+    "workbench.inspector.collapse": "收起属性",
+  },
+  "en-US": {
+    "workbench.canvas.label": "Flow canvas",
+    "workbench.canvas.addHint":
+      "Double-click on blank canvas space, or drag a connection to an empty area of the canvas, to add a node.",
+    "workbench.canvas.quickAdd": "Add node",
+    "workbench.canvas.connectNode": "Choose a node to connect",
+    "workbench.canvas.connectHint":
+      "Drag from a port to empty canvas, then pick a node to connect it automatically",
+    "workbench.canvas.close": "Close",
+    "workbench.canvas.noMatch": "No matching nodes",
+    "workbench.canvas.addFailed": "Unable to add “{{name}}”",
+    "workbench.canvas.interaction": "Canvas interaction",
+    "workbench.canvas.selectTool": "Select tool",
+    "workbench.canvas.panTool": "Pan tool",
+    "workbench.canvas.help": "Help",
+    "workbench.sidebar.expand": "Expand node library",
+    "workbench.sidebar.collapse": "Node library",
+    "workbench.sidebar.search": "Search node library",
+    "workbench.sidebar.searchPlaceholder": "Search nodes…",
+    "workbench.inspector.expand": "Expand properties",
+    "workbench.inspector.collapse": "Collapse properties",
+  },
+};

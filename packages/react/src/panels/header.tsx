@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import type { IArea, PaneConfig } from "@flow-designer/model";
 import { createContent } from "@flow-designer/skeleton";
 import type { Document } from "@flow-designer/model";
-import type { Locale } from "@flow-designer/model";
+import type { Locale } from "@flow-designer/i18n";
 import { mountArea } from "./mount-area";
 import styles from "../workbench.module.less";
 

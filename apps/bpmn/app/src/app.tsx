@@ -1,12 +1,6 @@
 import { createRoot } from "react-dom/client";
-import {
-  createDesigner,
-  Workbench,
-  initializeI18n,
-  signal,
-  subscribeLocale,
-  t,
-} from "@flow-designer/engine";
+import { createDesigner, Workbench, initializeDesignerI18n, signal } from "@flow-designer/engine";
+import { subscribeLocale, t } from "@flow-designer/i18n";
 import { registerProcessContentType } from "@flow-designer/bpmn-model";
 import { bpmnMessages } from "@flow-designer/bpmn-nodes/i18n";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
@@ -25,7 +19,7 @@ async function init() {
 
   if (!container) throw new Error("Root element #root not found");
 
-  await initializeI18n(bpmnMessages);
+  await initializeDesignerI18n(bpmnMessages);
 
   const {
     registerBpmnNodes,
@@ -38,20 +32,11 @@ async function init() {
   registerBpmnNodes();
   refreshBpmnTranslations();
 
-  let designer: Designer | null = null;
   subscribeLocale(() => {
-    const changedDefaults = refreshBpmnTranslations();
-    const defaultsByType = new Map(changedDefaults.map((change) => [change.typeName, change]));
-    for (const node of designer?.document.getContent().getNodes() ?? []) {
-      const change = defaultsByType.get(node.getTypeName());
-      const name = node.getProps().getProp("name")?.getData();
-      if (change && name === change.previous) {
-        node.getProps().getProp("name")?.setData(change.next);
-      }
-    }
+    refreshBpmnTranslations();
   });
 
-  designer = await createDesigner({
+  const designer: Designer = await createDesigner({
     container,
     documentType: "process",
     documentVersion: "1.0.0",

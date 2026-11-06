@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Input } from "antd";
-import { CANVAS_COMMANDS, prototypeRegistry, t } from "@flow-designer/model";
+import { CANVAS_COMMANDS, prototypeRegistry } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import type {
   BlankConnectionEvent,
   ConnectionRejectedEvent,

@@ -1,4 +1,4 @@
-import { t as translate } from "@flow-designer/model";
+import { t as translate } from "@flow-designer/i18n";
 
 const keyMap: Record<string, string> = {
   "comfyui.checkpoint": "comfyui.node.checkpointLoader",

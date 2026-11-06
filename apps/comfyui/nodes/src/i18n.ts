@@ -1,7 +1,8 @@
-import type { Locale, Messages } from "@flow-designer/model";
+import type { Locale, Messages } from "@flow-designer/i18n";
 
 const messages: Record<Locale, Messages> = {
   "zh-CN": {
+    "comfyui.app.header": "ComfyUI 设计器",
     "comfyui.node.checkpointLoader": "模型加载器",
     "comfyui.node.sampler": "采样器",
     "comfyui.node.clipTextEncode": "CLIP 文本编码",
@@ -30,6 +31,7 @@ const messages: Record<Locale, Messages> = {
     "comfyui.app.title": "ComfyUI 设计器",
   },
   "en-US": {
+    "comfyui.app.header": "ComfyUI Designer",
     "comfyui.node.checkpointLoader": "Checkpoint Loader",
     "comfyui.node.sampler": "KSampler",
     "comfyui.node.clipTextEncode": "CLIP Text Encode",

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createDesigner } from "../src/create-designer";
-import { contentTypesRegistry, GenericContent, t, utils } from "@flow-designer/model";
+import { contentTypesRegistry, GenericContent, utils } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 
 beforeEach(() => {
   if (!contentTypesRegistry.getSuitableContentType("default")) {

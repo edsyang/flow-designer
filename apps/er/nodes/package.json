@@ -34,5 +34,8 @@
     "@flow-designer/model": "workspace:*",
     "@flow-designer/setters": "workspace:*",
     "react": "^18.3.1"
+  },
+  "dependencies": {
+    "@flow-designer/i18n": "workspace:*"
   }
 }

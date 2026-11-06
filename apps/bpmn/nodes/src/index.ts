@@ -1,4 +1,5 @@
-import { prototypeRegistry, t } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 export { bpmnMessages } from "./i18n";
 import type { NodeDefinition } from "@flow-designer/model";
 import { startEventDef } from "./start-event";

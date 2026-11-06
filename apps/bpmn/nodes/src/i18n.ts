@@ -1,7 +1,8 @@
-import type { Locale, Messages } from "@flow-designer/model";
+import type { Locale, Messages } from "@flow-designer/i18n";
 
 const messages: Record<Locale, Messages> = {
   "zh-CN": {
+    "bpmn.app.header": "BPMN 流程设计器",
     "bpmn.node.startEvent": "开始事件",
     "bpmn.node.startEvent.label": "开始",
     "bpmn.node.endEvent": "结束事件",
@@ -44,6 +45,7 @@ const messages: Record<Locale, Messages> = {
     "bpmn.app.title": "BPMN 流程设计器",
   },
   "en-US": {
+    "bpmn.app.header": "BPMN Flow Designer",
     "bpmn.node.startEvent": "Start Event",
     "bpmn.node.startEvent.label": "Start",
     "bpmn.node.endEvent": "End Event",

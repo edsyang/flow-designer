@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { prototypeRegistry, setLocale } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import { setLocale } from "@flow-designer/i18n";
 import { refreshBpmnTranslations, registerBpmnNodes } from "../src";
 import { startEventDef } from "../src/start-event";
 import { endEventDef } from "../src/end-event";

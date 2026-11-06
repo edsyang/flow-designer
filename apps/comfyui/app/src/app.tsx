@@ -4,11 +4,10 @@ import {
   Workbench,
   contentTypesRegistry,
   GenericContent,
-  initializeI18n,
+  initializeDesignerI18n,
   signal,
-  subscribeLocale,
-  t,
 } from "@flow-designer/engine";
+import { subscribeLocale, t } from "@flow-designer/i18n";
 import { comfyuiMessages } from "@flow-designer/comfyui-nodes/i18n";
 import { comfyuiTransformer } from "@flow-designer/comfyui-utils";
 import type { Designer, IGraphManager } from "@flow-designer/engine";
@@ -28,7 +27,7 @@ async function init() {
 
   if (!container) throw new Error("Root element #root not found");
 
-  await initializeI18n(comfyuiMessages);
+  await initializeDesignerI18n(comfyuiMessages);
 
   const { registerComfyUINodes, refreshComfyUITranslations, getDataLinkEdgeType } =
     await import("@flow-designer/comfyui-nodes");

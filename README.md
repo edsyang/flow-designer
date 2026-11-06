@@ -21,9 +21,12 @@ Flow Designer is an extensible visual flow-editor framework built with React, Ty
 
 The workbench and the BPMN, ComfyUI, and ER examples support Simplified Chinese and English. Simplified Chinese is the default; the language selector saves the choice in browser storage.
 
-Custom applications pass scenario messages to `createDesigner`; the engine initializes i18next with core and scenario messages before plugins start:
+Translation state lives in `@flow-designer/i18n`, independently of model, React, browser storage and application catalogs. Custom applications pass scenario messages to `createDesigner`; the engine composes framework and scenario messages before plugins start:
 
 ```ts
+import { createDesigner } from "@flow-designer/engine";
+import { setLocale } from "@flow-designer/i18n";
+
 const designer = await createDesigner({
   documentType: "*",
   documentVersion: "1.0.0",
@@ -44,12 +47,12 @@ Use semantic, namespaced keys with `t('custom.node.title')` directly in node met
 Messages can also be registered after initialization — for example when a plugin or lazy chunk loads. `registerMessages` merges a whole catalog, `addMessages` merges one locale, and both re-render subscribed workbench components:
 
 ```ts
-import { registerMessages } from "@flow-designer/model";
+import { registerMessages } from "@flow-designer/i18n";
 
 registerMessages({ "en-US": { "custom.node.title": "My node" } });
 ```
 
-React components read translations through `useTranslate`, which subscribes to locale and catalog changes:
+Supplied keys replace their previous values in that locale; unrelated keys remain. React components read translations through `useTranslate`, which subscribes to locale and catalog changes. The existing `@flow-designer/react` hook remains a compatible facade:
 
 ```tsx
 import { useTranslate } from "@flow-designer/react";
@@ -63,6 +66,38 @@ function Toolbar() {
   );
 }
 ```
+
+If node definitions call `t()` while their module is evaluated, initialize before importing/registering those definitions:
+
+```ts
+import { initializeDesignerI18n } from "@flow-designer/engine";
+import { scenarioMessages } from "./i18n";
+
+await initializeDesignerI18n(scenarioMessages);
+await import("./register-nodes");
+```
+
+`initializeDesignerI18n` combines catalogs from `packages/{graph,plugins,react,setters,skeleton}/src/messages.ts` and reads the initial browser preference (falling back to Chinese). Scenario catalogs, including example header text, belong in each scenario's `nodes/src/i18n.ts`. `createDesigner` owns the language-persistence subscription and disposes it on destruction or failed setup; registering messages alone does not write storage.
+
+For a separately scoped React subtree, create and initialize a service explicitly:
+
+```tsx
+import { createI18n } from "@flow-designer/i18n";
+import { I18nProvider, useTranslate } from "@flow-designer/i18n/react";
+
+const translations = createI18n();
+await translations.initializeI18n({ "en-US": { greeting: "Hello" } }, "en-US");
+// Descendant useTranslate() calls use this service.
+const view = (
+  <I18nProvider instance={translations}>
+    <MyWidget />
+  </I18nProvider>
+);
+```
+
+The service defaults to Chinese and performs no browser preference lookup or persistence. The complete designer still uses the shared default service: a Provider does not isolate its plugins or registries. This release does not establish same-page multi-designer isolation.
+
+**Migration:** move translation functions and `Locale`/`Messages` types previously imported from `@flow-designer/model` to `@flow-designer/i18n`; model no longer re-exports them. Replace UI bootstrap calls to the low-level `initializeI18n` with `initializeDesignerI18n(scenarioMessages)` from engine. Low-level `initializeI18n` remains available for independent services and does not install framework UI catalogs.
 
 ## Theme
 

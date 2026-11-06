@@ -1,12 +1,7 @@
+import { initializeDesignerI18n, persistLocalePreference } from "./i18n";
 import { configure } from "mobx";
 import { getLogger } from "@flow-designer/core";
-import {
-  Document,
-  initializeI18n,
-  setterRegistry,
-  contentTypesRegistry,
-  utils,
-} from "@flow-designer/model";
+import { Document, setterRegistry, contentTypesRegistry, utils } from "@flow-designer/model";
 import {
   registerBuiltinPlugins,
   pluginAutoSave,
@@ -19,13 +14,14 @@ import type { DesignerOptions, Designer } from "./types";
 const logger = getLogger({ level: "error", bizName: "engine:createDesigner" });
 
 export async function createDesigner(options: DesignerOptions): Promise<Designer> {
-  await initializeI18n(options.localeMessages);
+  await initializeDesignerI18n(options.localeMessages);
   configure({ enforceActions: "observed" });
 
   const engine = new Engine();
   const { editor, plugins } = engine;
 
   try {
+    engine.addDisposer(persistLocalePreference());
     editor.setContainer(options.container ?? null);
     engine.addDisposer(utils.hotkey.init(window));
     for (const transformer of options.transformers ?? []) {

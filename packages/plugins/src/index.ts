@@ -14,3 +14,5 @@ export { pluginAutoSave } from "./auto-save";
 export type { AutoSaveExports } from "./auto-save";
 export { pluginUnsavedPrompt } from "./unsaved-prompt";
 export { registerBuiltinPlugins } from "./register-builtin-plugins";
+
+export { pluginsMessages } from "./messages";

@@ -1,4 +1,4 @@
-import { t as translate } from "@flow-designer/model";
+import { t as translate } from "@flow-designer/i18n";
 
 function resolveKey(key: string): string {
   if (key === "er.table" || key === "er.view" || key === "er.enum") {

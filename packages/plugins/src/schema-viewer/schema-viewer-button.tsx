@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Button, Modal } from "antd";
 import { CodeOutlined } from "@ant-design/icons";
-import { t } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import styles from "./schema-viewer.module.less";
 
 interface SchemaViewerButtonProps {

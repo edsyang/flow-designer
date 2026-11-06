@@ -21,9 +21,12 @@ Flow Designer 是一个基于 React、TypeScript 和 AntV X6 的可扩展可视�
 
 工作台以及 BPMN、ComfyUI、ER 示例支持简体中文和英语。默认使用简体中文；语言选择会保存在浏览器存储中。
 
-自定义应用把场景词条传给 `createDesigner`；engine 会在插件初始化前把核心词条和场景词条一起加载到 i18next：
+翻译状态归 `@flow-designer/i18n`，不依赖 model、React、浏览器存储或应用词条。自定义应用把场景词条传给 `createDesigner`；engine 会在插件初始化前组合框架与场景词条：
 
 ```ts
+import { createDesigner } from "@flow-designer/engine";
+import { setLocale } from "@flow-designer/i18n";
+
 const designer = await createDesigner({
   documentType: "*",
   documentVersion: "1.0.0",
@@ -44,12 +47,12 @@ await setLocale("en-US");
 词条也可以在初始化之后注册（例如插件或懒加载模块就绪时）。`registerMessages` 合并整份目录，`addMessages` 合并单个语言，两者都会触发已订阅的工作台组件重新渲染：
 
 ```ts
-import { registerMessages } from "@flow-designer/model";
+import { registerMessages } from "@flow-designer/i18n";
 
 registerMessages({ "en-US": { "custom.node.title": "My node" } });
 ```
 
-React 组件通过 `useTranslate` 读取翻译，它同时订阅语言与词条目录的变化：
+新传入的同名 key 会覆盖该语言中的旧值，其余 key 保留。React 组件通过 `useTranslate` 读取翻译，它同时订阅语言与词条目录的变化；原有 `@flow-designer/react` hook 继续作为兼容门面：
 
 ```tsx
 import { useTranslate } from "@flow-designer/react";
@@ -63,6 +66,38 @@ function Toolbar() {
   );
 }
 ```
+
+如果节点定义在模块求值时调用 `t()`，应先初始化，再导入和注册这些定义：
+
+```ts
+import { initializeDesignerI18n } from "@flow-designer/engine";
+import { scenarioMessages } from "./i18n";
+
+await initializeDesignerI18n(scenarioMessages);
+await import("./register-nodes");
+```
+
+`initializeDesignerI18n` 组合 `packages/{graph,plugins,react,setters,skeleton}/src/messages.ts` 的词条，并读取浏览器初始语言偏好（无有效偏好时为中文）。场景词条及示例 header 文案归各场景的 `nodes/src/i18n.ts`。`createDesigner` 持有语言持久化订阅，在销毁或初始化失败时清理；仅注册词条不会写入存储。
+
+独立 React 子树可以显式创建并初始化服务：
+
+```tsx
+import { createI18n } from "@flow-designer/i18n";
+import { I18nProvider, useTranslate } from "@flow-designer/i18n/react";
+
+const translations = createI18n();
+await translations.initializeI18n({ "en-US": { greeting: "Hello" } }, "en-US");
+// 后代 useTranslate() 使用此服务。
+const view = (
+  <I18nProvider instance={translations}>
+    <MyWidget />
+  </I18nProvider>
+);
+```
+
+纯服务默认中文，不自行读取或持久化浏览器偏好。完整 designer 本轮仍使用共享默认服务；Provider 不会隔离其插件和注册表，不能据此宣称同页多 designer 隔离。
+
+**迁移：** 原从 `@flow-designer/model` 导入的翻译函数和 `Locale`/`Messages` 类型改从 `@flow-designer/i18n` 导入，model 不再转导出。UI 启动时调用的底层 `initializeI18n` 改为 engine 的 `initializeDesignerI18n(scenarioMessages)`。底层 `initializeI18n` 仍供独立服务使用，不会安装框架 UI 词条。
 
 ## 主题
 

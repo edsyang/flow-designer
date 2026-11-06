@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { prototypeRegistry, setLocale } from "@flow-designer/model";
+import { prototypeRegistry } from "@flow-designer/model";
+import { setLocale } from "@flow-designer/i18n";
 import { refreshComfyUITranslations, registerComfyUINodes } from "../src";
 import { checkpointLoaderDef } from "../src/checkpoint-loader";
 import { ksamplerDef } from "../src/ksampler";

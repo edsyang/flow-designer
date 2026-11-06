@@ -8,8 +8,9 @@ import type {
   ContentNode,
   EdgeTypeConfig,
 } from "@flow-designer/model";
-import type { Locale } from "@flow-designer/model";
-import { prototypeRegistry, setterRegistry, t } from "@flow-designer/model";
+import type { Locale } from "@flow-designer/i18n";
+import { prototypeRegistry, setterRegistry } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import styles from "./settings-renderer.module.less";
 import { edgeNameField, edgeNamePatch, edgeNameValue } from "../x6-graph/commands/edge-properties";
 

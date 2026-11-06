@@ -1,3 +1,5 @@
+import { graphMessages } from "../../graph/src/messages";
+import { workbenchMessages } from "../src/messages";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
@@ -5,9 +7,9 @@ import {
   Document,
   GenericContent,
   contentTypesRegistry,
-  initializeI18n,
   prototypeRegistry,
 } from "@flow-designer/model";
+import { initializeI18n } from "@flow-designer/i18n";
 import type {
   ConnectionContext,
   ConnectionCheckOptions,
@@ -24,7 +26,10 @@ import { Canvas } from "../src/panels/canvas";
 import { setMessageApi } from "../src/message-holder";
 
 beforeAll(async () => {
-  await initializeI18n();
+  await initializeI18n({
+    "zh-CN": { ...workbenchMessages["zh-CN"], ...graphMessages["zh-CN"] },
+    "en-US": { ...workbenchMessages["en-US"], ...graphMessages["en-US"] },
+  });
   if (!contentTypesRegistry.getSuitableContentType("*"))
     contentTypesRegistry.register(GenericContent);
 });

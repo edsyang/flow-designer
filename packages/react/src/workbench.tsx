@@ -11,15 +11,10 @@ import { Sidebar } from "./panels/sidebar";
 import { Inspector } from "./panels/inspector";
 import { Canvas } from "./panels/canvas";
 import { setMessageApi } from "./message-holder";
-import {
-  applyTheme,
-  getLocaleSnapshot,
-  getThemeSnapshot,
-  subscribeLocale,
-  subscribeTheme,
-  t,
-} from "@flow-designer/model";
-import type { Locale, Theme } from "@flow-designer/model";
+import { applyTheme, getThemeSnapshot, subscribeTheme } from "@flow-designer/model";
+import { getLocaleSnapshot, subscribeLocale, t } from "@flow-designer/i18n";
+import type { Theme } from "@flow-designer/model";
+import type { Locale } from "@flow-designer/i18n";
 import type { WorkbenchProps } from "./types";
 import styles from "./workbench.module.less";
 import "./design-tokens.less";

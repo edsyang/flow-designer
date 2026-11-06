@@ -34,7 +34,8 @@
     "@antv/x6-plugin-clipboard": "^2.1.0",
     "@antv/x6-plugin-keyboard": "^2.2.0",
     "@antv/x6-plugin-stencil": "^2.1.0",
-    "@antv/x6-plugin-dnd": "^2.1.0"
+    "@antv/x6-plugin-dnd": "^2.1.0",
+    "@flow-designer/i18n": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.3.1",

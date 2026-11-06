@@ -7,6 +7,11 @@ const { ESLint, Linter } = require("eslint");
 const eslint = new ESLint({ cwd: root });
 const linter = new Linter();
 const cases = [
+  ["packages/i18n/src/index.ts", "import {Document} from '@flow-designer/model';", true],
+  ["packages/i18n/src/index.ts", "import {createElement} from 'react';", true],
+  ["packages/i18n/src/react.tsx", "import {createContext} from 'react';", false],
+  ["packages/core/src/editor.ts", "import {useTranslate} from '@flow-designer/i18n/react';", true],
+  ["packages/core/src/editor.ts", "import {t} from '@flow-designer/i18n';", false],
   ["packages/core/src/editor.ts", "import {createElement} from 'react';", true],
   ["packages/core/src/editor.ts", "import type {ReactNode} from 'react';", false],
   ["packages/core/src/editor.ts", "import {Workbench} from '@flow-designer/react';", true],
@@ -30,7 +35,17 @@ const cases = [
   ["packages/graph/src/index.ts", "import {Graph} from '@antv/x6';", false],
   ["apps/bpmn/app/src/app.tsx", "import {x} from '@flow-designer/bpmn-model';", false],
 ];
-for (const pkg of ["core", "model", "graph", "plugins", "react", "skeleton", "setters", "engine"]) {
+for (const pkg of [
+  "i18n",
+  "core",
+  "model",
+  "graph",
+  "plugins",
+  "react",
+  "skeleton",
+  "setters",
+  "engine",
+]) {
   cases.push([
     `packages/${pkg}/src/index.ts`,
     "import {x} from '@flow-designer/comfyui-nodes';",

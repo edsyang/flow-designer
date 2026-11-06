@@ -2,7 +2,7 @@ import { useId, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { Modal, Button } from "antd";
 import { QuestionCircleOutlined } from "@ant-design/icons";
-import { t } from "@flow-designer/model";
+import { t } from "@flow-designer/i18n";
 import { useEditor } from "@flow-designer/react";
 import styles from "./canvas-help.module.less";
 
