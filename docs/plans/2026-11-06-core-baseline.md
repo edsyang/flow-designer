@@ -1,6 +1,6 @@
 # P0 核心重构基线与 P2 契约迁移路线
 
-日期：2026-11-06。运行时基线为已提交 i18n 阶段 `419757d`；本文和新增检查不修改 runtime。P1 同时在进行源码拆分，下面公共消费检查只读取此前构建的 dist，不将中间源码当作已构建产品。阶段授权和执行状态由主计划维护，本文不重复旧计划中已过期的授权措辞。
+日期：2026-11-06。运行时基线为已提交 i18n 阶段 `419757d`；本文和新增检查不修改 runtime。P1 同时在进行源码拆分，下面公共消费检查只读取此前构建的 dist，不将中间源码当作已构建产品。当前 P0、P1 已完成；P2 以下内容仅为设计方案，尚未实施。
 
 ## 可运行产物和命令
 
@@ -76,7 +76,7 @@ BPMN 自定义解析/关系行为由 `apps/bpmn/model/__tests__/{bpmn-model,inte
 - core 新增内部 `graph-contracts` 与 `canvas-commands` 模块并从主入口导出；不新增 npm 包。
 - 将 `CANVAS_COMMANDS` 及现有请求/结果从 model 原样迁 core，命令字符串、行为与实现位置不变；实现继续在 plugins。
 - model 保留 SerializedNode/SerializedRelation/SerializedEdgeElement、PortDefinition、canUsePort 和领域关系。纯 Point/endpoint 数据可留 model或在 core 使用结构类型，避免反向 import。
-- IGraphManager 应用门面迁 core，首步由窄能力接口组合；保留公开同名 facade 导出。内部 graph consumer只依赖自己需要的 capability，而不传完整 manager。
+- core 定义按真实调用面组合的 GraphPort；Editor.getGraph/PluginContext.graph 使用此纯应用端口。Designer.graph 保留 graph adapter；engine 的 IGraphManager 兼容别名可由 graph 提供，不把原生逃逸能力带回 core。内部消费者只依赖所需能力。
 - UI agent 负责 PaneConfig/IArea/ISkeleton 迁 skeleton 以及 typed `bindSkeleton(editor,skeleton)`/`getSkeleton(editor)` 的 WeakMap 绑定；core 删除 UI ownership，不依赖 skeleton。挂载绑定须返回身份校验 disposer。
 - model 旧应用/UI出口与内部消费者同一阶段原子移除；engine 从上层重新聚合新归属保持 facade 名称。不得用 model→core/skeleton 的兼容反向 re-export。直接 model 用户导入路径为明确 breaking，迁移表需记录。
 
@@ -89,7 +89,7 @@ BPMN 自定义解析/关系行为由 `apps/bpmn/model/__tests__/{bpmn-model,inte
 - `GraphViewportPort`：zoomTo/getZoom/zoomToFit/centerContent/resize/clientToLocal/localToClient。
 - `GraphInteractionPort`：setInteractionMode/getInteractionMode、startNodeDrag。
 - `GraphConnectionPort`：getPortDefinition/getDefaultEdgeType/getEdgeTypeName，evaluateConnection/resolveConnection/checkConnection。区分 prototype candidate 和真实 commit，保留 strict 指定端口校验与仅几何失败可fallback。
-- `GraphEventsPort`：typed event map；核心 finalized 事件不再用 `(...unknown[])` 交出实时 cell。
+- `GraphEventsPort`：独立 typed subscription/event map；核心 finalized 事件不再用 `(...unknown[])` 交出实时 cell。graph adapter 原生 on/off API 保留原 payload，新应用事件使用独立入口，避免静默破坏外部消费者。
 - `GraphManager` 组合上述能力用于便捷门面；init/dispose 生命周期接口可单独组合。
 - registerNodeType/registerEdgeType 的 React component/config、getX6Graph/useX6Plugin/stencil 工具属于 graph adapter。P2 中显式标记临时 escape-hatch consumer并逐个迁移，不伪装成纯 core GraphPort。
 
@@ -103,6 +103,7 @@ BPMN 自定义解析/关系行为由 `apps/bpmn/model/__tests__/{bpmn-model,inte
 - `EdgeEndpointPatch`：edgeId、真实 sourceNodeId/targetNodeId、最终 sourcePortId/targetPortId、detached vertices；需要类型时包含 edgeType ID，而非推导 router mode。
 - `ConnectionCommit`：edgeId、新建/重连及原 source owner ID、最终两个 endpoint、edgeType、detached props/vertices。
 - `VerticesCommit`：edgeId、source owner ID、detached vertices。
+- `StencilDropCommit`：临时 cell ID、typeName、最终位置；选择、点击、空白连接、拒绝事件只包含 IDs、坐标、原因码，不传 cell 或 DOM event。
 
 Graph 在合法状态恢复/最终port解析完成后同步复制 DTO，再发事件；plugins 在 await 或延后提交时不再读取 mutable X6 cell，避免监听器先后关系。节点移动必须包含第三方障碍导致改变端口的非相连边，不仅 connected edges。被拒操作不发成功commit；保留既有reason/warning事件，legacy诊断不同于新操作拒绝。
 
@@ -116,3 +117,11 @@ DTO 是最终变更快照，不是整图快照、不授权全图 rollback；一�
 - 单手势ports/type/vertices/saveLoad/undoRedo完全一致；拒绝/no-op/owned补偿与并发外部编辑既有测试保持。
 - UI binding cleanup覆盖A解除不能删B覆盖后的绑定；core不再保留任何Skeleton类型/React runtime依赖。
 - 不同时改CommandBus实例化（P3）、所有编辑服务实现（P4）、router算法/缓存（P5）、全部NodeDefinition UI类型（P6）。P1拆分完成并freeze后才开始runtime迁移。
+
+### 5. 实施切分与额外风险
+
+先冻结接口和 DTO 产生时机，再分派生产者与消费者，最终原子集成：UI 契约迁 skeleton；core 定义应用端口、plugins 迁移消费；graph 提供适配实现；engine 保留组合门面并验证消费。不要留下只能编译一半的提交。
+
+NodeBridge 当前仍直接调用原生 position/attrs/ports；须改成数据化 updateNode patch，并保留差异更新，避免接口变干净却引入全量刷新。原生 clipboard 留在 graph 适配器，通过 copyCells 等窄方法调用。P2 不同时修改注册实例化、路由算法或事务补偿。
+
+P3 隔离还须覆盖 X6 全局 shape 注册：即使 model registries 按实例创建，相同 typeName 的渲染闭包仍可能相互覆盖。应评估实例化原生 shape ID 与身份绑定的注销，保持序列化 typeName 不变；同时验证场景语言刷新、setter/transformer 注册和迟到异步回调，不以两个 registry 对象作为隔离成功的证据。
